@@ -5,8 +5,14 @@ Lancer : streamlit run app/streamlit_app.py
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 import pandas as pd
 import streamlit as st
+
+# Rend le paquet importable sans `pip install -e .` (cas de Streamlit Community Cloud).
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from carburants import analysis, config
 
@@ -92,7 +98,7 @@ table = show.rename(
 st.dataframe(
     table.style.format({"Prix (€/L)": "{:.3f}", "Distance (km)": "{:.1f}", "Plein (€)": "{:.2f}",
                         "Détour (€)": "{:.2f}", "Total (€)": "{:.2f}"}),
-    hide_index=True, use_container_width=True,
+    hide_index=True, width="stretch",
 )
 st.map(show[["latitude", "longitude"]], zoom=10)
 

@@ -1,2 +1,6 @@
+# Dépendances de l'appli pour Streamlit Community Cloud
 streamlit>=1.40
--e .
+pandas>=2.2
+pyarrow>=15
+numpy>=1.26
+requests>=2.31
