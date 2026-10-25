@@ -108,7 +108,7 @@ const icon = (id, cls = "ic") => `<svg class="${cls}" aria-hidden="true"><use hr
 // ---------- Éléments ----------
 const $ = (id) => document.getElementById(id);
 const els = {
-  fresh: $("fresh"), start: $("start"), startText: $("startText"), fuels: $("fuels"), settingsBtn: $("settingsBtn"),
+  start: $("start"), startText: $("startText"), fuels: $("fuels"),
   answer: $("answer"), answerBody: $("answerBody"), alts: $("alts"), showAll: $("showAll"), showAllText: $("showAllText"),
   allList: $("allList"), favList: $("favList"), map: $("map"), mapNote: $("mapNote"),
   logTotal: $("logTotal"), logForm: $("logForm"), logStation: $("logStation"), logLitres: $("logLitres"),
@@ -117,7 +117,7 @@ const els = {
   settingsSheet: $("settingsSheet"), settingsForm: $("settingsForm"), places: $("places"), profiles: $("profiles"), navPref: $("navPref"),
   custom: $("custom"), litres: $("litres"), conso: $("conso"), radius: $("radius"), radiusOut: $("radiusOut"),
   useGps: $("useGps"), useGpsText: $("useGpsText"), gpsHint: $("gpsHint"), toast: $("toast"),
-  fillCard: $("fillCard"), fillText: $("fillText"), fillYes: $("fillYes"), fillNo: $("fillNo"), hapticLabel: $("hapticLabel"),
+  fillCard: $("fillCard"), fillText: $("fillText"), fillQuick: $("fillQuick"), fillYes: $("fillYes"), fillNo: $("fillNo"), hapticLabel: $("hapticLabel"),
 };
 
 // ---------- Modèle ----------
@@ -148,18 +148,21 @@ function computeRanking() {
 function renderStart() {
   const v = vehicle();
   els.start.classList.toggle("locating", locating);
-  els.startText.textContent = locating ? "Recherche de ta position…" : `Depuis ${originLabel()} · ${v.short} · ${state.radius} km`;
+  const where = state.placeId === "gps" ? (state.gps ? "Ta position" : "Comédie") : (PLACES.find((p) => p.id === state.placeId) || PLACES[0]).short;
+  els.startText.textContent = locating ? "Position…" : `${where} · ${v.short} · ${state.radius} km`;
 }
 function renderFuels() {
   const fuels = FUEL_ORDER.filter((f) => data.fuels[f]);
   if (!fuels.includes(state.fuel)) state.fuel = fuels[0];
   els.fuels.innerHTML = fuels.map((f) => `<button type="button" role="radio" class="fuel" data-fuel="${f}"
-      aria-checked="${f === state.fuel}"><b>${esc(data.fuels[f].label)}</b><small>${data.fuels[f].stations}</small></button>`).join("");
+      aria-checked="${f === state.fuel}"><b>${esc(data.fuels[f].label)}</b></button>`).join("");
 }
 function renderFresh() {
-  const t = new Date(data.generated_at);
-  els.fresh.textContent = `Prix relevés ${ago(t)}`;
-  els.fresh.title = t.toLocaleString("fr-FR");
+  const how = document.querySelector(".how p");
+  if (how && !how.dataset.done) {
+    how.dataset.done = "1";
+    how.insertAdjacentText("beforeend", ` Prix officiels relevés ${ago(new Date(data.generated_at))}.`);
+  }
 }
 const navLabel = () => NAV_APPS.find((a) => a.id === state.nav)?.label;
 
@@ -176,7 +179,7 @@ function renderAnswer() {
   const stale = hoursOld(r.updatedAt) > STALE_HOURS;
   const saving = r.gain > 0.05 ? `<span class="save">${eur.format(r.gain)} de moins que la plus proche</span>`
     : `<span>${r.isNearest ? "C'est aussi la plus proche" : "Même total que la plus proche"}</span>`;
-  const age = stale ? `<span class="flag">${icon("i-caution")}prix ${ago(r.updatedAt)}</span>` : `<span>prix ${ago(r.updatedAt)}</span>`;
+  const age = stale ? `<br><span class="flag">${icon("i-caution")}prix ${ago(r.updatedAt)}</span>` : "";
   els.answerBody.innerHTML = `
     <button type="button" class="ans-head plain" data-open="${esc(s.id)}" aria-label="Détails de la station ${esc(stationName(s))}">
       <span class="ans-name">${esc(stationName(s))}</span>
@@ -188,18 +191,20 @@ function renderAnswer() {
       <p class="fact"><b>${eur.format(r.total)}</b><span>plein + détour</span></p>
     </div>
     <button type="button" class="go" data-go="${esc(s.id)}">${icon("i-go")}Y aller${navLabel() ? `<small>· ${esc(navLabel())}</small>` : ""}</button>
-    <div class="ans-foot"><span>${saving}<br>${age}</span>
+    <div class="ans-foot"><span>${saving}${age}</span>
       <button type="button" class="icon-btn star-btn" data-fav="${esc(s.id)}" aria-pressed="${isFav(s.id)}" aria-label="${isFav(s.id) ? "Retirer des favoris" : "Ajouter aux favoris"}">${icon("i-star")}</button>
     </div>`;
-  const key = `${s.id}|${state.fuel}|${r.total.toFixed(2)}`;
+  const key = `${s.id}|${state.fuel}`;
   if (!firstRender && key !== lastLeadKey) restitch();
   lastLeadKey = key;
 }
 
 // Signature : le bouquet se brode du bas vers le haut (à l'ouverture, puis plus vite quand la réponse change).
 function stitchIn(duration) {
-  const g = els.answer.querySelector(".stitches");
+  const svg = els.answer.querySelector(".bouquet");
+  const g = svg?.querySelector(".stitches");
   if (!g) return;
+  svg.classList.remove("pending");
   if (reduceMotion.matches) { g.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: "ease" }); return; }
   g.animate([{ clipPath: "inset(100% 0 0 0)" }, { clipPath: "inset(0 0 0 0)" }], { duration, easing: EASE_OUT });
 }
@@ -319,31 +324,24 @@ function showView(next) {
 }
 
 // ---------- Itinéraire : Plans, Google Maps ou Waze ----------
-function navUrls(app, s) {
+function navUrl(app, s) {
   const ll = `${s.lat},${s.lon}`;
-  if (app === "apple") return { web: `https://maps.apple.com/?daddr=${ll}&dirflg=d` };
-  if (app === "waze") return { web: `https://waze.com/ul?ll=${ll}&navigate=yes` };
-  return {
-    scheme: isIOS ? `comgooglemaps://?daddr=${ll}&directionsmode=driving` : null,
-    web: `https://www.google.com/maps/dir/?api=1&destination=${ll}&travelmode=driving`,
-  };
+  if (app === "apple") return `https://maps.apple.com/?daddr=${ll}&dirflg=d`;
+  if (app === "waze") return `https://waze.com/ul?ll=${ll}&navigate=yes`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${ll}&travelmode=driving`;
 }
-// Ouvre l'appli si elle est installée (lien universel ou schéma d'appli), sinon le site.
+// Liens universels : le téléphone ouvre l'appli si elle est installée, sinon le site.
+// Appelé directement dans le geste de l'utilisateur (sinon le navigateur bloque l'ouverture).
+let navTarget = null;
 function launchNav(app, s) {
-  const { scheme, web } = navUrls(app, s);
-  if (scheme) {
-    let left = false;
-    const onHide = () => { left = true; };
-    document.addEventListener("visibilitychange", onHide, { once: true });
-    location.href = scheme;
-    setTimeout(() => {
-      document.removeEventListener("visibilitychange", onHide);
-      if (!left && document.visibilityState === "visible") window.open(web, "_blank", "noopener");
-    }, 1400);
-    return;
-  }
-  const w = window.open(web, "_blank", "noopener");
-  if (!w) location.href = web;
+  navTarget = { id: s.id, at: Date.now() };
+  const a = document.createElement("a");
+  a.href = navUrl(app, s);
+  a.target = "_blank";
+  a.rel = "noopener";
+  document.body.append(a);
+  a.click();
+  a.remove();
 }
 let pendingNavStation = null;
 function go(id) {
@@ -406,7 +404,7 @@ const currentPalette = () => MAP_PALETTES[darkScheme.matches ? "dark" : "light"]
 function flowerPin(n, top) {
   const el = document.createElement("button");
   el.type = "button";
-  el.className = `pin${top ? " top" : ""}`;
+  el.className = `pin${top ? " is-best" : ""}`;
   el.setAttribute("aria-label", `Station ${n}`);
   // Pastille cousue (point de couture en pointillé), numéro du classement au centre
   el.textContent = String(n);
@@ -440,10 +438,17 @@ async function renderMap() {
   me.className = "me-dot";
   markers.push(new maplib.Marker({ element: me }).setLngLat([o.lon, o.lat]).addTo(map));
   const shown = ranked.slice(0, MAP_MAX);
+  // Deux stations au même endroit : on décale légèrement la seconde pastille pour qu'elle reste visible.
+  const taken = [];
+  shown.forEach((r) => {
+    const near = taken.filter((t) => Math.abs(t[0] - r.station.lat) < 0.0012 && Math.abs(t[1] - r.station.lon) < 0.0012).length;
+    taken.push([r.station.lat, r.station.lon]);
+    r.pinOffset = near ? [near * 16, -near * 16] : [0, 0];
+  });
   shown.slice().reverse().forEach((r) => {
     const el = flowerPin(r.rank, r.rank === 1);
     el.addEventListener("click", (e) => { e.stopPropagation(); openStation(r.station.id); });
-    markers.push(new maplib.Marker({ element: el }).setLngLat([r.station.lon, r.station.lat]).addTo(map));
+    markers.push(new maplib.Marker({ element: el, offset: r.pinOffset }).setLngLat([r.station.lon, r.station.lat]).addTo(map));
   });
   const pts = [[o.lon, o.lat], ...shown.slice(0, 8).map((r) => [r.station.lon, r.station.lat])];
   const lons = pts.map((p) => p[0]);
@@ -579,29 +584,56 @@ function stopWatch() {
   if (watchId !== null) navigator.geolocation.clearWatch(watchId);
   watchId = null;
 }
+let lastFix = null;
 function onPosition(pos) {
+  if (pos.coords.accuracy > 60) return; // trop imprécis pour savoir si on est à la pompe
   const here = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+  lastFix = { ...here, at: Date.now() };
   checkDwell(here);
   if (state.placeId !== "gps") return;
   const moved = state.gps ? haversineKm(state.gps, here) * 1000 : Infinity;
   if (moved > REORIGIN_M) { state.gps = here; update(); }
 }
-// 3 minutes à moins de 50 m d'une station : on propose de noter le plein.
-function checkDwell(here) {
-  if (!data) return;
+function nearestStation(here) {
   let nearest = null;
   let best = Infinity;
   for (const s of data.stations) {
     const d = haversineKm(here, s) * 1000;
     if (d < best) { best = d; nearest = s; }
   }
-  const now = Date.now();
-  if (nearest && best <= DWELL_IN_M) {
-    if (!dwell || dwell.id !== nearest.id) dwell = { id: nearest.id, since: now };
-    else if (now - dwell.since >= DWELL_MS) maybeOfferFill(nearest);
-  } else if (!dwell || best > DWELL_OUT_M) {
+  return { station: nearest, meters: best };
+}
+// 3 minutes à moins de 50 m d'une station : on propose de noter le plein.
+// Un minuteur vérifie au bout de 3 min même si le téléphone, immobile, ne renvoie plus de position.
+let dwellTimer = 0;
+function checkDwell(here) {
+  if (!data) return;
+  const { station, meters } = nearestStation(here);
+  if (station && meters <= DWELL_IN_M) {
+    if (!dwell || dwell.id !== station.id) {
+      dwell = { id: station.id, since: Date.now() };
+      clearTimeout(dwellTimer);
+      dwellTimer = setTimeout(() => {
+        if (dwell?.id === station.id && lastFix && haversineKm(lastFix, station) * 1000 <= DWELL_OUT_M) maybeOfferFill(station);
+      }, DWELL_MS);
+    } else if (Date.now() - dwell.since >= DWELL_MS) {
+      maybeOfferFill(station);
+    }
+  } else if (meters > DWELL_OUT_M) {
     dwell = null;
+    clearTimeout(dwellTimer);
   }
+}
+// Retour dans Plein Sud après avoir suivi l'itinéraire : si on est à la station visée, on propose le plein tout de suite.
+function checkReturnFromNav() {
+  if (!navTarget || !data || !("geolocation" in navigator)) return;
+  const target = stationById(navTarget.id);
+  if (!target || Date.now() - navTarget.at < 60 * 1000 || Date.now() - navTarget.at > 3 * 3600 * 1000) return;
+  navigator.geolocation.getCurrentPosition((pos) => {
+    if (pos.coords.accuracy > 80) return;
+    const d = haversineKm({ lat: pos.coords.latitude, lon: pos.coords.longitude }, target) * 1000;
+    if (d <= DWELL_OUT_M) { navTarget = null; maybeOfferFill(target); }
+  }, () => {}, { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 });
 }
 function maybeOfferFill(s) {
   const seen = state.fillSeen[s.id] || 0;
@@ -620,7 +652,10 @@ let fillStation = null;
 function showFillCard(s) {
   fillStation = s;
   const p = s.prices[state.fuel]?.[0];
-  els.fillText.textContent = `Tu es à ${stationName(s)} depuis 3 min${p ? ` (${fuelLabel()} à ${commaNum(p, 3)} €)` : ""}. On le note dans ton carnet ?`;
+  const litres = Number(vehicle().litres);
+  els.fillText.textContent = `Tu es à ${stationName(s)}. On note ce plein dans ton carnet ?`;
+  els.fillQuick.textContent = p ? `Noter ${String(litres).replace(".", ",")} L à ${commaNum(p, 3)} €/L` : "Noter ce plein";
+  els.fillQuick.hidden = !p;
   els.fillCard.hidden = false;
   requestAnimationFrame(() => requestAnimationFrame(() => els.fillCard.classList.add("show")));
   buzz();
@@ -699,7 +734,7 @@ els.fuels.addEventListener("click", (e) => {
   els.logStation.innerHTML = "";
   update();
 });
-for (const btn of [els.start, els.settingsBtn]) btn.addEventListener("click", () => { renderSettings(); openSheet(els.settingsSheet); });
+els.start.addEventListener("click", () => { renderSettings(); openSheet(els.settingsSheet); });
 for (const t of document.querySelectorAll(".tabs [role=tab]")) t.addEventListener("click", () => showView(t.dataset.view));
 els.showAll.addEventListener("click", () => { showAll = !showAll; renderRank(); });
 
@@ -729,7 +764,7 @@ document.addEventListener("click", (e) => {
     navigator.share?.({
       title: `Plein Sud · ${stationName(s)}`,
       text: `${fuelLabel()} à ${p ? commaNum(p, 3) + " €" : "?"} : ${stationName(s)}, ${titleCase(s.ville)}`,
-      url: navUrls("google", s).web,
+      url: navUrl("google", s),
     }).catch(() => {});
     return;
   }
@@ -814,9 +849,32 @@ els.fillYes.addEventListener("click", () => {
   els.logLitres.focus();
 });
 els.fillNo.addEventListener("click", hideFillCard);
+// Un seul geste : le plein est noté avec les litres du véhicule et le prix affiché par la station.
+els.fillQuick.addEventListener("click", () => {
+  const s = fillStation;
+  const p = s?.prices[state.fuel]?.[0];
+  const median = data.fuels[state.fuel]?.median;
+  if (!s || !p || !median) return;
+  const litres = Number(vehicle().litres);
+  const entry = {
+    id: `${Date.now()}`, date: new Date().toISOString(), stationId: s.id, ville: stationName(s),
+    fuel: state.fuel, fuelLabel: fuelLabel(), litres, price: p, median, gain: Math.round((median - p) * litres * 100) / 100,
+  };
+  state.log.unshift(entry);
+  save();
+  hideFillCard();
+  if (view === "log") renderLog();
+  toast(entry.gain >= 0 ? `Plein noté : ${eur.format(entry.gain)} économisés` : "Plein noté dans ton carnet", {
+    label: "Annuler", run: () => { state.log = state.log.filter((x) => x.id !== entry.id); save(); if (view === "log") renderLog(); },
+  });
+});
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") { if (state.placeId === "gps" && state.gps) startWatch(); }
-  else { stopWatch(); dwell = null; }
+  if (document.visibilityState === "visible") {
+    if (state.gps) startWatch();
+    checkReturnFromNav();
+  } else {
+    stopWatch(); // on garde le début de présence à la station : il compte encore au retour
+  }
 });
 
 // ---------- Démarrage ----------
@@ -830,12 +888,11 @@ async function boot() {
     data = await res.json();
   } catch {
     els.answerBody.innerHTML = `<div class="ans-head"><p class="ans-name">Prix indisponibles</p><p class="ans-ville">Impossible de charger les prix. Vérifie ta connexion puis recharge la page.</p></div>`;
-    els.fresh.textContent = "Hors ligne";
     return;
   }
-  renderFresh();
   renderFuels();
   render();
+  renderFresh();
   stitchIn(1100);
   // Démonstration du pop-up de plein : ouvrir le site avec #demo-plein
   if (location.hash === "#demo-plein" && ranked[0]) setTimeout(() => showFillCard(ranked[0].station), 1500);

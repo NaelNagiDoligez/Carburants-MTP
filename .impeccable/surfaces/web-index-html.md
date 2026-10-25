@@ -19,7 +19,7 @@ STORY: The rider sees the best station, its price, distance and full-tank cost, 
 
 FIRST VIEWPORT: Slim top bar (mark, name, freshness, settings). Fuel segmented control. Answer card: name, giant price, distance and full-tank cost side by side, full-width "Y aller" button; the bouquet climbs the card's right edge. Below: two compact alternatives and "Voir toutes les stations". Standard bottom tabs: Stations, Carte, Favoris, Carnet.
 
-FORM: Brief-pinned by the user (Derschutze-style embroidered florals on cream; "fleurs de nuit" for dark), replacing the roadbook direction; no new roll. seed: none (unavailable). Signature move: the bouquet stitches itself upward on first load (clip reveal) and the answer card re-stitches when the best station changes.
+FORM: Pinned by the user, no roll run for this world: Derschutze-style hand-embroidered florals on cream (two reference tees supplied by the owner) and "fleurs de nuit" for dark, replacing the roadbook direction (whose roll was seed:60fe7dedbaac7803). Signature move: the bouquet stitches itself upward on first load (clip reveal) and the answer card re-stitches when the best station changes.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
