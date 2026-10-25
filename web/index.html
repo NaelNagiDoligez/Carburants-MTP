@@ -50,7 +50,7 @@
 
     <main class="views">
       <section class="view" id="view-rank" aria-labelledby="tab-rank">
-        <div class="rb-head" aria-hidden="true"><span>km</span><span>cap</span><span>notes</span></div>
+        <div class="rb-head" aria-hidden="true"><span>km</span><span>tulipe</span><span>notes</span></div>
         <ol class="rb" id="rb" aria-label="Stations classées par coût total du plein"></ol>
         <details class="how">
           <summary>Comment le classement est calculé</summary>
@@ -64,7 +64,7 @@
       </section>
 
       <section class="view" id="view-fav" aria-labelledby="tab-fav" hidden>
-        <div class="rb-head" aria-hidden="true"><span>km</span><span>cap</span><span>notes</span></div>
+        <div class="rb-head" aria-hidden="true"><span>km</span><span>tulipe</span><span>notes</span></div>
         <ol class="rb" id="favList" aria-label="Tes stations favorites"></ol>
       </section>
 
@@ -77,10 +77,10 @@
           </label>
           <div class="field-row">
             <label class="field" for="logLitres">Litres
-              <input id="logLitres" type="number" inputmode="decimal" min="1" max="150" step="0.01" required>
+              <input id="logLitres" type="text" inputmode="decimal" autocomplete="off" placeholder="14" required>
             </label>
             <label class="field" for="logPrice">Prix au litre (€)
-              <input id="logPrice" type="number" inputmode="decimal" min="0.3" max="5" step="0.001" required>
+              <input id="logPrice" type="text" inputmode="decimal" autocomplete="off" placeholder="1,989" required>
             </label>
           </div>
           <p class="hint" id="logPreview"></p>

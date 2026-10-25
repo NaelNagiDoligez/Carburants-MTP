@@ -90,6 +90,8 @@ function ago(date) {
   const h = Math.round(min / 60);
   return h < 48 ? `il y a ${h} h` : `il y a ${Math.round(h / 24)} j`;
 }
+const parseNum = (v) => Number(String(v ?? "").trim().replace(/\s/g, "").replace(",", "."));
+const commaNum = (n, digits) => n.toFixed(digits).replace(".", ",");
 const hoursOld = (date) => (Date.now() - date.getTime()) / 3600000;
 const capNum = (deg) => String(Math.round(deg) % 360).padStart(3, "0");
 const capText = (deg) => `cap ${capNum(deg)}`;
@@ -134,11 +136,27 @@ function computeRanking() {
     radiusKm: state.radius,
   });
   const o = origin();
-  for (const r of ranked) r.bearing = bearingDeg(o, r.station);
+  ranked.forEach((r, i) => { r.bearing = bearingDeg(o, r.station); r.rank = i + 1; });
 }
 
 // ---------- Tulipe (cap de la station depuis le point de départ) ----------
+// Station devant ou sur le côté : la branche tourne vers le cap.
+// Station derrière (cap entre 115° et 245°) : demi-tour en épingle, comme sur un vrai roadbook.
+const isBehind = (deg) => deg > 115 && deg < 245;
 function tulipHTML(stationId, bearing) {
+  if (isBehind(bearing)) {
+    legAngles.delete(stationId);
+    const right = bearing < 180;
+    const d = right
+      ? "M24 24V13a7 7 0 0 1 14 0v22M33 30l5 6 5-6"
+      : "M24 24V13a7 7 0 0 0-14 0v22M5 30l5 6 5-6";
+    return `<svg class="tulip" viewBox="0 0 48 48" aria-hidden="true">
+      <circle class="start-dot" cx="24" cy="42" r="3.4"/>
+      <path class="road" d="M24 39V24"/>
+      <path class="road hairpin" d="${d}"/>
+      <circle class="junction" cx="24" cy="24" r="3.2"/>
+    </svg>`;
+  }
   const prev = legAngles.get(stationId);
   let target = bearing;
   if (prev !== undefined) {
@@ -157,13 +175,14 @@ function tulipHTML(stationId, bearing) {
 function settleTulips(root) {
   const legs = root.querySelectorAll(".leg");
   if (!legs.length) return;
-  requestAnimationFrame(() => {
+  void root.offsetHeight; // fige l'angle de départ avant de tourner
+  requestAnimationFrame(() => requestAnimationFrame(() => {
     for (const leg of legs) {
       const to = Number(leg.dataset.to);
       legAngles.set(leg.dataset.id, to);
       if (Number(leg.dataset.from) !== to) leg.style.transform = `rotate(${to}deg)`;
     }
-  });
+  }));
 }
 
 // ---------- Rendu : barre et carburants ----------
@@ -187,8 +206,9 @@ function caseHTML(r, index, best) {
   const lead = index === 0;
   const stale = hoursOld(r.updatedAt) > STALE_HOURS;
   const flag = stale ? `<span class="flag">${icon("i-caution")}prix ${ago(r.updatedAt)}</span>` : "";
-  const km = `<span class="km">${kmText(r.distanceKm)}<small>km</small></span>`;
-  const cap = `<span class="cap">${tulipHTML(s.id, r.bearing)}<small>cap<b>${capNum(r.bearing)}</b></small></span>`;
+  const no = `<span class="no" aria-hidden="true">${r.rank ?? "–"}</span>`;
+  const km = `<span class="km">${no}${kmText(r.distanceKm)}<small>km</small></span>`;
+  const cap = `<span class="cap">${tulipHTML(s.id, r.bearing)}<small>${capNum(r.bearing)}°</small></span>`;
   if (lead) {
     const save = r.gain > 0.05
       ? `<span class="lead-save">−${eur.format(r.gain)} vs la plus proche</span>`
@@ -286,6 +306,7 @@ function renderFavs() {
     r.bearing = bearingDeg(o, r.station);
     const pos = ranked.findIndex((x) => x.station.id === r.station.id);
     r.posLabel = pos >= 0 ? `${pos + 1}${pos === 0 ? "re" : "e"} au classement` : "hors rayon";
+    r.rank = pos >= 0 ? pos + 1 : null;
   }
   const missing = favStations.length - rows.length;
   if (!rows.length) {
@@ -393,6 +414,7 @@ async function renderMap() {
     L.marker([r.station.lat, r.station.lon], {
       icon: L.divIcon({ className: "", html: `<span class="pin${i === 0 ? " top" : ""}">${i + 1}</span>`, iconSize: [size, size] }),
       title: `${i + 1}. ${stationName(r.station)}, ${r.price.toFixed(3)} €`,
+      zIndexOffset: (MAP_MAX - i) * 100,
     }).on("click", () => openStation(r.station.id)).addTo(markerLayer);
   });
   const pts = [[o.lat, o.lon], ...shown.slice(0, 10).map((r) => [r.station.lat, r.station.lon])];
@@ -420,17 +442,20 @@ function openStation(id) {
     s.services ? ["Services", esc(s.services)] : null,
     s.indisponibles ? ["Ruptures", esc(s.indisponibles)] : null,
   ].filter(Boolean);
-  const where = `${kmText((r?.distanceKm) ?? 0)} km · ${capText(bearingDeg(o, s))} depuis ${esc(originLabel())}`;
+  const brg = bearingDeg(o, s);
+  const strip = r ? `<div class="st-case"><span class="km"><span class="no" aria-hidden="true">${r.rank}</span>${kmText(r.distanceKm)}<small>km</small></span><span class="cap">${tulipHTML(`sheet-${s.id}`, brg)}<small>${capNum(brg)}°</small></span><p class="st-case-txt">depuis ${esc(originLabel())}<br>${r.rank}${r.rank === 1 ? "re" : "e"} au classement</p></div>` : "";
+  const where = `${capText(brg)} depuis ${esc(originLabel())}`;
   els.stationBody.innerHTML = `
     <div class="grabber" aria-hidden="true"></div>
     <div class="sheet-head">
       <div>
         <h2 id="stTitle">${esc(stationName(s))}</h2>
         <p>${esc(titleCase(s.ville))}${s.cp ? ` · ${esc(s.cp)}` : ""}</p>
-        <p>${r ? `${where} · ${pos}${pos === 1 ? "re" : "e"} au classement` : esc(where.replace(/^0 km · /, ""))}</p>
+        ${r ? "" : `<p>${where} · hors rayon</p>`}
       </div>
       <button class="icon-btn" type="button" data-close aria-label="Fermer">${icon("i-close")}</button>
     </div>
+    ${strip}
     ${r ? `<p class="lead-total"><b>${eur.format(r.total)}</b> le plein de ${esc(data.fuels[state.fuel]?.label)}, détour compris</p>` : ""}
     <ul class="st-prices" aria-label="Prix dans cette station">${prices}</ul>
     ${facts.length ? `<dl class="st-facts">${facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>` : ""}
@@ -453,6 +478,32 @@ function closeSheet(dlg) {
   dlg.classList.remove("is-open");
   const done = () => { if (dlg.open && !dlg.classList.contains("is-open")) dlg.close(); };
   setTimeout(done, 340);
+}
+
+// Glisser vers le bas pour fermer, depuis la poignée ou l'en-tête du panneau.
+function enableDragToClose(dlg) {
+  let startY = 0, dy = 0, dragging = false, sheet = null;
+  dlg.addEventListener("pointerdown", (e) => {
+    if (!e.target.closest(".grabber, .sheet-head") || e.target.closest("button, a, input")) return;
+    sheet = dlg.querySelector(".sheet");
+    dragging = true; startY = e.clientY; dy = 0;
+    sheet.style.transition = "none";
+    sheet.setPointerCapture(e.pointerId);
+  });
+  dlg.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    dy = Math.max(0, e.clientY - startY);
+    sheet.style.transform = `translateY(${dy}px)`;
+  });
+  const end = () => {
+    if (!dragging) return;
+    dragging = false;
+    sheet.style.transition = "";
+    sheet.style.transform = "";
+    if (dy > 90) closeSheet(dlg);
+  };
+  dlg.addEventListener("pointerup", end);
+  dlg.addEventListener("pointercancel", end);
 }
 
 function renderSettings() {
@@ -520,20 +571,20 @@ function fillLogForm(preselectId) {
     els.logStation.insertAdjacentHTML("afterbegin", opt(pre));
   }
   if (pre) els.logStation.value = pre.id;
-  els.logLitres.value = vehicle().litres;
+  els.logLitres.value = String(vehicle().litres).replace(".", ",");
   syncLogPrice();
 }
 function syncLogPrice() {
   const s = stationById(els.logStation.value);
   const p = s?.prices[state.fuel]?.[0];
-  if (p) els.logPrice.value = p.toFixed(3);
+  if (p) els.logPrice.value = commaNum(p, 3);
   previewLog();
 }
 function previewLog() {
   const median = data.fuels[state.fuel]?.median;
-  const litres = Number(els.logLitres.value);
-  const price = Number(els.logPrice.value);
-  if (!median || !litres || !price) { els.logPreview.textContent = ""; return; }
+  const litres = parseNum(els.logLitres.value);
+  const price = parseNum(els.logPrice.value);
+  if (!median || !(litres > 0) || !(price > 0)) { els.logPreview.textContent = litres || price ? "Saisis des litres et un prix au litre valides, par exemple 14 et 1,989." : ""; return; }
   const gain = (median - price) * litres;
   els.logPreview.textContent = gain >= 0
     ? `Économie estimée : ${eur.format(gain)} par rapport au prix médian de la zone (${median.toFixed(3).replace(".", ",")} €).`
@@ -630,6 +681,7 @@ document.addEventListener("click", (e) => {
 });
 
 for (const dlg of [els.stationSheet, els.settingsSheet]) {
+  enableDragToClose(dlg);
   dlg.addEventListener("click", (e) => { if (e.target.closest("[data-close]")) closeSheet(dlg); });
   dlg.addEventListener("cancel", (e) => { e.preventDefault(); closeSheet(dlg); });
 }
@@ -657,9 +709,12 @@ els.logForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const s = stationById(els.logStation.value);
   const median = data.fuels[state.fuel]?.median;
-  const litres = Number(els.logLitres.value);
-  const price = Number(els.logPrice.value);
-  if (!s || !median || !litres || !price) return;
+  const litres = parseNum(els.logLitres.value);
+  const price = parseNum(els.logPrice.value);
+  if (!s || !median || !(litres > 0 && litres < 200) || !(price > 0.3 && price < 5)) {
+    els.logPreview.textContent = "Vérifie les valeurs : entre 1 et 200 litres, et un prix au litre entre 0,30 et 5 €.";
+    return;
+  }
   state.log.unshift({
     id: `${Date.now()}`, date: new Date().toISOString(), stationId: s.id, ville: stationName(s),
     fuel: state.fuel, fuelLabel: data.fuels[state.fuel]?.label ?? state.fuel,
