@@ -17,3 +17,5 @@ jobs:
       - run: pip install -e ".[dev,app]"
       - run: ruff check .
       - run: pytest -q
+      - name: Tests du site (classement)
+        run: node --test web/tests/rank.test.mjs

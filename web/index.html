@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Plein Sud</title>
+  <meta name="description" content="Où faire le plein autour de Montpellier, détour compris. Prix officiels mis à jour toutes les 6 heures.">
+  <meta name="theme-color" content="#EEF2F5" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0B141C" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Plein Sud">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <div class="brand">
+        <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="8" class="mark-bg"/><path d="M16 7c-3.6 5-6 8.2-6 11.3A6 6 0 0 0 16 24a6 6 0 0 0 6-5.7C22 15.2 19.6 12 16 7Z" class="mark-drop"/></svg>
+        <span>Plein Sud</span>
+      </div>
+      <p class="fresh" id="fresh">Chargement des prix…</p>
+    </header>
+
+    <nav class="fuels" id="fuels" aria-label="Carburant"></nav>
+
+    <button class="context" id="context" type="button" aria-haspopup="dialog">
+      <span class="context-text" id="contextText">Depuis la Comédie · 450MT</span>
+      <span class="context-cta">Modifier</span>
+    </button>
+
+    <main id="main" aria-live="polite">
+      <section class="best skeleton" id="best" aria-label="Meilleure option"></section>
+      <ol class="list" id="list" aria-label="Autres stations"></ol>
+    </main>
+
+    <details class="how">
+      <summary>Comment c'est calculé ?</summary>
+      <p>Le classement suit le <b>coût total</b> : le plein, plus le carburant brûlé pour l'aller-retour depuis ton point de départ. Une station un peu moins chère mais loin peut donc passer derrière celle du coin. La distance est à vol d'oiseau multipliée par 1,3 pour approcher la route. Les prix de plus de 14 jours sont ignorés.</p>
+    </details>
+
+    <footer class="foot">
+      <p>Prix officiels : flux « Prix des carburants en France », licence ouverte 2.0. Relevés toutes les 6 h.</p>
+      <p><a href="https://github.com/NaelNagiDoligez/Carburants-MTP">Code source et pipeline de données</a></p>
+    </footer>
+  </div>
+
+  <dialog class="sheet-host" id="sheet" aria-labelledby="sheetTitle">
+    <div class="scrim" data-close></div>
+    <form class="sheet" id="sheetForm" method="dialog">
+      <div class="grabber" aria-hidden="true"></div>
+      <h2 id="sheetTitle">Réglages</h2>
+
+      <fieldset>
+        <legend>Point de départ</legend>
+        <button type="button" class="locate" id="locate">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7" fill="none"/></svg>
+          <span id="locateText">Utiliser ma position</span>
+        </button>
+        <p class="hint" id="locateHint" hidden></p>
+        <div class="choices" id="places"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Véhicule</legend>
+        <div class="choices" id="profiles"></div>
+        <div class="custom" id="custom" hidden>
+          <label for="litres">Litres à mettre<input id="litres" type="number" inputmode="decimal" min="2" max="90" step="1"></label>
+          <label for="conso">Conso (L/100 km)<input id="conso" type="number" inputmode="decimal" min="1" max="20" step="0.1"></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Rayon de recherche</legend>
+        <div class="range">
+          <input id="radius" type="range" min="3" max="40" step="1" aria-describedby="radiusOut">
+          <output id="radiusOut" for="radius">15 km</output>
+        </div>
+      </fieldset>
+
+      <button class="done" type="submit" value="ok">Voir les stations</button>
+    </form>
+  </dialog>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>

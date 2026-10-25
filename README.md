@@ -16,6 +16,15 @@ le contrôle, puis sert à analyser et prévoir les prix (voir `docs/roadmap.htm
 - [~] Étape 2 : appli « où faire le plein » (faite, à déployer), analyses SQL et historique (à faire)
 - [ ] Étape 3 : prévision du prix à 7 jours
 
+## Site mobile « Plein Sud »
+
+Site statique (`web/`) pensé pour le téléphone : position GPS, classement des stations par coût total
+d'un plein (détour compris), profils de véhicule, animations, installable sur l'écran d'accueil.
+Il lit `latest.json`, produit par `python -m carburants export` et republié sur GitHub Pages après
+chaque collecte (`.github/workflows/pages.yml`).
+
+Tester en local : `python -m carburants export` puis `python -m http.server -d web 8000` et ouvrir http://localhost:8000.
+
 ## Lancer en local (Windows, PowerShell)
 
 ```powershell

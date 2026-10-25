@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import config, extract, load, quality, transform
+from . import analysis, config, export, extract, load, quality, transform
 
 
 def run(from_file: Path | None, data_dir: Path) -> int:
@@ -53,6 +53,17 @@ def stats(data_dir: Path) -> int:
     return 0
 
 
+def export_cmd(data_dir: Path, out: Path) -> int:
+    events, stations = analysis.load_tables(data_dir)
+    if events.empty or stations.empty:
+        print("Aucune donnée à exporter.")
+        return 1
+    payload = export.build_payload(events, stations, now=pd.Timestamp.now(tz="UTC"))
+    path = export.write_payload(payload, out)
+    print(f"[export] {len(payload['stations'])} stations -> {path} ({path.stat().st_size // 1024} Ko)")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="carburants")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -61,9 +72,14 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--data-dir", type=Path, default=config.DATA_DIR)
     s = sub.add_parser("stats", help="Résumé de l'historique stocké")
     s.add_argument("--data-dir", type=Path, default=config.DATA_DIR)
+    e = sub.add_parser("export", help="Écrit latest.json pour le site mobile")
+    e.add_argument("--data-dir", type=Path, default=config.DATA_DIR)
+    e.add_argument("--out", type=Path, default=Path("web/data/latest.json"))
     args = p.parse_args(argv)
     if args.cmd == "run":
         return run(args.from_file, args.data_dir)
+    if args.cmd == "export":
+        return export_cmd(args.data_dir, args.out)
     return stats(args.data_dir)
 
 
