@@ -219,7 +219,7 @@ function caseHTML(r, index, best) {
           <span class="ville"><span class="mark-hl">${esc(stationName(s))}</span></span>
           <span class="n-sub"><span class="addr">${esc(titleCase(s.ville))}</span></span>
           <span class="lead-price"><span class="price">${priceHTML(r.price)}</span><span class="unit">€/L</span></span>
-          <span class="lead-total"><b>${eur.format(r.total)}</b> le plein, détour compris</span>
+          <span class="lead-total"><b>${eur.format(r.total)}</b> le plein avec détour</span>
           ${save}
           ${flag || `<span class="n-sub">prix affiché ${ago(r.updatedAt)}</span>`}
         </span>

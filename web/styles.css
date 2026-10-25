@@ -167,7 +167,7 @@ a { color: inherit; text-underline-offset: 3px; }
 .n-sub { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--ink-2); min-width: 0; }
 .addr { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .gap { white-space: nowrap; }
-.flag { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: var(--warn-ink); width: fit-content; padding: 0 4px; margin-left: -4px; background: linear-gradient(var(--warn-bg), var(--warn-bg)) no-repeat 0 60% / 100% 70%; text-transform: uppercase; letter-spacing: .04em; }
+.flag { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: var(--warn-ink); width: fit-content; padding: 0 4px; margin-left: -4px; background: linear-gradient(var(--warn-bg), var(--warn-bg)) no-repeat 0 60% / 100% 70%; }
 .flag .ic { width: 14px; height: 14px; stroke-width: 2.2; color: var(--warn); }
 
 /* Case de tête : plus grande, surlignée */
