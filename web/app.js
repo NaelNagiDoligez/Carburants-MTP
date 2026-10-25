@@ -1,4 +1,4 @@
-import { rankStations, bearingDeg, isOutOfStock } from "./rank.js";
+import { rankStations, haversineKm, isOutOfStock } from "./rank.js";
 
 // ---------- Constantes ----------
 const PLACES = [
@@ -13,16 +13,26 @@ const PROFILES = [
   { id: "car", label: "Voiture", short: "Voiture", detail: "40 L · 6,5 L/100", litres: 40, conso: 6.5 },
   { id: "custom", label: "Personnalisé", short: "Perso", detail: "tes valeurs" },
 ];
+const NAV_APPS = [
+  { id: "apple", label: "Plans", detail: "l'appli Plans de l'iPhone" },
+  { id: "google", label: "Google Maps", detail: "appli ou site" },
+  { id: "waze", label: "Waze", detail: "appli ou site" },
+];
 const FUEL_ORDER = ["e10", "sp95", "sp98", "gazole", "e85", "gplc"];
-const STORE_KEY = "plein-sud:v2";
-const LIST_MAX = 15;
+const STORE_KEY = "plein-sud:v3";
+const ALTS = 2;
+const ALL_MAX = 30;
 const MAP_MAX = 15;
 const STALE_HOURS = 48;
+const DWELL_MS = 3 * 60 * 1000;   // 3 min sur place
+const DWELL_IN_M = 50;            // à moins de 50 m d'une station
+const DWELL_OUT_M = 90;           // au-delà de 90 m, on considère qu'on est reparti
+const REORIGIN_M = 300;           // on ne reclasse qu'après 300 m de déplacement
 const DEFAULTS = {
-  fuel: "e10", placeId: "gps", gps: null, profileId: "mt450",
-  custom: { litres: 14, conso: 4.5 }, radius: 15, favs: [], log: [],
+  fuel: "e10", placeId: "gps", gps: null, profileId: "mt450", custom: { litres: 14, conso: 4.5 },
+  radius: 15, favs: [], log: [], nav: null, fillSeen: {},
 };
-
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const darkScheme = matchMedia("(prefers-color-scheme: dark)");
 const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
@@ -36,11 +46,13 @@ let view = "rank";
 let firstRender = true;
 let lastLeadKey = "";
 let locating = false;
-const legAngles = new Map(); // angle cumulé par station, pour tourner par le plus court chemin
+let showAll = false;
+let watchId = null;
+let dwell = null;
 
 function loadState() {
   try {
-    const raw = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+    const raw = JSON.parse(localStorage.getItem(STORE_KEY) || "null") || JSON.parse(localStorage.getItem("plein-sud:v2") || "null");
     if (!raw) return structuredClone(DEFAULTS);
     return { ...structuredClone(DEFAULTS), ...raw, custom: { ...DEFAULTS.custom, ...(raw.custom || {}) } };
   } catch {
@@ -59,9 +71,8 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const titleCase = (s) => String(s ?? "").toLowerCase()
   .replace(/(^|[\s'’-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase())
   .replace(/(?<=[\s-])(De|Du|Des|La|Le|Les|Sur|En|Et|Lès)(?=[\s-])/g, (w) => w.toLowerCase());
-
 const SMALL = new Set(["de", "du", "des", "la", "le", "les", "d", "l", "et", "à", "au", "aux", "sur", "en", "bis", "ter"]);
-const ABBR = { "av": "Avenue", "ave": "Avenue", "bd": "Boulevard", "bld": "Boulevard", "rte": "Route", "che": "Chemin", "ch": "Chemin", "pl": "Place", "imp": "Impasse" };
+const ABBR = { av: "Avenue", ave: "Avenue", bd: "Boulevard", bld: "Boulevard", rte: "Route", che: "Chemin", ch: "Chemin", pl: "Place", imp: "Impasse" };
 const KEEP_UPPER = /^(z\.?a\.?c?|z\.?i|z\.?a|cc|cs\d*|rn|rd|d\d+|n\d+|a\d+)$/i;
 // Adresses du flux en capitales -> casse lisible : « 459 AV.DE LA JUSTICE » -> « 459 Avenue de la Justice ».
 function prettyAddress(raw) {
@@ -76,13 +87,12 @@ function prettyAddress(raw) {
   }).join(" ").replace(/\b([dl])['’]\s?/gi, (m, c) => `${c.toLowerCase()}’`);
 }
 const stationName = (s) => (!s.adresse || /^(cs|bp)\s*\d+$/i.test(s.adresse.trim()) ? titleCase(s.ville) : prettyAddress(s.adresse));
-
 // Les pompes affichent 3 décimales, la dernière en petit : 2,11⁹.
 function priceHTML(p) {
   const s = p.toFixed(3).replace(".", ",");
   return `${s.slice(0, -1)}<sup>${s.slice(-1)}</sup>`;
 }
-const priceLabel = (p) => `${p.toFixed(3).replace(".", ",")} euros le litre`;
+const priceSpoken = (p) => `${p.toFixed(3).replace(".", ",")} euros le litre`;
 const kmText = (d) => (d < 10 ? dec1.format(d) : String(Math.round(d)));
 function ago(date) {
   const min = Math.max(0, Math.round((Date.now() - date.getTime()) / 60000));
@@ -90,25 +100,24 @@ function ago(date) {
   const h = Math.round(min / 60);
   return h < 48 ? `il y a ${h} h` : `il y a ${Math.round(h / 24)} j`;
 }
+const hoursOld = (date) => (Date.now() - date.getTime()) / 3600000;
 const parseNum = (v) => Number(String(v ?? "").trim().replace(/\s/g, "").replace(",", "."));
 const commaNum = (n, digits) => n.toFixed(digits).replace(".", ",");
-const hoursOld = (date) => (Date.now() - date.getTime()) / 3600000;
-const capNum = (deg) => String(Math.round(deg) % 360).padStart(3, "0");
-const capText = (deg) => `cap ${capNum(deg)}`;
-const directions = (s) => `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}`;
 const icon = (id, cls = "ic") => `<svg class="${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
 
 // ---------- Éléments ----------
 const $ = (id) => document.getElementById(id);
 const els = {
-  fresh: $("fresh"), start: $("start"), startText: $("startText"), fuels: $("fuels"),
-  rb: $("rb"), favList: $("favList"), map: $("map"), mapNote: $("mapNote"),
+  fresh: $("fresh"), start: $("start"), startText: $("startText"), fuels: $("fuels"), settingsBtn: $("settingsBtn"),
+  answer: $("answer"), answerBody: $("answerBody"), alts: $("alts"), showAll: $("showAll"), showAllText: $("showAllText"),
+  allList: $("allList"), favList: $("favList"), map: $("map"), mapNote: $("mapNote"),
   logTotal: $("logTotal"), logForm: $("logForm"), logStation: $("logStation"), logLitres: $("logLitres"),
   logPrice: $("logPrice"), logPreview: $("logPreview"), logList: $("logList"),
-  stationSheet: $("stationSheet"), stationBody: $("stationBody"),
-  settingsSheet: $("settingsSheet"), settingsForm: $("settingsForm"), places: $("places"), profiles: $("profiles"),
+  stationSheet: $("stationSheet"), stationBody: $("stationBody"), navSheet: $("navSheet"), navApps: $("navApps"), navRemember: $("navRemember"),
+  settingsSheet: $("settingsSheet"), settingsForm: $("settingsForm"), places: $("places"), profiles: $("profiles"), navPref: $("navPref"),
   custom: $("custom"), litres: $("litres"), conso: $("conso"), radius: $("radius"), radiusOut: $("radiusOut"),
   useGps: $("useGps"), useGpsText: $("useGpsText"), gpsHint: $("gpsHint"), toast: $("toast"),
+  fillCard: $("fillCard"), fillText: $("fillText"), fillYes: $("fillYes"), fillNo: $("fillNo"), hapticLabel: $("hapticLabel"),
 };
 
 // ---------- Modèle ----------
@@ -124,74 +133,22 @@ function vehicle() {
   if (state.profileId === "custom") return { label: "Personnalisé", short: "Perso", ...state.custom };
   return PROFILES.find((p) => p.id === state.profileId) || PROFILES[0];
 }
-const stationById = (id) => data.stations.find((s) => s.id === id);
+const stationById = (id) => data?.stations.find((s) => s.id === id);
 const isFav = (id) => state.favs.includes(id);
+const fuelLabel = () => data.fuels[state.fuel]?.label ?? state.fuel;
 
 function computeRanking() {
   const v = vehicle();
   const usable = data.stations.filter((s) => !isOutOfStock(s, state.fuel));
-  ranked = rankStations(usable, state.fuel, origin(), {
-    litres: Number(v.litres) || 1,
-    conso: Number(v.conso) || 0,
-    radiusKm: state.radius,
-  });
-  const o = origin();
-  ranked.forEach((r, i) => { r.bearing = bearingDeg(o, r.station); r.rank = i + 1; });
+  ranked = rankStations(usable, state.fuel, origin(), { litres: Number(v.litres) || 1, conso: Number(v.conso) || 0, radiusKm: state.radius });
+  ranked.forEach((r, i) => { r.rank = i + 1; });
 }
 
-// ---------- Tulipe (cap de la station depuis le point de départ) ----------
-// Station devant ou sur le côté : la branche tourne vers le cap.
-// Station derrière (cap entre 115° et 245°) : demi-tour en épingle, comme sur un vrai roadbook.
-const isBehind = (deg) => deg > 115 && deg < 245;
-function tulipHTML(stationId, bearing) {
-  if (isBehind(bearing)) {
-    legAngles.delete(stationId);
-    const right = bearing < 180;
-    const d = right
-      ? "M24 24V13a7 7 0 0 1 14 0v22M33 30l5 6 5-6"
-      : "M24 24V13a7 7 0 0 0-14 0v22M5 30l5 6 5-6";
-    return `<svg class="tulip" viewBox="0 0 48 48" aria-hidden="true">
-      <circle class="start-dot" cx="24" cy="42" r="3.4"/>
-      <path class="road" d="M24 39V24"/>
-      <path class="road hairpin" d="${d}"/>
-      <circle class="junction" cx="24" cy="24" r="3.2"/>
-    </svg>`;
-  }
-  const prev = legAngles.get(stationId);
-  let target = bearing;
-  if (prev !== undefined) {
-    const delta = ((bearing - (prev % 360) + 540) % 360) - 180;
-    target = prev + delta;
-  }
-  return `<svg class="tulip" viewBox="0 0 48 48" aria-hidden="true">
-    <circle class="start-dot" cx="24" cy="42" r="3.4"/>
-    <path class="road" d="M24 39V24"/>
-    <g class="leg" data-id="${esc(stationId)}" data-from="${prev ?? target}" data-to="${target}" style="transform: rotate(${prev ?? target}deg)">
-      <path class="road" d="M24 24V7.5M18.5 13 24 7l5.5 6"/>
-    </g>
-    <circle class="junction" cx="24" cy="24" r="3.2"/>
-  </svg>`;
-}
-function settleTulips(root) {
-  const legs = root.querySelectorAll(".leg");
-  if (!legs.length) return;
-  void root.offsetHeight; // fige l'angle de départ avant de tourner
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    for (const leg of legs) {
-      const to = Number(leg.dataset.to);
-      legAngles.set(leg.dataset.id, to);
-      if (Number(leg.dataset.from) !== to) leg.style.transform = `rotate(${to}deg)`;
-    }
-  }));
-}
-
-// ---------- Rendu : barre et carburants ----------
+// ---------- Rendu ----------
 function renderStart() {
   const v = vehicle();
   els.start.classList.toggle("locating", locating);
-  els.startText.textContent = locating
-    ? "Recherche de ta position…"
-    : `Depuis ${originLabel()} · ${v.short} · ${state.radius} km`;
+  els.startText.textContent = locating ? "Recherche de ta position…" : `Depuis ${originLabel()} · ${v.short} · ${state.radius} km`;
 }
 function renderFuels() {
   const fuels = FUEL_ORDER.filter((f) => data.fuels[f]);
@@ -199,69 +156,91 @@ function renderFuels() {
   els.fuels.innerHTML = fuels.map((f) => `<button type="button" role="radio" class="fuel" data-fuel="${f}"
       aria-checked="${f === state.fuel}"><b>${esc(data.fuels[f].label)}</b><small>${data.fuels[f].stations}</small></button>`).join("");
 }
+function renderFresh() {
+  const t = new Date(data.generated_at);
+  els.fresh.textContent = `Prix relevés ${ago(t)}`;
+  els.fresh.title = t.toLocaleString("fr-FR");
+}
+const navLabel = () => NAV_APPS.find((a) => a.id === state.nav)?.label;
 
-// ---------- Rendu : roadbook ----------
-function caseHTML(r, index, best) {
-  const s = r.station;
-  const lead = index === 0;
-  const stale = hoursOld(r.updatedAt) > STALE_HOURS;
-  const flag = stale ? `<span class="flag">${icon("i-caution")}prix ${ago(r.updatedAt)}</span>` : "";
-  const no = `<span class="no" aria-hidden="true">${r.rank ?? "–"}</span>`;
-  const km = `<span class="km">${no}${kmText(r.distanceKm)}<small>km</small></span>`;
-  const cap = `<span class="cap">${tulipHTML(s.id, r.bearing)}<small>${capNum(r.bearing)}°</small></span>`;
-  if (lead) {
-    const save = r.gain > 0.05
-      ? `<span class="lead-save">−${eur.format(r.gain)} vs la plus proche</span>`
-      : `<span class="lead-save neutral">${r.isNearest ? "C'est aussi la plus proche" : "Même total que la plus proche"}</span>`;
-    return `<button type="button" class="case-btn" data-open="${esc(s.id)}" aria-label="${esc(stationName(s))}, ${esc(titleCase(s.ville))}, ${priceLabel(r.price)}, ${kmText(r.distanceKm)} kilomètres. Ouvrir la station">
-        ${km}${cap}
-        <span class="notes">
-          <span class="ville"><span class="mark-hl">${esc(stationName(s))}</span></span>
-          <span class="n-sub"><span class="addr">${esc(titleCase(s.ville))}</span></span>
-          <span class="lead-price"><span class="price">${priceHTML(r.price)}</span><span class="unit">€/L</span></span>
-          <span class="lead-total"><b>${eur.format(r.total)}</b> le plein avec détour</span>
-          ${save}
-          ${flag || `<span class="n-sub">prix affiché ${ago(r.updatedAt)}</span>`}
-        </span>
-      </button>
-      <div class="lead-actions">
-        <a class="btn btn-ink" href="${directions(s)}" target="_blank" rel="noopener">${icon("i-go")}Y aller</a>
-        <button type="button" class="icon-btn star-btn" data-fav="${esc(s.id)}" aria-pressed="${isFav(s.id)}" aria-label="${isFav(s.id) ? "Retirer des favoris" : "Ajouter aux favoris"}">${icon("i-star")}</button>
-      </div>`;
+function renderAnswer() {
+  if (!ranked.length) {
+    els.answerBody.innerHTML = `<div class="ans-head"><p class="ans-name">Aucune station trouvée</p>
+      <p class="ans-ville">Pas de ${esc(fuelLabel())} avec un prix récent à moins de ${state.radius} km de ${esc(originLabel())}.</p></div>
+      <button type="button" class="go" data-widen>Chercher jusqu'à ${Math.min(state.radius + 10, 40)} km</button>`;
+    lastLeadKey = "";
+    return;
   }
+  const r = ranked[0];
+  const s = r.station;
+  const stale = hoursOld(r.updatedAt) > STALE_HOURS;
+  const saving = r.gain > 0.05 ? `<span class="save">${eur.format(r.gain)} de moins que la plus proche</span>`
+    : `<span>${r.isNearest ? "C'est aussi la plus proche" : "Même total que la plus proche"}</span>`;
+  const age = stale ? `<span class="flag">${icon("i-caution")}prix ${ago(r.updatedAt)}</span>` : `<span>prix ${ago(r.updatedAt)}</span>`;
+  els.answerBody.innerHTML = `
+    <button type="button" class="ans-head plain" data-open="${esc(s.id)}" aria-label="Détails de la station ${esc(stationName(s))}">
+      <span class="ans-name">${esc(stationName(s))}</span>
+      <span class="ans-ville">${esc(titleCase(s.ville))}</span>
+    </button>
+    <p class="ans-price" aria-label="${priceSpoken(r.price)}"><span class="num">${priceHTML(r.price)}</span><span class="unit">€/L</span></p>
+    <div class="ans-facts">
+      <p class="fact"><b>${kmText(r.distanceKm)} km</b><span>distance</span></p>
+      <p class="fact"><b>${eur.format(r.total)}</b><span>plein + détour</span></p>
+    </div>
+    <button type="button" class="go" data-go="${esc(s.id)}">${icon("i-go")}Y aller${navLabel() ? `<small>· ${esc(navLabel())}</small>` : ""}</button>
+    <div class="ans-foot"><span>${saving}<br>${age}</span>
+      <button type="button" class="icon-btn star-btn" data-fav="${esc(s.id)}" aria-pressed="${isFav(s.id)}" aria-label="${isFav(s.id) ? "Retirer des favoris" : "Ajouter aux favoris"}">${icon("i-star")}</button>
+    </div>`;
+  const key = `${s.id}|${state.fuel}|${r.total.toFixed(2)}`;
+  if (!firstRender && key !== lastLeadKey) restitch();
+  lastLeadKey = key;
+}
+
+// Signature : le bouquet se brode du bas vers le haut (à l'ouverture, puis plus vite quand la réponse change).
+function stitchIn(duration) {
+  const g = els.answer.querySelector(".stitches");
+  if (!g) return;
+  if (reduceMotion.matches) { g.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: "ease" }); return; }
+  g.animate([{ clipPath: "inset(100% 0 0 0)" }, { clipPath: "inset(0 0 0 0)" }], { duration, easing: EASE_OUT });
+}
+function restitch() {
+  stitchIn(600);
+  if (!reduceMotion.matches) {
+    els.answerBody.animate([{ opacity: 0.25, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 240, easing: EASE_OUT });
+  }
+}
+
+function altHTML(r, best, label) {
+  const s = r.station;
   const delta = r.total - best.total;
-  const right = r.posLabel ?? (delta < 0.005 ? "même total" : `+${eur.format(delta)}`);
-  return `<button type="button" class="case-btn" data-open="${esc(s.id)}" aria-label="${esc(stationName(s))}, ${esc(titleCase(s.ville))}, ${priceLabel(r.price)}, ${kmText(r.distanceKm)} kilomètres, ${esc(right)}. Ouvrir la station">
-      ${km}${cap}
-      <span class="notes">
-        <span class="n-top"><span class="ville">${esc(stationName(s))}</span><span class="price">${priceHTML(r.price)}</span></span>
-        <span class="n-sub"><span class="addr">${esc(titleCase(s.ville))}</span><span class="gap">${esc(right)}</span></span>
-        ${flag}
-      </span>
+  const right = label ?? (delta < 0.005 ? "même total" : `+${eur.format(delta)}`);
+  const stale = hoursOld(r.updatedAt) > STALE_HOURS ? ` · prix ${ago(r.updatedAt)}` : "";
+  return `<button type="button" class="alt-btn" data-open="${esc(s.id)}" aria-label="${r.rank ? `${r.rank}e, ` : ""}${esc(stationName(s))}, ${priceSpoken(r.price)}, ${kmText(r.distanceKm)} kilomètres, ${esc(right)}">
+      <span class="rank" aria-hidden="true">${r.rank ?? "–"}</span>
+      <span class="alt-name">${esc(stationName(s))}</span>
+      <span class="alt-price">${priceHTML(r.price)}</span>
+      <span class="alt-meta">${kmText(r.distanceKm)} km · ${esc(titleCase(s.ville))}${stale}</span>
+      <span class="alt-gap">${esc(right)}</span>
     </button>`;
 }
 
-// Réordonnancement : chaque case glisse de son ancienne place à la nouvelle (FLIP).
-function renderCases(list, rows, { lead = true } = {}) {
+// Réordonnancement : chaque station glisse de son ancienne place à la nouvelle (FLIP).
+function renderRows(list, rows, best, labels = new Map()) {
   const before = new Map();
   for (const li of list.children) if (li.dataset.id) before.set(li.dataset.id, li.getBoundingClientRect().top);
   const existing = new Map([...list.children].filter((li) => li.dataset.id).map((li) => [li.dataset.id, li]));
-  const best = rows[0];
-  const nodes = rows.map((r, i) => {
+  const nodes = rows.map((r) => {
     const li = existing.get(r.station.id) || document.createElement("li");
-    li.className = `case${lead && i === 0 ? " lead" : ""}`;
     li.dataset.id = r.station.id;
-    li.innerHTML = caseHTML(r, lead ? i : i + 1, best);
+    li.innerHTML = altHTML(r, best, labels.get(r.station.id));
     return li;
   });
   list.replaceChildren(...nodes);
-  settleTulips(list);
-  if (reduceMotion.matches || firstRender) return nodes;
+  if (firstRender || reduceMotion.matches) return nodes;
   nodes.forEach((li, i) => {
     const prev = before.get(li.dataset.id);
     if (prev === undefined) {
-      li.animate([{ opacity: 0, transform: "translateY(-6px)" }, { opacity: 1, transform: "none" }],
-        { duration: 220, easing: EASE_OUT, delay: Math.min(i, 8) * 30, fill: "backwards" });
+      li.animate([{ opacity: 0.3, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 220, easing: EASE_OUT, delay: Math.min(i, 6) * 30, fill: "backwards" });
       return;
     }
     const dy = prev - li.getBoundingClientRect().top;
@@ -271,26 +250,22 @@ function renderCases(list, rows, { lead = true } = {}) {
 }
 
 function renderRank() {
-  if (!ranked.length) {
-    els.rb.innerHTML = `<li class="empty"><p>Aucune station ne vend du ${esc(data.fuels[state.fuel]?.label)} à moins de ${state.radius} km de ${esc(originLabel())} avec un prix récent.</p>
-      <button type="button" class="btn btn-ink" data-widen>Chercher jusqu'à ${Math.min(state.radius + 10, 40)} km</button></li>`;
-    lastLeadKey = "";
-    return;
+  renderAnswer();
+  const best = ranked[0];
+  const alts = ranked.slice(1, 1 + ALTS);
+  $("nextTitle").hidden = !alts.length;
+  const nodes = best ? renderRows(els.alts, alts, best) : (els.alts.replaceChildren(), []);
+  if (firstRender && nodes.length) {
+    nodes.forEach((li, i) => li.style.setProperty("--i", i + 6));
+    els.alts.classList.add("unroll");
+    setTimeout(() => els.alts.classList.remove("unroll"), 1000);
   }
-  const nodes = renderCases(els.rb, ranked.slice(0, LIST_MAX));
-  const leadKey = `${ranked[0].station.id}|${state.fuel}|${ranked[0].total.toFixed(2)}`;
-  if (firstRender) {
-    nodes.forEach((li, i) => li.style.setProperty("--i", Math.min(i, 10)));
-    els.rb.classList.add("unroll");
-    setTimeout(() => els.rb.classList.remove("unroll"), 900);
-  }
-  if (leadKey !== lastLeadKey) {
-    const lead = nodes[0];
-    lead.classList.remove("swipe");
-    void lead.offsetWidth; // relance le coup de surligneur
-    lead.classList.add("swipe");
-  }
-  lastLeadKey = leadKey;
+  const rest = ranked.length - 1 - ALTS;
+  els.showAll.hidden = rest <= 0;
+  els.showAll.setAttribute("aria-expanded", String(showAll));
+  els.showAllText.textContent = showAll ? "Masquer les autres stations" : `Voir les ${rest} autres stations`;
+  els.allList.hidden = !showAll;
+  if (showAll && best) renderRows(els.allList, ranked.slice(1 + ALTS, 1 + ALTS + ALL_MAX), best);
 }
 
 function renderFavs() {
@@ -301,31 +276,17 @@ function renderFavs() {
   const v = vehicle();
   const favStations = state.favs.map(stationById).filter(Boolean);
   const rows = rankStations(favStations, state.fuel, origin(), { litres: Number(v.litres) || 1, conso: Number(v.conso) || 0, radiusKm: 500 });
-  const o = origin();
+  const labels = new Map();
   for (const r of rows) {
-    r.bearing = bearingDeg(o, r.station);
     const pos = ranked.findIndex((x) => x.station.id === r.station.id);
-    r.posLabel = pos >= 0 ? `${pos + 1}${pos === 0 ? "re" : "e"} au classement` : "hors rayon";
     r.rank = pos >= 0 ? pos + 1 : null;
+    labels.set(r.station.id, pos >= 0 ? `${pos + 1}${pos === 0 ? "re" : "e"} au classement` : "hors rayon");
   }
-  const missing = favStations.length - rows.length;
   if (!rows.length) {
-    els.favList.innerHTML = `<li class="empty"><p>Tes favoris n'ont pas de prix récent en ${esc(data.fuels[state.fuel]?.label)}.</p></li>`;
+    els.favList.innerHTML = `<li class="empty"><p>Tes favoris n'ont pas de prix récent en ${esc(fuelLabel())}.</p></li>`;
     return;
   }
-  renderCases(els.favList, rows, { lead: false });
-  if (missing > 0) {
-    const li = document.createElement("li");
-    li.className = "empty";
-    li.innerHTML = `<p>${missing} favori${missing > 1 ? "s" : ""} sans prix récent en ${esc(data.fuels[state.fuel]?.label)}.</p>`;
-    els.favList.append(li);
-  }
-}
-
-function renderFresh() {
-  const t = new Date(data.generated_at);
-  els.fresh.textContent = `Relevé ${ago(t)}`;
-  els.fresh.title = t.toLocaleString("fr-FR");
+  renderRows(els.favList, rows, rows[0], labels);
 }
 
 function render() {
@@ -339,10 +300,7 @@ function render() {
   if (view === "log") renderLog();
   firstRender = false;
 }
-function update() {
-  save();
-  render();
-}
+function update() { save(); render(); }
 
 // ---------- Onglets ----------
 function showView(next) {
@@ -352,11 +310,7 @@ function showView(next) {
   for (const id of ["rank", "map", "fav", "log"]) {
     const el = $(`view-${id}`);
     el.hidden = id !== next;
-    if (id === next) {
-      el.classList.remove("entering");
-      void el.offsetWidth;
-      el.classList.add("entering");
-    }
+    if (id === next) { el.classList.remove("entering"); void el.offsetWidth; el.classList.add("entering"); }
   }
   if (next === "fav") renderFavs();
   if (next === "map") renderMap();
@@ -364,62 +318,138 @@ function showView(next) {
   window.scrollTo({ top: 0 });
 }
 
-// ---------- Carte (Leaflet chargé à la demande) ----------
-let L = null;
+// ---------- Itinéraire : Plans, Google Maps ou Waze ----------
+function navUrls(app, s) {
+  const ll = `${s.lat},${s.lon}`;
+  if (app === "apple") return { web: `https://maps.apple.com/?daddr=${ll}&dirflg=d` };
+  if (app === "waze") return { web: `https://waze.com/ul?ll=${ll}&navigate=yes` };
+  return {
+    scheme: isIOS ? `comgooglemaps://?daddr=${ll}&directionsmode=driving` : null,
+    web: `https://www.google.com/maps/dir/?api=1&destination=${ll}&travelmode=driving`,
+  };
+}
+// Ouvre l'appli si elle est installée (lien universel ou schéma d'appli), sinon le site.
+function launchNav(app, s) {
+  const { scheme, web } = navUrls(app, s);
+  if (scheme) {
+    let left = false;
+    const onHide = () => { left = true; };
+    document.addEventListener("visibilitychange", onHide, { once: true });
+    location.href = scheme;
+    setTimeout(() => {
+      document.removeEventListener("visibilitychange", onHide);
+      if (!left && document.visibilityState === "visible") window.open(web, "_blank", "noopener");
+    }, 1400);
+    return;
+  }
+  const w = window.open(web, "_blank", "noopener");
+  if (!w) location.href = web;
+}
+let pendingNavStation = null;
+function go(id) {
+  const s = stationById(id);
+  if (!s) return;
+  if (state.nav) return launchNav(state.nav, s);
+  pendingNavStation = s;
+  const apps = isIOS ? NAV_APPS : [NAV_APPS[1], NAV_APPS[2], NAV_APPS[0]];
+  els.navApps.innerHTML = apps.map((a) => `<button type="button" class="nav-app" data-nav-app="${a.id}">${esc(a.label)}<small>${esc(a.detail)}</small></button>`).join("");
+  openSheet(els.navSheet);
+}
+
+// ---------- Carte : MapLibre + tuiles OpenFreeMap (sans clé), recolorées aux fils de la broderie ----------
+let maplib = null;
 let map = null;
-let markerLayer = null;
-let tileLayer = null;
-function loadLeaflet() {
-  if (window.L) return Promise.resolve(window.L);
+let markers = [];
+const MAP_STYLE_URL = "https://tiles.openfreemap.org/styles/positron";
+function loadMapLib() {
+  if (window.maplibregl) return Promise.resolve(window.maplibregl);
   return new Promise((resolve, reject) => {
     const css = document.createElement("link");
     css.rel = "stylesheet";
-    css.href = "vendor/leaflet/leaflet.css";
+    css.href = "vendor/maplibre/maplibre-gl.css";
     document.head.append(css);
     const js = document.createElement("script");
-    js.src = "vendor/leaflet/leaflet.js";
-    js.onload = () => resolve(window.L);
+    js.src = "vendor/maplibre/maplibre-gl.js";
+    js.onload = () => resolve(window.maplibregl);
     js.onerror = reject;
     document.head.append(js);
   });
 }
-function tiles() {
-  const style = darkScheme.matches ? "dark_all" : "light_all";
-  return L.tileLayer(`https://{s}.basemaps.cartocdn.com/${style}/{z}/{x}/{y}{r}.png`, {
-    maxZoom: 19, subdomains: "abcd",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-  });
+const MAP_PALETTES = {
+  light: { bg: "#F3EDE0", water: "#C7DAE5", park: "#DDE5CF", building: "#E7DECD", road: "#FFFFFF", major: "#EBCB8E", rail: "#CBBFA8", text: "#6A5F55", halo: "#F3EDE0", boundary: "#C4B392" },
+  dark: { bg: "#0E1430", water: "#1A2856", park: "#16254A", building: "#151D40", road: "#25305C", major: "#6B5A33", rail: "#2E3A6A", text: "#A8AECB", halo: "#0E1430", boundary: "#46528A" },
+};
+let baseStyle = null;
+function recolor(style, pal) {
+  const s = structuredClone(style);
+  for (const layer of s.layers) {
+    const id = layer.id.toLowerCase();
+    const p = (layer.paint ||= {});
+    if (layer.type === "background") { p["background-color"] = pal.bg; continue; }
+    if (layer.type === "symbol") { p["text-color"] = pal.text; p["text-halo-color"] = pal.halo; p["icon-opacity"] = 0.7; continue; }
+    const set = (c) => {
+      if (layer.type === "fill") p["fill-color"] = c;
+      if (layer.type === "line") p["line-color"] = c;
+      if (layer.type === "fill-extrusion") p["fill-extrusion-color"] = c;
+    };
+    if (/water|ocean|river|lake/.test(id)) set(pal.water);
+    else if (/park|landcover|landuse|grass|wood|forest|green|cemetery/.test(id)) set(pal.park);
+    else if (/building/.test(id)) set(pal.building);
+    else if (/rail/.test(id)) set(pal.rail);
+    else if (/boundary|admin/.test(id)) set(pal.boundary);
+    else if (/motorway|trunk|primary|major/.test(id)) set(pal.major);
+    else if (/road|highway|street|bridge|tunnel|path|minor|service|transportation/.test(id)) set(pal.road);
+  }
+  return s;
+}
+const currentPalette = () => MAP_PALETTES[darkScheme.matches ? "dark" : "light"];
+function flowerPin(n, top) {
+  const el = document.createElement("button");
+  el.type = "button";
+  el.className = `pin${top ? " top" : ""}`;
+  el.setAttribute("aria-label", `Station ${n}`);
+  // Pastille cousue (point de couture en pointillé), numéro du classement au centre
+  el.textContent = String(n);
+  return el;
 }
 async function renderMap() {
   try {
-    L = L || (await loadLeaflet());
+    maplib = maplib || (await loadMapLib());
   } catch {
-    els.mapNote.textContent = "La carte n'a pas pu se charger. Vérifie ta connexion, le classement reste disponible.";
+    els.mapNote.textContent = "La carte n'a pas pu se charger. Le classement reste disponible.";
     return;
   }
-  if (!map) {
-    map = L.map(els.map, { zoomControl: false, attributionControl: true });
-    L.control.zoom({ position: "bottomright" }).addTo(map);
-    tileLayer = tiles().addTo(map);
-    markerLayer = L.layerGroup().addTo(map);
-    darkScheme.addEventListener("change", () => { map.removeLayer(tileLayer); tileLayer = tiles().addTo(map); });
-  }
-  markerLayer.clearLayers();
   const o = origin();
-  L.marker([o.lat, o.lon], { icon: L.divIcon({ className: "", html: '<span class="pin me"></span>', iconSize: [16, 16] }), title: "Point de départ", keyboard: false }).addTo(markerLayer);
+  if (!map) {
+    try {
+      if (!baseStyle) baseStyle = await (await fetch(MAP_STYLE_URL)).json();
+    } catch {
+      els.mapNote.textContent = "Le fond de carte ne répond pas pour l'instant. Réessaie plus tard, le classement reste disponible.";
+      return;
+    }
+    map = new maplib.Map({
+      container: els.map, style: recolor(baseStyle, currentPalette()), center: [o.lon, o.lat], zoom: 12,
+      attributionControl: { compact: true },
+    });
+    map.addControl(new maplib.NavigationControl({ showCompass: false }), "bottom-right");
+    darkScheme.addEventListener("change", () => map.setStyle(recolor(baseStyle, currentPalette())));
+  }
+  for (const m of markers) m.remove();
+  markers = [];
+  const me = document.createElement("div");
+  me.className = "me-dot";
+  markers.push(new maplib.Marker({ element: me }).setLngLat([o.lon, o.lat]).addTo(map));
   const shown = ranked.slice(0, MAP_MAX);
   shown.slice().reverse().forEach((r) => {
-    const i = ranked.indexOf(r);
-    const size = i === 0 ? 34 : 26;
-    L.marker([r.station.lat, r.station.lon], {
-      icon: L.divIcon({ className: "", html: `<span class="pin${i === 0 ? " top" : ""}">${i + 1}</span>`, iconSize: [size, size] }),
-      title: `${i + 1}. ${stationName(r.station)}, ${r.price.toFixed(3)} €`,
-      zIndexOffset: (MAP_MAX - i) * 100,
-    }).on("click", () => openStation(r.station.id)).addTo(markerLayer);
+    const el = flowerPin(r.rank, r.rank === 1);
+    el.addEventListener("click", (e) => { e.stopPropagation(); openStation(r.station.id); });
+    markers.push(new maplib.Marker({ element: el }).setLngLat([r.station.lon, r.station.lat]).addTo(map));
   });
-  const pts = [[o.lat, o.lon], ...shown.slice(0, 10).map((r) => [r.station.lat, r.station.lon])];
-  map.invalidateSize();
-  map.fitBounds(pts, { padding: [36, 36], maxZoom: 14 });
+  const pts = [[o.lon, o.lat], ...shown.slice(0, 8).map((r) => [r.station.lon, r.station.lat])];
+  const lons = pts.map((p) => p[0]);
+  const lats = pts.map((p) => p[1]);
+  map.resize();
+  map.fitBounds([[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]], { padding: 48, maxZoom: 14, duration: 0 });
 }
 
 // ---------- Fiche station ----------
@@ -427,43 +457,31 @@ function openStation(id) {
   const s = stationById(id);
   if (!s) return;
   const r = ranked.find((x) => x.station.id === id);
-  const o = origin();
-  const pos = r ? ranked.indexOf(r) + 1 : null;
   const prices = FUEL_ORDER.filter((f) => s.prices[f]).map((f) => {
     const [p, t] = s.prices[f];
-    const d = new Date(t);
-    const name = f === state.fuel ? `<span class="mark-hl">${esc(data.fuels[f]?.label ?? f)}</span>` : esc(data.fuels[f]?.label ?? f);
     const out = isOutOfStock(s, f) ? ` <span class="flag">${icon("i-caution")}rupture signalée</span>` : "";
-    return `<li><span class="fuel-name">${name}</span><span class="price">${priceHTML(p)}</span><small>prix affiché ${ago(d)}${out}</small></li>`;
+    return `<li><span class="fuel-name${f === state.fuel ? " cur" : ""}">${esc(data.fuels[f]?.label ?? f)}</span><span class="num">${priceHTML(p)}</span><small>prix ${ago(new Date(t))}${out}</small></li>`;
   }).join("");
   const facts = [
     s.automate_24_24 ? ["Automate 24 h/24", esc(s.automate_24_24)] : null,
     s.horaires ? ["Horaires", esc(s.horaires)] : null,
     s.services ? ["Services", esc(s.services)] : null,
-    s.indisponibles ? ["Ruptures", `<span class="flag">${icon("i-caution")}${esc(s.indisponibles)}</span>`] : null,
   ].filter(Boolean);
-  const brg = bearingDeg(o, s);
-  const strip = r ? `<div class="st-case"><span class="km"><span class="no" aria-hidden="true">${r.rank}</span>${kmText(r.distanceKm)}<small>km</small></span><span class="cap">${tulipHTML(`sheet-${s.id}`, brg)}<small>${capNum(brg)}°</small></span><p class="st-case-txt">depuis ${esc(originLabel())}<br>${r.rank}${r.rank === 1 ? "re" : "e"} au classement</p></div>` : "";
-  const where = `${capText(brg)} depuis ${esc(originLabel())}`;
   els.stationBody.innerHTML = `
     <div class="grabber" aria-hidden="true"></div>
     <div class="sheet-head">
-      <div>
-        <h2 id="stTitle">${esc(stationName(s))}</h2>
-        <p>${esc(titleCase(s.ville))}${s.cp ? ` · ${esc(s.cp)}` : ""}</p>
-        ${r ? "" : `<p>${where} · hors rayon</p>`}
-      </div>
+      <div><h2 id="stTitle">${esc(stationName(s))}</h2>
+        <p>${esc(titleCase(s.ville))}${r ? ` · ${kmText(r.distanceKm)} km · ${r.rank}${r.rank === 1 ? "re" : "e"} au classement` : " · hors rayon"}</p></div>
       <button class="icon-btn" type="button" data-close aria-label="Fermer">${icon("i-close")}</button>
     </div>
-    ${strip}
-    ${r ? `<p class="lead-total"><b>${eur.format(r.total)}</b> le plein de ${esc(data.fuels[state.fuel]?.label)}, détour compris</p>` : ""}
-    <ul class="st-prices" aria-label="Prix dans cette station">${prices}</ul>
-    ${facts.length ? `<dl class="st-facts">${facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>` : ""}
+    ${r ? `<p class="st-sum"><b>${eur.format(r.total)}</b> le plein de ${esc(fuelLabel())}, détour compris</p>` : ""}
     <div class="st-actions">
-      <a class="btn btn-ink" href="${directions(s)}" target="_blank" rel="noopener">${icon("i-go")}Y aller</a>
+      <button type="button" class="go" data-go="${esc(s.id)}">${icon("i-go")}Y aller</button>
       <button type="button" class="icon-btn star-btn" data-fav="${esc(s.id)}" aria-pressed="${isFav(s.id)}" aria-label="${isFav(s.id) ? "Retirer des favoris" : "Ajouter aux favoris"}">${icon("i-star")}</button>
       ${navigator.share ? `<button type="button" class="icon-btn" data-share="${esc(s.id)}" aria-label="Partager la station">${icon("i-share")}</button>` : ""}
     </div>
+    <ul class="st-prices" aria-label="Prix dans cette station">${prices}</ul>
+    ${facts.length ? `<dl class="st-facts">${facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>` : ""}
     <button type="button" class="btn" data-log-here="${esc(s.id)}">${icon("i-log")}Noter un plein ici</button>`;
   openSheet(els.stationSheet);
 }
@@ -476,11 +494,9 @@ function openSheet(dlg) {
 function closeSheet(dlg) {
   if (!dlg.open) return;
   dlg.classList.remove("is-open");
-  const done = () => { if (dlg.open && !dlg.classList.contains("is-open")) dlg.close(); };
-  setTimeout(done, 340);
+  setTimeout(() => { if (dlg.open && !dlg.classList.contains("is-open")) dlg.close(); }, 340);
 }
-
-// Glisser vers le bas pour fermer, depuis la poignée ou l'en-tête du panneau.
+// Glisser vers le bas pour fermer, depuis la poignée ou l'en-tête.
 function enableDragToClose(dlg) {
   let startY = 0, dy = 0, dragging = false, sheet = null;
   dlg.addEventListener("pointerdown", (e) => {
@@ -509,16 +525,17 @@ function enableDragToClose(dlg) {
 function renderSettings() {
   els.places.innerHTML = PLACES.map((p) => `<button type="button" class="choice" data-place="${p.id}" aria-pressed="${state.placeId === p.id}">${esc(p.label)}</button>`).join("");
   els.profiles.innerHTML = PROFILES.map((p) => `<button type="button" class="choice" data-profile="${p.id}" aria-pressed="${state.profileId === p.id}">${esc(p.label)}<small>${esc(p.detail)}</small></button>`).join("");
+  els.navPref.innerHTML = [{ id: "", label: "Me demander" }, ...NAV_APPS].map((a) => `<button type="button" class="choice" data-nav-pref="${a.id}" aria-pressed="${(state.nav || "") === a.id}">${esc(a.label)}</button>`).join("");
   els.custom.hidden = state.profileId !== "custom";
-  els.litres.value = state.custom.litres;
-  els.conso.value = state.custom.conso;
+  els.litres.value = commaNum(Number(state.custom.litres), 0);
+  els.conso.value = commaNum(Number(state.custom.conso), 1);
   els.radius.value = state.radius;
   els.radiusOut.textContent = `${state.radius} km`;
   els.useGps.setAttribute("aria-pressed", String(state.placeId === "gps"));
   els.useGpsText.textContent = locating ? "Recherche de ta position…" : state.gps && state.placeId === "gps" ? "Ma position (active)" : "Ma position";
 }
 
-// ---------- Géolocalisation ----------
+// ---------- Position : demandée à l'ouverture, suivie tant que le site est ouvert ----------
 function locate({ fromUser = false } = {}) {
   if (!("geolocation" in navigator)) {
     if (fromUser) hint("Ton navigateur ne donne pas accès à la position. Choisis un point de départ.");
@@ -535,6 +552,7 @@ function locate({ fromUser = false } = {}) {
       hint("");
       if (els.settingsSheet.open) renderSettings();
       update();
+      startWatch();
     },
     (err) => {
       locating = false;
@@ -546,37 +564,88 @@ function locate({ fromUser = false } = {}) {
       if (els.settingsSheet.open) renderSettings();
       render();
     },
-    { enableHighAccuracy: false, timeout: 12000, maximumAge: 120000 },
+    { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 },
   );
 }
 function hint(text) {
   els.gpsHint.textContent = text;
   els.gpsHint.hidden = !text;
 }
+function startWatch() {
+  if (watchId !== null || !("geolocation" in navigator) || document.visibilityState !== "visible") return;
+  watchId = navigator.geolocation.watchPosition(onPosition, () => {}, { enableHighAccuracy: true, maximumAge: 15000, timeout: 30000 });
+}
+function stopWatch() {
+  if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+  watchId = null;
+}
+function onPosition(pos) {
+  const here = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+  checkDwell(here);
+  if (state.placeId !== "gps") return;
+  const moved = state.gps ? haversineKm(state.gps, here) * 1000 : Infinity;
+  if (moved > REORIGIN_M) { state.gps = here; update(); }
+}
+// 3 minutes à moins de 50 m d'une station : on propose de noter le plein.
+function checkDwell(here) {
+  if (!data) return;
+  let nearest = null;
+  let best = Infinity;
+  for (const s of data.stations) {
+    const d = haversineKm(here, s) * 1000;
+    if (d < best) { best = d; nearest = s; }
+  }
+  const now = Date.now();
+  if (nearest && best <= DWELL_IN_M) {
+    if (!dwell || dwell.id !== nearest.id) dwell = { id: nearest.id, since: now };
+    else if (now - dwell.since >= DWELL_MS) maybeOfferFill(nearest);
+  } else if (!dwell || best > DWELL_OUT_M) {
+    dwell = null;
+  }
+}
+function maybeOfferFill(s) {
+  const seen = state.fillSeen[s.id] || 0;
+  if (Date.now() - seen < 2 * 3600 * 1000 || !els.fillCard.hidden) return;
+  state.fillSeen[s.id] = Date.now();
+  save();
+  showFillCard(s);
+}
+function buzz() {
+  if (navigator.vibrate) { navigator.vibrate([40, 70, 40]); return; }
+  // iPhone : Safari n'a pas d'API de vibration. Basculer un interrupteur iOS (input switch) déclenche
+  // un retour haptique sur les versions récentes ; c'est une astuce non garantie.
+  if (isIOS) try { els.hapticLabel.click(); } catch { /* sans effet */ }
+}
+let fillStation = null;
+function showFillCard(s) {
+  fillStation = s;
+  const p = s.prices[state.fuel]?.[0];
+  els.fillText.textContent = `Tu es à ${stationName(s)} depuis 3 min${p ? ` (${fuelLabel()} à ${commaNum(p, 3)} €)` : ""}. On le note dans ton carnet ?`;
+  els.fillCard.hidden = false;
+  requestAnimationFrame(() => requestAnimationFrame(() => els.fillCard.classList.add("show")));
+  buzz();
+}
+function hideFillCard() {
+  els.fillCard.classList.remove("show");
+  setTimeout(() => { if (!els.fillCard.classList.contains("show")) els.fillCard.hidden = true; }, 340);
+}
 
 // ---------- Carnet d'économies ----------
-function logStations() {
+function fillLogForm(preselectId) {
   const favs = state.favs.map(stationById).filter((s) => s && s.prices[state.fuel]);
   const near = ranked.slice(0, 20).map((r) => r.station).filter((s) => !state.favs.includes(s.id));
-  return { favs, near };
-}
-function fillLogForm(preselectId) {
-  const { favs, near } = logStations();
   const opt = (s) => `<option value="${esc(s.id)}">${esc(stationName(s))} · ${esc(titleCase(s.ville))}</option>`;
   els.logStation.innerHTML =
     (favs.length ? `<optgroup label="Favoris">${favs.map(opt).join("")}</optgroup>` : "") +
     (near.length ? `<optgroup label="Autour de ${esc(originLabel())}">${near.map(opt).join("")}</optgroup>` : "");
   const pre = preselectId && stationById(preselectId);
-  if (pre && ![...els.logStation.options].some((o) => o.value === pre.id)) {
-    els.logStation.insertAdjacentHTML("afterbegin", opt(pre));
-  }
+  if (pre && ![...els.logStation.options].some((o) => o.value === pre.id)) els.logStation.insertAdjacentHTML("afterbegin", opt(pre));
   if (pre) els.logStation.value = pre.id;
   els.logLitres.value = String(vehicle().litres).replace(".", ",");
   syncLogPrice();
 }
 function syncLogPrice() {
-  const s = stationById(els.logStation.value);
-  const p = s?.prices[state.fuel]?.[0];
+  const p = stationById(els.logStation.value)?.prices[state.fuel]?.[0];
   if (p) els.logPrice.value = commaNum(p, 3);
   previewLog();
 }
@@ -584,20 +653,23 @@ function previewLog() {
   const median = data.fuels[state.fuel]?.median;
   const litres = parseNum(els.logLitres.value);
   const price = parseNum(els.logPrice.value);
-  if (!median || !(litres > 0) || !(price > 0)) { els.logPreview.textContent = litres || price ? "Saisis des litres et un prix au litre valides, par exemple 14 et 1,989." : ""; return; }
+  if (!median || !(litres > 0) || !(price > 0)) {
+    els.logPreview.textContent = litres || price ? "Saisis des litres et un prix au litre valides, par exemple 14 et 1,989." : "";
+    return;
+  }
   const gain = (median - price) * litres;
   els.logPreview.textContent = gain >= 0
-    ? `Économie estimée : ${eur.format(gain)} par rapport au prix médian de la zone (${median.toFixed(3).replace(".", ",")} €).`
-    : `${eur.format(-gain)} de plus que le prix médian de la zone (${median.toFixed(3).replace(".", ",")} €).`;
+    ? `Économie estimée : ${eur.format(gain)} par rapport au prix médian de la zone (${commaNum(median, 3)} €).`
+    : `${eur.format(-gain)} de plus que le prix médian de la zone (${commaNum(median, 3)} €).`;
 }
 function renderLog() {
   const entries = state.log;
   const total = entries.reduce((sum, e) => sum + e.gain, 0);
   els.logTotal.innerHTML = entries.length
     ? `<p><b>${eur.format(total)}</b> ${total >= 0 ? "économisés" : "dépensés en plus"} sur ${entries.length} plein${entries.length > 1 ? "s" : ""} depuis le ${dateFmt.format(new Date(entries[entries.length - 1].date))}, par rapport au prix médian de la zone le jour du plein.</p>`
-    : `<p>Note tes pleins pour voir ce que le classement te fait économiser par rapport au prix médian de la zone.</p>`;
+    : `<p>Note tes pleins pour voir ce que Plein Sud te fait économiser par rapport au prix médian de la zone.</p>`;
   els.logList.innerHTML = entries.map((e) => `<li class="log-item">
-      <p>${esc(titleCase(e.ville))} · ${esc(e.fuelLabel)}<small>${dateFmt.format(new Date(e.date))} · ${String(e.litres).replace(".", ",")} L à ${e.price.toFixed(3).replace(".", ",")} €</small></p>
+      <p>${esc(e.ville)} · ${esc(e.fuelLabel)}<small>${dateFmt.format(new Date(e.date))} · ${String(e.litres).replace(".", ",")} L à ${commaNum(e.price, 3)} €</small></p>
       <span class="log-gain${e.gain < 0 ? " neg" : ""}">${e.gain >= 0 ? "−" : "+"}${eur.format(Math.abs(e.gain))}</span>
       <button type="button" class="log-del" data-del="${esc(e.id)}" aria-label="Supprimer ce plein">${icon("i-close")}</button>
     </li>`).join("");
@@ -627,10 +699,13 @@ els.fuels.addEventListener("click", (e) => {
   els.logStation.innerHTML = "";
   update();
 });
-els.start.addEventListener("click", () => { renderSettings(); openSheet(els.settingsSheet); });
+for (const btn of [els.start, els.settingsBtn]) btn.addEventListener("click", () => { renderSettings(); openSheet(els.settingsSheet); });
 for (const t of document.querySelectorAll(".tabs [role=tab]")) t.addEventListener("click", () => showView(t.dataset.view));
+els.showAll.addEventListener("click", () => { showAll = !showAll; renderRank(); });
 
 document.addEventListener("click", (e) => {
+  const goBtn = e.target.closest("[data-go]");
+  if (goBtn) return go(goBtn.dataset.go);
   const open = e.target.closest("[data-open]");
   if (open) return openStation(open.dataset.open);
   const fav = e.target.closest("[data-fav]");
@@ -641,7 +716,7 @@ document.addEventListener("click", (e) => {
     for (const b of document.querySelectorAll(`[data-fav="${CSS.escape(id)}"]`)) {
       b.setAttribute("aria-pressed", String(isFav(id)));
       b.setAttribute("aria-label", isFav(id) ? "Retirer des favoris" : "Ajouter aux favoris");
-      if (!reduceMotion.matches) b.animate([{ transform: "scale(0.9)" }, { transform: "none" }], { duration: 200, easing: EASE_OUT });
+      if (!reduceMotion.matches) b.animate([{ transform: "scale(0.88)" }, { transform: "none" }], { duration: 220, easing: EASE_OUT });
     }
     toast(isFav(id) ? "Ajoutée aux favoris" : "Retirée des favoris");
     if (view === "fav") renderFavs();
@@ -653,8 +728,8 @@ document.addEventListener("click", (e) => {
     const p = s?.prices[state.fuel]?.[0];
     navigator.share?.({
       title: `Plein Sud · ${stationName(s)}`,
-      text: `${data.fuels[state.fuel]?.label} à ${p ? p.toFixed(3).replace(".", ",") + " €" : "?"} : ${stationName(s)}, ${titleCase(s.ville)}`,
-      url: directions(s),
+      text: `${fuelLabel()} à ${p ? commaNum(p, 3) + " €" : "?"} : ${stationName(s)}, ${titleCase(s.ville)}`,
+      url: navUrls("google", s).web,
     }).catch(() => {});
     return;
   }
@@ -665,10 +740,7 @@ document.addEventListener("click", (e) => {
     fillLogForm(logHere.dataset.logHere);
     return;
   }
-  if (e.target.closest("[data-widen]")) {
-    state.radius = Math.min(state.radius + 10, 40);
-    return update();
-  }
+  if (e.target.closest("[data-widen]")) { state.radius = Math.min(state.radius + 10, 40); return update(); }
   const del = e.target.closest("[data-del]");
   if (del) {
     const idx = state.log.findIndex((x) => x.id === del.dataset.del);
@@ -680,23 +752,34 @@ document.addEventListener("click", (e) => {
   }
 });
 
-for (const dlg of [els.stationSheet, els.settingsSheet]) {
+for (const dlg of [els.stationSheet, els.settingsSheet, els.navSheet]) {
   enableDragToClose(dlg);
   dlg.addEventListener("click", (e) => { if (e.target.closest("[data-close]")) closeSheet(dlg); });
   dlg.addEventListener("cancel", (e) => { e.preventDefault(); closeSheet(dlg); });
 }
+els.navSheet.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-nav-app]");
+  if (!b || !pendingNavStation) return;
+  if (els.navRemember.checked) { state.nav = b.dataset.navApp; save(); renderAnswer(); }
+  closeSheet(els.navSheet);
+  launchNav(b.dataset.navApp, pendingNavStation);
+});
 els.settingsSheet.addEventListener("click", (e) => {
   const place = e.target.closest("[data-place]");
   if (place) { state.placeId = place.dataset.place; renderSettings(); return update(); }
   const prof = e.target.closest("[data-profile]");
   if (prof) { state.profileId = prof.dataset.profile; renderSettings(); return update(); }
+  const nav = e.target.closest("[data-nav-pref]");
+  if (nav) { state.nav = nav.dataset.navPref || null; renderSettings(); return update(); }
 });
 els.useGps.addEventListener("click", () => locate({ fromUser: true }));
 els.radius.addEventListener("input", () => { state.radius = Number(els.radius.value); els.radiusOut.textContent = `${state.radius} km`; update(); });
 for (const input of [els.litres, els.conso]) {
   input.addEventListener("change", () => {
-    if (Number(els.litres.value) > 0) state.custom.litres = Number(els.litres.value);
-    if (Number(els.conso.value) > 0) state.custom.conso = Number(els.conso.value);
+    const l = parseNum(els.litres.value);
+    const c = parseNum(els.conso.value);
+    if (l > 0 && l < 200) state.custom.litres = l;
+    if (c > 0 && c < 30) state.custom.conso = c;
     update();
   });
 }
@@ -717,36 +800,45 @@ els.logForm.addEventListener("submit", (e) => {
   }
   state.log.unshift({
     id: `${Date.now()}`, date: new Date().toISOString(), stationId: s.id, ville: stationName(s),
-    fuel: state.fuel, fuelLabel: data.fuels[state.fuel]?.label ?? state.fuel,
-    litres, price, median, gain: Math.round((median - price) * litres * 100) / 100,
+    fuel: state.fuel, fuelLabel: fuelLabel(), litres, price, median, gain: Math.round((median - price) * litres * 100) / 100,
   });
   save();
   renderLog();
   toast("Plein ajouté au carnet");
 });
+els.fillYes.addEventListener("click", () => {
+  const s = fillStation;
+  hideFillCard();
+  showView("log");
+  fillLogForm(s?.id);
+  els.logLitres.focus();
+});
+els.fillNo.addEventListener("click", hideFillCard);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") { if (state.placeId === "gps" && state.gps) startWatch(); }
+  else { stopWatch(); dwell = null; }
+});
 
 // ---------- Démarrage ----------
-function skeleton() {
-  els.rb.innerHTML = Array.from({ length: 5 }, () => `<li class="case skeleton"><div class="case-btn"><span class="km">00</span><span class="cap"></span><span class="notes"><span>Station</span><span>Adresse</span></span></div></li>`).join("");
-}
-
 async function boot() {
-  skeleton();
+  els.answerBody.innerHTML = `<div class="ans-head"><p class="ans-name">Plein Sud</p><p class="ans-ville">On cherche le meilleur plein autour de toi…</p></div>`;
   renderStart();
-  // Demande la position dès l'ouverture, sauf si un point de départ fixe a été choisi.
-  if (state.placeId === "gps") locate();
+  if (state.placeId === "gps") locate(); // la position est demandée dès l'ouverture
   try {
     const res = await fetch("data/latest.json", { cache: "no-cache" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     data = await res.json();
   } catch {
-    els.rb.innerHTML = `<li class="empty"><p>Impossible de charger les prix. Vérifie ta connexion puis recharge la page.</p></li>`;
+    els.answerBody.innerHTML = `<div class="ans-head"><p class="ans-name">Prix indisponibles</p><p class="ans-ville">Impossible de charger les prix. Vérifie ta connexion puis recharge la page.</p></div>`;
     els.fresh.textContent = "Hors ligne";
     return;
   }
   renderFresh();
   renderFuels();
   render();
+  stitchIn(1100);
+  // Démonstration du pop-up de plein : ouvrir le site avec #demo-plein
+  if (location.hash === "#demo-plein" && ranked[0]) setTimeout(() => showFillCard(ranked[0].station), 1500);
 }
 
 boot();
