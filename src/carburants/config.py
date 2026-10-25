@@ -32,6 +32,14 @@ STATION_COLUMNS = {
     "longitude": "longitude",
 }
 
+# Colonnes facultatives, gardées seulement si le flux les fournit (noms non vérifiés sur le flux réel).
+OPTIONAL_STATION_COLUMNS = {
+    "horaires_automate_24_24": "automate_24_24",
+    "carburants_indisponibles": "indisponibles",
+    "horaires_jour": "horaires",
+    "services_service": "services",
+}
+
 DATA_DIR = Path(os.getenv("CARBURANTS_DATA_DIR", Path(__file__).resolve().parents[2] / "data"))
 
 # Bornes de plausibilité (€/L) utilisées par les contrôles qualité.

@@ -39,3 +39,21 @@ test("le calcul correspond à la formule Python (plein + aller-retour)", () => {
   assert.ok(Math.abs(r.total - expected) < 1e-9);
   assert.equal(r.isNearest, true);
 });
+
+import { bearingDeg, isOutOfStock } from "../rank.js";
+
+test("cap : nord, est, sud, ouest", () => {
+  const o = { lat: 43.6, lon: 3.88 };
+  assert.ok(Math.abs(bearingDeg(o, { lat: 43.7, lon: 3.88 }) - 0) < 0.5);
+  assert.ok(Math.abs(bearingDeg(o, { lat: 43.6, lon: 4.0 }) - 90) < 0.5);
+  assert.ok(Math.abs(bearingDeg(o, { lat: 43.5, lon: 3.88 }) - 180) < 0.5);
+  assert.ok(Math.abs(bearingDeg(o, { lat: 43.6, lon: 3.7 }) - 270) < 0.5);
+});
+
+test("rupture : reconnaît les noms du flux, sans faux positif", () => {
+  const s = { indisponibles: "E85, GPLc, SP95" };
+  assert.equal(isOutOfStock(s, "gplc"), true);
+  assert.equal(isOutOfStock(s, "sp95"), true);
+  assert.equal(isOutOfStock(s, "e10"), false);
+  assert.equal(isOutOfStock({}, "e10"), false);
+});

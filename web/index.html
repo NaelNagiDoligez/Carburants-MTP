@@ -4,88 +4,136 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Plein Sud</title>
-  <meta name="description" content="Où faire le plein autour de Montpellier, détour compris. Prix officiels mis à jour toutes les 6 heures.">
-  <meta name="theme-color" content="#EEF2F5" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0B141C" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="Où faire le plein autour de Montpellier, détour compris. Prix officiels relevés toutes les 6 heures.">
+  <meta name="theme-color" content="#121416">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Plein Sud">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+  <link rel="preload" href="fonts/archivo-wdth.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="app">
-    <header class="top">
-      <div class="brand">
-        <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="2" y="2" width="28" height="28" rx="8" class="mark-bg"/><path d="M16 7c-3.6 5-6 8.2-6 11.3A6 6 0 0 0 16 24a6 6 0 0 0 6-5.7C22 15.2 19.6 12 16 7Z" class="mark-drop"/></svg>
-        <span>Plein Sud</span>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-rank" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16M8 5v14"/></symbol>
+      <symbol id="i-map" viewBox="0 0 24 24"><path d="M9 4 3 6.5v13L9 17l6 2.5 6-2.5v-13L15 6.5 9 4Zm0 0v13m6-10.5v13"/></symbol>
+      <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9L12 3.5Z"/></symbol>
+      <symbol id="i-log" viewBox="0 0 24 24"><path d="M6 3.5h11a1.5 1.5 0 0 1 1.5 1.5v14A1.5 1.5 0 0 1 17 20.5H6zM6 3.5v17M9.5 8h5.5M9.5 12h5.5"/></symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.4"/></symbol>
+      <symbol id="i-go" viewBox="0 0 24 24"><path d="M4 11.5 20 4l-7.5 16-1.8-6.7L4 11.5Z"/></symbol>
+      <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V4m0 0L8 8m4-4 4 4M6 12v6.5A1.5 1.5 0 0 0 7.5 20h9a1.5 1.5 0 0 0 1.5-1.5V12"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+      <symbol id="i-caution" viewBox="0 0 24 24"><path d="M12 4 2.8 19.5h18.4L12 4Z"/><path d="M12 10v4.5M12 17.2v.3"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+    </defs>
+  </svg>
+
+  <div class="shell">
+    <header class="bar">
+      <div class="bar-row">
+        <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="7"/><circle cx="16" cy="25" r="2.6"/><path d="M16 22.5V15l6.5-6.5M22.5 8.5h-5m5 0v5"/></svg>
+        <h1>Plein Sud</h1>
+        <p class="fresh" id="fresh">Chargement…</p>
       </div>
-      <p class="fresh" id="fresh">Chargement des prix…</p>
+      <button class="start" id="start" type="button" aria-haspopup="dialog">
+        <svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg>
+        <span class="start-text" id="startText">Recherche de ta position…</span>
+        <svg class="ic ic-end" aria-hidden="true"><use href="#i-sliders"/></svg>
+      </button>
     </header>
 
-    <nav class="fuels" id="fuels" aria-label="Carburant"></nav>
+    <div class="fuels" id="fuels" role="radiogroup" aria-label="Carburant"></div>
 
-    <button class="context" id="context" type="button" aria-haspopup="dialog">
-      <span class="context-text" id="contextText">Depuis la Comédie · 450MT</span>
-      <span class="context-cta">Modifier</span>
-    </button>
+    <main class="views">
+      <section class="view" id="view-rank" aria-labelledby="tab-rank">
+        <div class="rb-head" aria-hidden="true"><span>km</span><span>cap</span><span>notes</span></div>
+        <ol class="rb" id="rb" aria-label="Stations classées par coût total du plein"></ol>
+        <details class="how">
+          <summary>Comment le classement est calculé</summary>
+          <p>Coût total = le plein + le carburant brûlé pour l'aller-retour depuis ton point de départ, avec ton véhicule. La distance est à vol d'oiseau multipliée par 1,3 pour approcher la route ; le cap indique la direction de la station. Les prix de plus de 14 jours et les ruptures signalées sont écartés.</p>
+        </details>
+      </section>
 
-    <main id="main" aria-live="polite">
-      <section class="best skeleton" id="best" aria-label="Meilleure option"></section>
-      <ol class="list" id="list" aria-label="Autres stations"></ol>
+      <section class="view" id="view-map" aria-labelledby="tab-map" hidden>
+        <div class="map" id="map" role="region" aria-label="Carte des stations"></div>
+        <p class="map-note" id="mapNote">Les numéros reprennent le classement. Touche une station pour l'ouvrir.</p>
+      </section>
+
+      <section class="view" id="view-fav" aria-labelledby="tab-fav" hidden>
+        <div class="rb-head" aria-hidden="true"><span>km</span><span>cap</span><span>notes</span></div>
+        <ol class="rb" id="favList" aria-label="Tes stations favorites"></ol>
+      </section>
+
+      <section class="view" id="view-log" aria-labelledby="tab-log" hidden>
+        <div class="log-total" id="logTotal"></div>
+        <form class="log-form" id="logForm">
+          <h2>Noter un plein</h2>
+          <label class="field" for="logStation">Station
+            <select id="logStation" required></select>
+          </label>
+          <div class="field-row">
+            <label class="field" for="logLitres">Litres
+              <input id="logLitres" type="number" inputmode="decimal" min="1" max="150" step="0.01" required>
+            </label>
+            <label class="field" for="logPrice">Prix au litre (€)
+              <input id="logPrice" type="number" inputmode="decimal" min="0.3" max="5" step="0.001" required>
+            </label>
+          </div>
+          <p class="hint" id="logPreview"></p>
+          <button class="btn btn-ink" type="submit"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Ajouter au carnet</button>
+        </form>
+        <ol class="log-list" id="logList" aria-label="Pleins notés"></ol>
+      </section>
     </main>
 
-    <details class="how">
-      <summary>Comment c'est calculé ?</summary>
-      <p>Le classement suit le <b>coût total</b> : le plein, plus le carburant brûlé pour l'aller-retour depuis ton point de départ. Une station un peu moins chère mais loin peut donc passer derrière celle du coin. La distance est à vol d'oiseau multipliée par 1,3 pour approcher la route. Les prix de plus de 14 jours sont ignorés.</p>
-    </details>
-
-    <footer class="foot">
-      <p>Prix officiels : flux « Prix des carburants en France », licence ouverte 2.0. Relevés toutes les 6 h.</p>
-      <p><a href="https://github.com/NaelNagiDoligez/Carburants-MTP">Code source et pipeline de données</a></p>
-    </footer>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button role="tab" id="tab-rank" aria-controls="view-rank" aria-selected="true" data-view="rank"><svg class="ic" aria-hidden="true"><use href="#i-rank"/></svg><span>Classement</span></button>
+      <button role="tab" id="tab-map" aria-controls="view-map" aria-selected="false" data-view="map"><svg class="ic" aria-hidden="true"><use href="#i-map"/></svg><span>Carte</span></button>
+      <button role="tab" id="tab-fav" aria-controls="view-fav" aria-selected="false" data-view="fav"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg><span>Favoris</span></button>
+      <button role="tab" id="tab-log" aria-controls="view-log" aria-selected="false" data-view="log"><svg class="ic" aria-hidden="true"><use href="#i-log"/></svg><span>Carnet</span></button>
+    </nav>
   </div>
 
-  <dialog class="sheet-host" id="sheet" aria-labelledby="sheetTitle">
+  <dialog class="sheet-host" id="stationSheet" aria-labelledby="stTitle">
     <div class="scrim" data-close></div>
-    <form class="sheet" id="sheetForm" method="dialog">
-      <div class="grabber" aria-hidden="true"></div>
-      <h2 id="sheetTitle">Réglages</h2>
+    <div class="sheet" id="stationBody"></div>
+  </dialog>
 
+  <dialog class="sheet-host" id="settingsSheet" aria-labelledby="setTitle">
+    <div class="scrim" data-close></div>
+    <form class="sheet" id="settingsForm" method="dialog">
+      <div class="grabber" aria-hidden="true"></div>
+      <div class="sheet-head">
+        <h2 id="setTitle">Départ et véhicule</h2>
+        <button class="icon-btn" type="button" data-close aria-label="Fermer"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
+      </div>
       <fieldset>
         <legend>Point de départ</legend>
-        <button type="button" class="locate" id="locate">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7" fill="none"/></svg>
-          <span id="locateText">Utiliser ma position</span>
-        </button>
-        <p class="hint" id="locateHint" hidden></p>
+        <button type="button" class="choice choice-wide" id="useGps"><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg><span id="useGpsText">Ma position</span></button>
+        <p class="hint" id="gpsHint" hidden></p>
         <div class="choices" id="places"></div>
       </fieldset>
-
       <fieldset>
         <legend>Véhicule</legend>
         <div class="choices" id="profiles"></div>
-        <div class="custom" id="custom" hidden>
-          <label for="litres">Litres à mettre<input id="litres" type="number" inputmode="decimal" min="2" max="90" step="1"></label>
-          <label for="conso">Conso (L/100 km)<input id="conso" type="number" inputmode="decimal" min="1" max="20" step="0.1"></label>
+        <div class="field-row" id="custom" hidden>
+          <label class="field" for="litres">Litres par plein<input id="litres" type="number" inputmode="decimal" min="2" max="90" step="1"></label>
+          <label class="field" for="conso">Conso (L/100 km)<input id="conso" type="number" inputmode="decimal" min="1" max="20" step="0.1"></label>
         </div>
       </fieldset>
-
       <fieldset>
-        <legend>Rayon de recherche</legend>
-        <div class="range">
-          <input id="radius" type="range" min="3" max="40" step="1" aria-describedby="radiusOut">
-          <output id="radiusOut" for="radius">15 km</output>
-        </div>
+        <legend>Rayon</legend>
+        <div class="range"><input id="radius" type="range" min="3" max="40" step="1" aria-describedby="radiusOut"><output id="radiusOut" for="radius"></output></div>
       </fieldset>
-
-      <button class="done" type="submit" value="ok">Voir les stations</button>
+      <button class="btn btn-hl" type="submit">Voir le classement</button>
     </form>
   </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
   <script src="app.js" type="module"></script>
 </body>

@@ -34,3 +34,16 @@ def test_fuel_summary_and_age_filter():
 def test_write_payload_is_valid_json(tmp_path):
     path = export.write_payload(_payload(), tmp_path / "web" / "latest.json")
     assert json.loads(path.read_text(encoding="utf-8"))["stations"]
+
+
+def test_optional_columns_exported_when_present():
+    records = extract.read_records(FIXTURE)
+    records[0]["horaires_automate_24_24"] = "Oui"
+    records[0]["carburants_indisponibles"] = ["E85", "GPLc"]
+    stations, events = transform.normalize(records, snapshot_ts=NOW)
+    p = export.build_payload(events, stations, now=NOW)
+    s = next(x for x in p["stations"] if x["id"] == "34000001")
+    assert s["automate_24_24"] == "Oui"
+    assert s["indisponibles"] == "E85, GPLc"
+    other = next(x for x in p["stations"] if x["id"] == "34000002")
+    assert "automate_24_24" not in other

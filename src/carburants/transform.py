@@ -48,6 +48,16 @@ def _department_mask(df: pd.DataFrame, departments: list[str]) -> pd.Series:
     return dep.isin([d.zfill(2) for d in departments])
 
 
+def _as_text(value) -> str | None:
+    """Listes et valeurs hétérogènes du flux -> texte simple (Parquet exige un type unique)."""
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return None
+    if isinstance(value, (list, tuple)):
+        return ", ".join(str(v) for v in value if v is not None) or None
+    text = str(value).strip()
+    return text or None
+
+
 def _fix_coordinate(series: pd.Series, limit: float) -> pd.Series:
     """Certains exports donnent des degrés, d'autres des degrés x 100000."""
     s = pd.to_numeric(series, errors="coerce")
@@ -73,6 +83,9 @@ def normalize(
     stations = pd.DataFrame(index=raw.index)
     for src, dst in config.STATION_COLUMNS.items():
         stations[dst] = raw[src] if src in raw.columns else None
+    for src, dst in config.OPTIONAL_STATION_COLUMNS.items():
+        if src in raw.columns:
+            stations[dst] = raw[src].map(_as_text)
     stations["station_id"] = stations["station_id"].astype(str)
     stations["latitude"] = _fix_coordinate(stations["latitude"], 90)
     stations["longitude"] = _fix_coordinate(stations["longitude"], 180)

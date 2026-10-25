@@ -46,3 +46,32 @@ export function rankStations(stations, fuel, origin, opts) {
   }
   return out;
 }
+
+/** Cap (azimut) en degrés de a vers b, 0 = nord, sens horaire. */
+export function bearingDeg(a, b) {
+  const rad = (d) => (d * Math.PI) / 180;
+  const y = Math.sin(rad(b.lon - a.lon)) * Math.cos(rad(b.lat));
+  const x =
+    Math.cos(rad(a.lat)) * Math.sin(rad(b.lat)) -
+    Math.sin(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.cos(rad(b.lon - a.lon));
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}
+
+const OUTAGE_NAMES = {
+  e10: ["e10", "sp95-e10"],
+  sp95: ["sp95"],
+  sp98: ["sp98"],
+  gazole: ["gazole", "gasoil"],
+  e85: ["e85"],
+  gplc: ["gplc", "gpl"],
+};
+
+/** Vrai si le flux signale ce carburant indisponible dans cette station. */
+export function isOutOfStock(station, fuel) {
+  if (!station.indisponibles) return false;
+  const listed = String(station.indisponibles)
+    .toLowerCase()
+    .split(/[,;|]/)
+    .map((s) => s.trim());
+  return (OUTAGE_NAMES[fuel] || [fuel]).some((n) => listed.includes(n));
+}

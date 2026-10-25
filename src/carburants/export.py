@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import analysis
+from . import analysis, config
 
 FUEL_LABELS = {
     "e10": "SP95-E10",
@@ -61,17 +61,19 @@ def build_payload(
             r.fuel: [round(float(r.price), 3), _iso(r.price_updated_at)]
             for r in group.itertuples()
         }
-        out_stations.append(
-            {
-                "id": str(sid),
-                "ville": _clean(row["ville"]),
-                "adresse": _clean(row["adresse"]),
-                "cp": _clean(row["cp"]),
-                "lat": round(float(row["latitude"]), 5),
-                "lon": round(float(row["longitude"]), 5),
-                "prices": prices,
-            }
-        )
+        item = {
+            "id": str(sid),
+            "ville": _clean(row["ville"]),
+            "adresse": _clean(row["adresse"]),
+            "cp": _clean(row["cp"]),
+            "lat": round(float(row["latitude"]), 5),
+            "lon": round(float(row["longitude"]), 5),
+            "prices": prices,
+        }
+        for key in config.OPTIONAL_STATION_COLUMNS.values():
+            if key in row.index and _clean(row[key]):
+                item[key] = _clean(row[key])
+        out_stations.append(item)
 
     fuels = {}
     for fuel, label in FUEL_LABELS.items():
