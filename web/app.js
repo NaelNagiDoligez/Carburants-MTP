@@ -433,14 +433,14 @@ function openStation(id) {
     const [p, t] = s.prices[f];
     const d = new Date(t);
     const name = f === state.fuel ? `<span class="mark-hl">${esc(data.fuels[f]?.label ?? f)}</span>` : esc(data.fuels[f]?.label ?? f);
-    const out = isOutOfStock(s, f) ? " · rupture signalée" : "";
+    const out = isOutOfStock(s, f) ? ` <span class="flag">${icon("i-caution")}rupture signalée</span>` : "";
     return `<li><span class="fuel-name">${name}</span><span class="price">${priceHTML(p)}</span><small>prix affiché ${ago(d)}${out}</small></li>`;
   }).join("");
   const facts = [
     s.automate_24_24 ? ["Automate 24 h/24", esc(s.automate_24_24)] : null,
     s.horaires ? ["Horaires", esc(s.horaires)] : null,
     s.services ? ["Services", esc(s.services)] : null,
-    s.indisponibles ? ["Ruptures", esc(s.indisponibles)] : null,
+    s.indisponibles ? ["Ruptures", `<span class="flag">${icon("i-caution")}${esc(s.indisponibles)}</span>`] : null,
   ].filter(Boolean);
   const brg = bearingDeg(o, s);
   const strip = r ? `<div class="st-case"><span class="km"><span class="no" aria-hidden="true">${r.rank}</span>${kmText(r.distanceKm)}<small>km</small></span><span class="cap">${tulipHTML(`sheet-${s.id}`, brg)}<small>${capNum(brg)}°</small></span><p class="st-case-txt">depuis ${esc(originLabel())}<br>${r.rank}${r.rank === 1 ? "re" : "e"} au classement</p></div>` : "";
