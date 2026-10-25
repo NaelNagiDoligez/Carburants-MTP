@@ -340,13 +340,12 @@ legend { font-size: 13px; font-weight: 700; color: var(--ink-2); padding: 0; mar
 .haptic { position: fixed; left: -100px; top: -100px; opacity: 0; pointer-events: none; }
 
 .toast {
-  position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 20;
-  transform: translate(-50%, 12px); opacity: 0; transition: transform 220ms var(--ease-out), opacity 220ms ease;
+  position: fixed; left: 16px; right: 16px; margin-inline: auto; width: fit-content; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 20;
+  transform: translateY(12px); opacity: 0; transition: transform 220ms var(--ease-out), opacity 220ms ease;
   background: var(--ink); color: var(--ground); border-radius: 14px; padding: 10px 14px; display: flex; gap: 14px; align-items: center;
   font-size: 15px; box-shadow: 0 10px 24px -12px rgba(14, 10, 8, .5); max-width: calc(100vw - 32px);
 }
-.toast.show { transform: translate(-50%, 0); opacity: 1; }
-.toast span { white-space: nowrap; }
+.toast.show { transform: none; opacity: 1; }
 .toast button { border: 0; background: transparent; color: var(--ochre); font-weight: 800; cursor: pointer; min-height: 36px; }
 
 .alts.unroll > li { animation: rise 260ms var(--ease-out) both; animation-delay: calc(var(--i, 0) * 50ms); }
@@ -364,7 +363,7 @@ legend { font-size: 13px; font-weight: 700; color: var(--ink-2); padding: 0; mar
   .sheet-host.is-open .sheet { opacity: 1; }
   .fillcard { transform: none; transition: opacity 200ms ease; }
   .start.locating .ic { animation: none; }
-  .toast { transition: opacity 200ms ease; transform: translate(-50%, 0); }
+  .toast { transition: opacity 200ms ease; transform: none; }
   .fuel:active, .btn:active, .go:active, .alt-btn:active, .icon-btn:active { transform: none; }
 }
 .plain { border: 0; background: none; padding: 0; margin: 0; text-align: left; cursor: pointer; color: inherit; font: inherit; }

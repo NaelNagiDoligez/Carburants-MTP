@@ -149,7 +149,7 @@ function renderStart() {
   const v = vehicle();
   els.start.classList.toggle("locating", locating);
   const where = state.placeId === "gps" ? (state.gps ? "Ta position" : "Comédie") : (PLACES.find((p) => p.id === state.placeId) || PLACES[0]).short;
-  els.startText.textContent = locating ? "Position…" : `${where} · ${v.short} · ${state.radius} km`;
+  els.startText.textContent = locating ? "Position…" : state.placeId === "gps" && state.gps ? `${v.short} · ${state.radius} km` : `${where} · ${v.short}`;
 }
 function renderFuels() {
   const fuels = FUEL_ORDER.filter((f) => data.fuels[f]);
@@ -438,23 +438,25 @@ async function renderMap() {
   me.className = "me-dot";
   markers.push(new maplib.Marker({ element: me }).setLngLat([o.lon, o.lat]).addTo(map));
   const shown = ranked.slice(0, MAP_MAX);
-  // Deux stations au même endroit : on décale légèrement la seconde pastille pour qu'elle reste visible.
-  const taken = [];
-  shown.forEach((r) => {
-    const near = taken.filter((t) => Math.abs(t[0] - r.station.lat) < 0.0012 && Math.abs(t[1] - r.station.lon) < 0.0012).length;
-    taken.push([r.station.lat, r.station.lon]);
-    r.pinOffset = near ? [near * 16, -near * 16] : [0, 0];
-  });
-  shown.slice().reverse().forEach((r) => {
-    const el = flowerPin(r.rank, r.rank === 1);
-    el.addEventListener("click", (e) => { e.stopPropagation(); openStation(r.station.id); });
-    markers.push(new maplib.Marker({ element: el, offset: r.pinOffset }).setLngLat([r.station.lon, r.station.lat]).addTo(map));
-  });
   const pts = [[o.lon, o.lat], ...shown.slice(0, 8).map((r) => [r.station.lon, r.station.lat])];
   const lons = pts.map((p) => p[0]);
   const lats = pts.map((p) => p[1]);
   map.resize();
   map.fitBounds([[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]], { padding: 48, maxZoom: 14, duration: 0 });
+  // Pastilles qui se chevauchent à l'écran : on écarte les suivantes en éventail autour de la première.
+  const placed = [];
+  for (const r of shown) {
+    const pt = map.project([r.station.lon, r.station.lat]);
+    const clashes = placed.filter((q) => Math.hypot(q.x - pt.x, q.y - pt.y) < 30).length;
+    const ang = (clashes * 2 * Math.PI) / 6 - Math.PI / 2;
+    r.pinOffset = clashes ? [Math.round(Math.cos(ang) * 30), Math.round(Math.sin(ang) * 30)] : [0, 0];
+    placed.push({ x: pt.x + r.pinOffset[0], y: pt.y + r.pinOffset[1] });
+  }
+  shown.slice().reverse().forEach((r) => {
+    const el = flowerPin(r.rank, r.rank === 1);
+    el.addEventListener("click", (e) => { e.stopPropagation(); openStation(r.station.id); });
+    markers.push(new maplib.Marker({ element: el, offset: r.pinOffset }).setLngLat([r.station.lon, r.station.lat]).addTo(map));
+  });
 }
 
 // ---------- Fiche station ----------
