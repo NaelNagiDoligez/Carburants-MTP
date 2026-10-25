@@ -46,7 +46,7 @@ API data.economie.gouv.fr -> extract -> transform -> quality -> load (Parquet pa
 | `src/carburants/load.py` | Écriture Parquet idempotente, sans doublon |
 | `.github/workflows/ingest.yml` | Exécution automatique toutes les 6 h |
 
-Zone suivie : départements 34 et 30 (modifiable avec la variable `CARBURANTS_DEPARTMENTS`).
+Zone suivie : départements 34 et 30, filtrés en local après téléchargement du flux complet (variable `CARBURANTS_DEPARTMENTS`).
 
 ## Points à vérifier au premier lancement réel
 

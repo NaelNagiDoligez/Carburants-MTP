@@ -14,12 +14,13 @@ API_URL = (
 )
 
 # Hérault (34) + Gard (30) : permet de comparer Montpellier aux stations voisines.
+# Filtre appliqué en local après téléchargement.
 # Pour tout garder : CARBURANTS_DEPARTMENTS="" (le dépôt grossira vite).
 DEPARTMENTS = [
     d.strip() for d in os.getenv("CARBURANTS_DEPARTMENTS", "34,30").split(",") if d.strip()
 ]
 
-# Colonnes attendues dans le flux : <carburant>_prix et <carburant>_maj.
+# Colonnes cherchées dans le flux : <carburant>_prix et <carburant>_maj (celles absentes sont ignorées).
 FUELS = ["gazole", "sp95", "e10", "sp98", "e85", "gplc"]
 STATION_COLUMNS = {
     "id": "station_id",

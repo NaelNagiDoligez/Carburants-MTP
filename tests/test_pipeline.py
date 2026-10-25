@@ -15,9 +15,27 @@ def tables():
     return transform.normalize(records, snapshot_ts=NOW)
 
 
-def test_build_where():
-    assert extract.build_where(["34", "30"]) == 'dep_code in ("34", "30")'
-    assert extract.build_where([]) is None
+def test_department_filter(tables):
+    records = extract.read_records(FIXTURE)
+    stations, _ = transform.normalize(records, snapshot_ts=NOW, departments=["34"])
+    assert set(stations["station_id"]) == {"34000001", "34000002"}
+
+
+def test_department_filter_falls_back_on_postal_code():
+    records = [
+        {"id": 1, "cp": "34070", "sp95_prix": 1.8, "sp95_maj": "2026-10-25T06:00:00+00:00"},
+        {"id": 2, "cp": "75001", "sp95_prix": 1.9, "sp95_maj": "2026-10-25T06:00:00+00:00"},
+    ]
+    stations, events = transform.normalize(records, snapshot_ts=NOW, departments=["34"])
+    assert list(stations["station_id"]) == ["1"]
+    assert list(events["fuel"]) == ["sp95"]
+
+
+def test_minimal_schema_is_accepted():
+    records = [{"id": 1, "e10_prix": 1.7, "e10_maj": "2026-10-25T06:00:00+00:00"}]
+    stations, events = transform.normalize(records, snapshot_ts=NOW)
+    assert len(events) == 1 and len(stations) == 1
+
 
 
 def test_normalize_shapes(tables):
@@ -39,6 +57,8 @@ def test_coordinates_in_degrees(tables):
 def test_schema_error_lists_available_columns():
     with pytest.raises(transform.SchemaError, match="Colonnes disponibles"):
         transform.normalize([{"id": 1}], snapshot_ts=NOW)
+    with pytest.raises(transform.SchemaError, match="Colonne `id` absente"):
+        transform.normalize([{"foo": 1}], snapshot_ts=NOW)
 
 
 def test_load_is_idempotent(tables, tmp_path):

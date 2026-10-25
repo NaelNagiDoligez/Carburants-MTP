@@ -3,6 +3,9 @@
 Sorties :
   stations : une ligne par station (dimension).
   events   : une ligne par (station, carburant, date de mise à jour du prix) (faits).
+
+Le schéma du flux n'a pas pu être vérifié à l'écriture : seules la colonne `id` et au moins
+un couple `<carburant>_prix` / `<carburant>_maj` sont indispensables. Le reste est optionnel.
 """
 
 from __future__ import annotations
@@ -19,17 +22,30 @@ class SchemaError(ValueError):
     """Le flux ne contient pas les colonnes attendues (schéma modifié par le producteur ?)."""
 
 
-def _check_schema(df: pd.DataFrame) -> None:
-    expected = set(config.STATION_COLUMNS)
-    price_cols = {f"{f}_prix" for f in config.FUELS}
-    maj_cols = {f"{f}_maj" for f in config.FUELS}
-    missing = (expected | price_cols | maj_cols) - set(df.columns)
-    if missing:
+def _available_fuels(df: pd.DataFrame) -> list[str]:
+    if "id" not in df.columns:
+        raise SchemaError(f"Colonne `id` absente. Colonnes disponibles : {sorted(df.columns)}.")
+    fuels = [f for f in config.FUELS if f"{f}_prix" in df.columns and f"{f}_maj" in df.columns]
+    if not fuels:
         raise SchemaError(
-            "Colonnes absentes du flux : "
-            f"{sorted(missing)}. Colonnes disponibles : {sorted(df.columns)}. "
-            "Adapter config.py (FUELS / STATION_COLUMNS)."
+            "Aucune colonne <carburant>_prix / <carburant>_maj trouvée. "
+            f"Colonnes disponibles : {sorted(df.columns)}. Adapter config.py (FUELS)."
         )
+    return fuels
+
+
+def _department_mask(df: pd.DataFrame, departments: list[str]) -> pd.Series:
+    """Filtre local : code département si présent, sinon deux premiers chiffres du code postal."""
+    if "dep_code" in df.columns:
+        dep = df["dep_code"].astype(str).str.strip().str.zfill(2)
+    elif "cp" in df.columns:
+        dep = df["cp"].astype(str).str.strip().str.zfill(5).str[:2]
+    else:
+        raise SchemaError(
+            "Impossible de filtrer par département : ni `dep_code` ni `cp`. "
+            f"Colonnes disponibles : {sorted(df.columns)}."
+        )
+    return dep.isin([d.zfill(2) for d in departments])
 
 
 def _fix_coordinate(series: pd.Series, limit: float) -> pd.Series:
@@ -38,21 +54,32 @@ def _fix_coordinate(series: pd.Series, limit: float) -> pd.Series:
     return s.where(s.abs() <= limit, s / 100_000)
 
 
-def normalize(records: list[dict], snapshot_ts: pd.Timestamp) -> tuple[pd.DataFrame, pd.DataFrame]:
+def normalize(
+    records: list[dict],
+    snapshot_ts: pd.Timestamp,
+    departments: list[str] | None = None,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Retourne (stations, events). snapshot_ts doit être tz-aware UTC."""
     if not records:
         raise ValueError("Le flux est vide : aucune station reçue.")
     raw = pd.DataFrame.from_records(records)
-    _check_schema(raw)
+    fuels = _available_fuels(raw)
 
-    stations = raw[list(config.STATION_COLUMNS)].rename(columns=config.STATION_COLUMNS).copy()
+    if departments:
+        raw = raw[_department_mask(raw, departments)]
+        if raw.empty:
+            raise ValueError(f"Aucune station trouvée pour les départements {departments}.")
+
+    stations = pd.DataFrame(index=raw.index)
+    for src, dst in config.STATION_COLUMNS.items():
+        stations[dst] = raw[src] if src in raw.columns else None
     stations["station_id"] = stations["station_id"].astype(str)
     stations["latitude"] = _fix_coordinate(stations["latitude"], 90)
     stations["longitude"] = _fix_coordinate(stations["longitude"], 180)
     stations = stations.drop_duplicates("station_id", keep="last").reset_index(drop=True)
 
     parts = []
-    for fuel in config.FUELS:
+    for fuel in fuels:
         part = pd.DataFrame(
             {
                 "station_id": raw["id"].astype(str),

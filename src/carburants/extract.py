@@ -1,4 +1,8 @@
-"""Extraction : télécharge le flux instantané (ou lit un fichier local pour les tests)."""
+"""Extraction : télécharge le flux instantané complet (ou lit un fichier local pour les tests).
+
+Le filtrage par département se fait ensuite en local (voir transform.normalize) :
+un filtre côté serveur sur un champ au nom incertain provoquait une erreur 400.
+"""
 
 from __future__ import annotations
 
@@ -19,23 +23,15 @@ def _session() -> requests.Session:
     return s
 
 
-def build_where(departments: list[str]) -> str | None:
-    """Filtre ODSQL sur le département. None = pas de filtre (toute la France)."""
-    if not departments:
-        return None
-    quoted = ", ".join(f'"{d}"' for d in departments)
-    return f"dep_code in ({quoted})"
-
-
-def fetch_records(departments: list[str] | None = None) -> list[dict]:
-    """Télécharge les enregistrements bruts (une ligne par station)."""
-    departments = config.DEPARTMENTS if departments is None else departments
-    params: dict[str, str] = {}
-    where = build_where(departments)
-    if where:
-        params["where"] = where
-    resp = _session().get(config.API_URL, params=params, timeout=config.REQUEST_TIMEOUT_S)
-    resp.raise_for_status()
+def fetch_records() -> list[dict]:
+    """Télécharge tous les enregistrements bruts (une ligne par station, toute la France)."""
+    resp = _session().get(config.API_URL, timeout=config.REQUEST_TIMEOUT_S)
+    if not resp.ok:
+        # Le corps de la réponse explique presque toujours la cause : on l'affiche.
+        raise requests.HTTPError(
+            f"{resp.status_code} sur {resp.url}\nRéponse du serveur : {resp.text[:1000]}",
+            response=resp,
+        )
     records = resp.json()
     if not isinstance(records, list):
         raise TypeError(f"Réponse inattendue (type {type(records).__name__}), liste attendue.")

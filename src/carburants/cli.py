@@ -16,8 +16,11 @@ def run(from_file: Path | None, data_dir: Path) -> int:
     now = pd.Timestamp.now(tz="UTC")
     records = extract.read_records(from_file) if from_file else extract.fetch_records()
     print(f"[extract] {len(records)} stations reçues")
+    print(f"[extract] colonnes du flux : {sorted(records[0])}")
 
-    stations, events = transform.normalize(records, snapshot_ts=now)
+    stations, events = transform.normalize(
+        records, snapshot_ts=now, departments=config.DEPARTMENTS
+    )
     print(f"[transform] {len(stations)} stations, {len(events)} prix")
 
     state_path = Path(data_dir) / "_last_run.json"
