@@ -1,0 +1,29 @@
+[
+  {
+    "id": 34000001, "adresse": "Avenue de Toulouse", "ville": "Montpellier", "cp": "34070",
+    "dep_code": "34", "latitude": 43.5941, "longitude": 3.8402,
+    "gazole_prix": 1.789, "gazole_maj": "2026-10-25T06:12:00+00:00",
+    "sp95_prix": 1.829, "sp95_maj": "2026-10-25T06:12:00+00:00",
+    "e10_prix": 1.799, "e10_maj": "2026-10-25T06:12:00+00:00",
+    "sp98_prix": 1.919, "sp98_maj": "2026-10-24T18:40:00+00:00",
+    "e85_prix": null, "e85_maj": null, "gplc_prix": null, "gplc_maj": null
+  },
+  {
+    "id": 34000002, "adresse": "Route de Nîmes", "ville": "Baillargues", "cp": "34670",
+    "dep_code": "34", "latitude": 4366100, "longitude": 399300,
+    "gazole_prix": 1.759, "gazole_maj": "2026-10-25T05:01:00+00:00",
+    "sp95_prix": 1.799, "sp95_maj": "2026-10-25T05:01:00+00:00",
+    "e10_prix": 1.769, "e10_maj": "2026-10-25T05:01:00+00:00",
+    "sp98_prix": null, "sp98_maj": null,
+    "e85_prix": 0.829, "e85_maj": "2026-10-23T09:00:00+00:00", "gplc_prix": null, "gplc_maj": null
+  },
+  {
+    "id": 30000003, "adresse": "Zone commerciale", "ville": "Lunel", "cp": "34400",
+    "dep_code": "30", "latitude": 43.675, "longitude": 4.134,
+    "gazole_prix": 1.739, "gazole_maj": "2026-10-24T20:30:00+00:00",
+    "sp95_prix": 1.779, "sp95_maj": "2026-10-24T20:30:00+00:00",
+    "e10_prix": null, "e10_maj": null,
+    "sp98_prix": 1.889, "sp98_maj": "2026-10-24T20:30:00+00:00",
+    "e85_prix": null, "e85_maj": null, "gplc_prix": 0.999, "gplc_maj": "2026-10-20T10:00:00+00:00"
+  }
+]
