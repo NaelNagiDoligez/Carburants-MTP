@@ -11,7 +11,7 @@ le contrôle, puis sert à analyser et prévoir les prix (voir `docs/roadmap.htm
 ## Où en est le projet
 
 - [x] Étape 1 : ingestion, contrôles qualité, stockage Parquet, tests, GitHub Actions
-- [ ] Étape 2 : analyse et appli (station la moins chère autour de moi)
+- [~] Étape 2 : appli « où faire le plein » (faite, à déployer), analyses SQL et historique (à faire)
 - [ ] Étape 3 : prévision du prix à 7 jours
 
 ## Lancer en local (Windows, PowerShell)
@@ -24,6 +24,8 @@ py -3.12 -m venv .venv
 pip install -e ".[dev]"
 
 pytest -q                       # tests
+pip install -e ".[app]"         # une fois, pour l'appli
+streamlit run app/streamlit_app.py   # appli : où faire le plein, détour compris
 python -m carburants run        # télécharge un snapshot et le stocke dans data/
 python -m carburants stats      # résumé de l'historique
 ```
