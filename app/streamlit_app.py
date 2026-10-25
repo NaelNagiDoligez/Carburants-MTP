@@ -58,8 +58,8 @@ with st.sidebar:
     else:
         origin = PLACES[place]
     radius = st.slider("Rayon maximum (km, route)", 3, 40, 15)
-    tank = st.number_input("Litres à mettre", 3.0, 80.0, 12.0, step=1.0)
-    conso = st.number_input("Consommation (L/100 km)", 2.0, 15.0, 5.0, step=0.5)
+    tank = st.number_input("Litres à mettre", 3.0, 80.0, 14.0, step=1.0)
+    conso = st.number_input("Consommation (L/100 km)", 2.0, 15.0, 4.5, step=0.5)
 
 ranked = analysis.rank_stations(
     events, stations, fuel, origin=origin, now=now, radius_km=radius,
