@@ -17,7 +17,7 @@ OWN-WORLD: Light: cream cloth ground, warm dark-thread ink, threads of dusty ros
 
 STORY: The rider sees the best station, its price, distance and full-tank cost, taps "Y aller" and lands in Plans, Google Maps or Waze. Two alternatives follow, the full list on demand. Staying 3 minutes at a station brings up a note-your-fill card from the Carnet tab.
 
-FIRST VIEWPORT: Slim top bar (mark, name, freshness, settings). Fuel segmented control. Answer card: name, giant price, distance and full-tank cost side by side, full-width "Y aller" button; the bouquet climbs the card's right edge. Below: two compact alternatives and "Voir toutes les stations". Standard bottom tabs: Stations, Carte, Favoris, Carnet.
+FIRST VIEWPORT: Slim top bar (mark, name, start-point pill that opens settings; collection time lives in "Comment le classement est calculé"). Fuel segmented control. Answer card: name, giant price, distance and full-tank cost side by side, full-width "Y aller" button; the bouquet climbs the card's right edge. Below: two compact alternatives and "Voir toutes les stations". Standard bottom tabs: Stations, Carte, Favoris, Carnet.
 
 FORM: Pinned by the user, no roll run for this world: Derschutze-style hand-embroidered florals on cream (two reference tees supplied by the owner) and "fleurs de nuit" for dark, replacing the roadbook direction (whose roll was seed:60fe7dedbaac7803). Signature move: the bouquet stitches itself upward on first load (clip reveal) and the answer card re-stitches when the best station changes.
 

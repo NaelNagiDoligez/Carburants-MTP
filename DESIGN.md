@@ -1,466 +1,388 @@
 ---
 name: Plein Sud
-description: A rally roadbook in the pocket; every fuel station is a ruled case read at arm's length.
+description: An embroidered floral tee instead of a fuel app; one answer stitched large on cream cloth by day, night flowers by night.
 colors:
-  frame: "#121416"
-  frame-ink: "#F4F5F3"
-  frame-muted: "#A9B1B7"
-  frame-edge: "#2E3439"
-  paper: "#EEF0EE"
-  case: "#FFFFFF"
-  ink: "#121416"
-  ink-2: "#4A5157"
-  grid: "#D3DAE0"
-  grid-faint: "rgba(118, 146, 170, .16)"
-  rule: "#121416"
-  highlighter: "#F6E52F"
-  highlighter-ink: "#121416"
-  caution: "#FF6A13"
-  caution-bg: "#FFE4D1"
-  caution-ink: "#7A2E00"
-  good: "#1C7A47"
-  scrim: "rgba(5, 6, 7, .5)"
-  frame-dark: "#050607"
-  frame-ink-dark: "#ECEFF1"
-  frame-muted-dark: "#8F9AA3"
-  paper-dark: "#0F1214"
-  case-dark: "#171B1E"
-  ink-dark: "#ECEFF1"
-  ink-2-dark: "#A3ADB5"
-  grid-dark: "#283139"
-  grid-faint-dark: "rgba(150, 175, 195, .07)"
-  rule-dark: "#ECEFF1"
-  highlighter-dark: "#EADB2C"
-  highlighter-ink-dark: "#121416"
-  caution-dark: "#FF7A2E"
-  caution-bg-dark: "#3A1C08"
-  caution-ink-dark: "#FFC7A3"
-  good-dark: "#5FD39A"
+  ground: "#F3EDE0"
+  cloth: "#FBF7EE"
+  ink: "#2A2420"
+  ink-2: "#6A5F55"
+  seam: "#DCD1BC"
+  stitch: "#C4B392"
+  rose: "#A8506A"
+  rose-thread: "#C2617F"
+  lavender: "#5E5FB3"
+  lavender-fill: "#D6D5F1"
+  coral: "#D86A4A"
+  ochre: "#C98F22"
+  sage: "#6F8769"
+  sky: "#8FB0C6"
+  accent: "#2A2420"
+  accent-ink: "#FBF7EE"
+  accent-stitch: "rgba(251, 247, 238, .55)"
+  good: "#46653F"
+  warn-bg: "#F8DFD3"
+  warn-ink: "#8A3A1E"
+  scrim: "rgba(42, 36, 32, .42)"
+  ground-dark: "#0E1430"
+  cloth-dark: "#151D40"
+  ink-dark: "#EFE8D8"
+  ink-2-dark: "#A8AECB"
+  seam-dark: "#2A3462"
+  stitch-dark: "#46528A"
+  rose-dark: "#E8A3B8"
+  rose-thread-dark: "#E08FA9"
+  lavender-dark: "#A4A6EC"
+  lavender-fill-dark: "#2E336B"
+  coral-dark: "#E89A7E"
+  ochre-dark: "#D8B25A"
+  sage-dark: "#C3CAD9"
+  sky-dark: "#C9D1E0"
+  accent-dark: "#D8B25A"
+  accent-ink-dark: "#1A1606"
+  accent-stitch-dark: "rgba(26, 22, 6, .45)"
+  good-dark: "#A3D6A6"
+  warn-bg-dark: "#3D2433"
+  warn-ink-dark: "#F3B9A6"
+  scrim-dark: "rgba(4, 6, 18, .6)"
 typography:
   display:
     fontFamily: "Archivo, Arial Narrow, system-ui, sans-serif"
-    fontSize: "52px"
+    fontSize: "clamp(76px, 23vw, 100px)"
     fontWeight: 800
-    lineHeight: 1
-    letterSpacing: "-0.01em"
-    fontVariation: "'wdth' 75"
+    lineHeight: 0.86
+    letterSpacing: "-0.02em"
+    fontVariation: "'wdth' 68"
     fontFeature: "'tnum' 1"
-  distance-lead:
-    fontFamily: "Archivo, Arial Narrow, system-ui, sans-serif"
-    fontSize: "44px"
-    fontWeight: 800
-    lineHeight: 0.95
-    letterSpacing: "-0.01em"
-    fontVariation: "'wdth' 62"
-    fontFeature: "'tnum' 1"
-  distance:
+  figure:
     fontFamily: "Archivo, Arial Narrow, system-ui, sans-serif"
     fontSize: "30px"
     fontWeight: 800
-    lineHeight: 0.95
-    letterSpacing: "-0.01em"
-    fontVariation: "'wdth' 62"
+    lineHeight: 1
+    fontVariation: "'wdth' 72"
     fontFeature: "'tnum' 1"
-  price:
+  figure-row:
     fontFamily: "Archivo, Arial Narrow, system-ui, sans-serif"
-    fontSize: "24px"
+    fontSize: "26px"
     fontWeight: 800
     lineHeight: 1
-    fontVariation: "'wdth' 75"
+    fontVariation: "'wdth' 72"
     fontFeature: "'tnum' 1"
   headline:
-    fontFamily: "Archivo, Arial Narrow, system-ui, sans-serif"
-    fontSize: "22px"
-    fontWeight: 800
-    lineHeight: 1.15
-    fontVariation: "'wdth' 85"
-  wordmark:
-    fontFamily: "Archivo, Arial Narrow, system-ui, sans-serif"
-    fontSize: "22px"
-    fontWeight: 800
-    letterSpacing: "0.01em"
-    fontVariation: "'wdth' 75"
+    fontFamily: "Young Serif, Georgia, serif"
+    fontSize: "24px"
+    fontWeight: 400
+    lineHeight: 1.12
   title:
-    fontFamily: "Archivo, Arial Narrow, system-ui, sans-serif"
+    fontFamily: "Young Serif, Georgia, serif"
+    fontSize: "26px"
+    fontWeight: 400
+    lineHeight: 1.1
+  section:
+    fontFamily: "Young Serif, Georgia, serif"
     fontSize: "20px"
-    fontWeight: 800
-    fontVariation: "'wdth' 80"
-  station:
-    fontFamily: "Archivo, Arial Narrow, system-ui, sans-serif"
+    fontWeight: 400
+    lineHeight: 1.15
+  row-name:
+    fontFamily: "Young Serif, Georgia, serif"
     fontSize: "17px"
-    fontWeight: 700
+    fontWeight: 400
     lineHeight: 1.2
-    fontVariation: "'wdth' 100"
+  brand:
+    fontFamily: "Young Serif, Georgia, serif"
+    fontSize: "22px"
+    fontWeight: 400
+    lineHeight: 1
+    letterSpacing: "-0.005em"
+  action:
+    fontFamily: "Archivo, Arial Narrow, system-ui, sans-serif"
+    fontSize: "21px"
+    fontWeight: 800
+    lineHeight: 1
+    fontVariation: "'wdth' 90"
+  chip:
+    fontFamily: "Archivo, Arial Narrow, system-ui, sans-serif"
+    fontSize: "16px"
+    fontWeight: 700
+    fontVariation: "'wdth' 80"
   body:
     fontFamily: "Archivo, Arial Narrow, system-ui, sans-serif"
     fontSize: "16px"
     fontWeight: 400
     lineHeight: 1.45
-    fontVariation: "'wdth' 100"
     fontFeature: "'tnum' 1"
-  meta:
-    fontFamily: "Archivo, Arial Narrow, system-ui, sans-serif"
-    fontSize: "13px"
-    fontWeight: 400
-    lineHeight: 1.45
-    fontVariation: "'wdth' 100"
   label:
     fontFamily: "Archivo, Arial Narrow, system-ui, sans-serif"
-    fontSize: "11px"
-    fontWeight: 700
-    letterSpacing: "0.1em"
-    fontVariation: "'wdth' 100"
+    fontSize: "13px"
+    fontWeight: 600
+    lineHeight: 1.3
 rounded:
-  case-number: "3px"
-  pin: "6px"
-  control: "10px"
-  sheet: "18px"
+  flag: "8px"
+  field: "12px"
+  control: "14px"
+  row: "16px"
+  panel: "18px"
+  card: "22px"
+  patch: "24px"
   pill: "999px"
 spacing:
-  hairline: "1px"
-  xs: "4px"
-  sm: "6px"
-  md: "8px"
-  cell: "10px"
-  lg: "12px"
   gutter: "16px"
-  xl: "24px"
-  grid: "16px"
-  col-km: "58px"
-  col-tulip: "64px"
-  shell: "560px"
-  target: "44px"
+  xs: "6px"
+  sm: "8px"
+  md: "12px"
+  lg: "14px"
+  xl: "22px"
+  stitch-inset: "-7px"
 components:
-  top-bar:
-    backgroundColor: "{colors.frame}"
-    textColor: "{colors.frame-ink}"
-    padding: "10px 16px 12px"
-  start-point:
-    backgroundColor: "transparent"
-    textColor: "{colors.frame-ink}"
-    rounded: "{rounded.control}"
-    padding: "8px 12px"
-    height: "44px"
-  fuel-segment:
-    backgroundColor: "{colors.case}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.pill}"
-    padding: "8px 14px"
-    height: "44px"
-  fuel-segment-selected:
-    backgroundColor: "{colors.ink}"
-    textColor: "{colors.case}"
-    rounded: "{rounded.pill}"
-  roadbook-head:
-    textColor: "{colors.ink-2}"
-    typography: "{typography.label}"
-    padding: "8px 0 6px"
-  roadbook-case:
-    backgroundColor: "{colors.case}"
-    textColor: "{colors.ink}"
-    padding: "{spacing.cell}"
-    height: "64px"
-  roadbook-case-lead:
-    backgroundColor: "{colors.case}"
-    textColor: "{colors.ink}"
-    padding: "{spacing.cell}"
-    height: "150px"
-  lead-highlight:
-    backgroundColor: "{colors.highlighter}"
-    textColor: "{colors.highlighter-ink}"
-    typography: "{typography.headline}"
-    padding: "0 4px"
-  case-number:
-    backgroundColor: "transparent"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.case-number}"
-    padding: "0 4px"
-    height: "20px"
-    width: "22px"
-  case-number-lead:
-    backgroundColor: "{colors.ink}"
-    textColor: "{colors.case}"
-    rounded: "{rounded.case-number}"
-  tulip:
-    textColor: "{colors.ink}"
-    size: "34px"
-  tulip-lead:
-    textColor: "{colors.ink}"
-    size: "46px"
-  caution-mark:
-    backgroundColor: "{colors.caution-bg}"
-    textColor: "{colors.caution-ink}"
-    padding: "0 4px"
-  button-ink:
-    backgroundColor: "{colors.ink}"
-    textColor: "{colors.case}"
+  button-go:
+    backgroundColor: "{colors.accent}"
+    textColor: "{colors.accent-ink}"
+    typography: "{typography.action}"
+    rounded: "{rounded.panel}"
+    height: "62px"
+    width: "100%"
+  button-go-dark:
+    backgroundColor: "{colors.accent-dark}"
+    textColor: "{colors.accent-ink-dark}"
+  button-main:
+    backgroundColor: "{colors.accent}"
+    textColor: "{colors.accent-ink}"
     rounded: "{rounded.control}"
     padding: "10px 16px"
-    height: "46px"
-  button-highlighter:
-    backgroundColor: "{colors.highlighter}"
-    textColor: "{colors.highlighter-ink}"
-    rounded: "{rounded.control}"
-    padding: "10px 16px"
-    height: "46px"
-  button-outline:
-    backgroundColor: "{colors.case}"
+    height: "48px"
+  button-secondary:
+    backgroundColor: "{colors.cloth}"
     textColor: "{colors.ink}"
     rounded: "{rounded.control}"
     padding: "10px 16px"
-    height: "46px"
+    height: "48px"
   icon-button:
-    backgroundColor: "{colors.case}"
+    backgroundColor: "{colors.cloth}"
     textColor: "{colors.ink}"
     rounded: "{rounded.control}"
     size: "46px"
-  choice:
-    backgroundColor: "{colors.paper}"
+  fuel-chip:
+    backgroundColor: "{colors.cloth}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.control}"
-    padding: "8px 14px"
-    height: "46px"
-  choice-selected:
-    backgroundColor: "{colors.highlighter}"
-    textColor: "{colors.highlighter-ink}"
-    rounded: "{rounded.control}"
-  field:
-    backgroundColor: "{colors.paper}"
+    typography: "{typography.chip}"
+    rounded: "{rounded.pill}"
+    padding: "8px 15px"
+    height: "44px"
+  fuel-chip-selected:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.ground}"
+  answer-patch:
+    backgroundColor: "{colors.cloth}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.control}"
+    rounded: "{rounded.patch}"
+    padding: "22px 20px 20px 22px"
+  station-row:
+    backgroundColor: "{colors.cloth}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.row}"
+    padding: "12px 14px"
+  input-field:
+    backgroundColor: "{colors.ground}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.field}"
     padding: "8px 12px"
-    height: "46px"
-  tab:
-    backgroundColor: "{colors.frame}"
-    textColor: "{colors.frame-muted}"
-    rounded: "{rounded.control}"
-    padding: "6px 4px"
+    height: "48px"
+  bottom-tabs:
+    backgroundColor: "{colors.cloth}"
+    textColor: "{colors.ink-2}"
     height: "52px"
-  tab-selected:
-    backgroundColor: "{colors.frame}"
-    textColor: "{colors.frame-ink}"
-  bottom-sheet:
-    backgroundColor: "{colors.case}"
+  sheet:
+    backgroundColor: "{colors.cloth}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.sheet}"
-    padding: "8px 16px 18px"
+    rounded: "{rounded.patch}"
   toast:
     backgroundColor: "{colors.ink}"
-    textColor: "{colors.case}"
+    textColor: "{colors.ground}"
     rounded: "{rounded.control}"
     padding: "10px 14px"
-  map-pin:
-    backgroundColor: "{colors.case}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.pin}"
-    size: "26px"
-  map-pin-top:
-    backgroundColor: "{colors.highlighter}"
-    textColor: "{colors.highlighter-ink}"
-    rounded: "{rounded.pin}"
-    size: "34px"
-  map-pin-origin:
-    backgroundColor: "{colors.ink}"
-    rounded: "{rounded.pill}"
-    size: "16px"
+  flag:
+    backgroundColor: "{colors.warn-bg}"
+    textColor: "{colors.warn-ink}"
+    rounded: "{rounded.flag}"
+    padding: "2px 8px"
 ---
 
 # Design System: Plein Sud
 
 ## Overview
 
-**Creative North Star: "The Pocket Roadbook"**
+**Creative North Star: "The Embroidered Tee"**
 
-Plein Sud is a rally roll-chart clipped into an ink holder. The dark frame at top and bottom is the roadbook holder; between them runs a roll of cool white paper printed with a faint blue-grey 16px grid, and on it every station is a ruled case with three columns: KM, TULIPE, NOTES. The rider reads the next case the way a rally rider reads the next instruction: distance in big condensed figures, a drawn tulip pointing the way, then the notes. The best case is longer than the others and its station name is struck with a yellow highlighter; anything to be cautious about gets an orange highlighter. Nothing else is coloured.
+Plein Sud looks like nothing from the fuel world. The phone is a piece of cloth: cream cotton by day, deep night-blue "fleurs de nuit" by night, and every surface on it is a patch sewn onto that cloth. The one answer that matters (where to fill up, at what price per litre, how far, for how much) is stitched large on a single patch, and a hand-embroidered bouquet climbs that patch's right edge. Everything else (alternatives, the map, favourites, the Carnet) is quieter cloth with the same seams.
 
-Density is high but legible at arm's length: numerals are extra-condensed black Archivo so they can be large without crowding, and everything that is prose (station names, addresses, explanations) runs at normal width. Depth is paper-flat; only the things that physically float over the roll (the bottom sheet and the toast) cast a shadow. Night mode is the same roadbook under a reader's backlight: the paper goes near-black, the ink goes pale, the highlighter stays yellow with dark ink on it.
+The world is carried by three materials only: thread colour, stitch line, and type. Thread colours (dusty rose, lavender blue, coral, ochre, sage, pale sky) belong to the embroidery and to small sewn details; information is set in a warm dark-thread ink (cream thread at night). The stitch line is a dashed 1.5px outline set just inside a patch's edge, the way a running stitch sits inside a hem. Type pairs Young Serif, a soft, ink-trapped display serif for names and headings, with Archivo at condensed widths for every figure, so prices read as hard numerals at arm's length on a soft ground.
 
-Motion is mechanical and short, like a roll advancing: cases unroll on first load, overtake each other with FLIP when the ranking changes, the tulip leg swings to its new bearing, and the highlighter redraws left to right across the new leader. Every one of those moves degrades to a plain fade or nothing under reduced motion.
+Density is low and the hierarchy is steep: one giant price, two side-by-side facts, one full-width button, two compact rows. Motion behaves like sewing: the bouquet stitches itself upward on load and re-stitches when the answer changes; rows slide to their new rank rather than reappearing. The header mark (an eight-petal compass flower in rose thread) is a **provisional logo**, pending the owner's choice; do not build further identity on it.
 
 **Key Characteristics:**
-- Ink frame (top bar, bottom tabs) around a paper roll printed with a 16px faint grid.
-- Ruled cases: 3px ink rule under the column heads, 2px ink rule between cases, 1px grid hairlines between columns.
-- Two highlighters only: yellow for the best and the selected, orange for caution.
-- Archivo on its width axis: 62–80% for figures, 100% for notes; tabular figures everywhere.
-- Authored SVG stroke icons and a data-driven tulip per case; no glyph icons.
-- Flat paper; shadows only on floating layers.
+- Cream cloth ground (light) and night-blue cloth (dark), with patches one step lighter than the ground.
+- Dashed stitch outlines inset inside patch edges; dashed rings on rank badges and map pins.
+- Hand-authored SVG line embroidery: running-stitch dashes, satin hatching, French knots.
+- Young Serif for station names and headings; condensed Archivo for every number.
+- One ink-thread primary action per view, which turns gold thread at night.
+- Motion as sewing: clip-path stitch-in from the bottom, FLIP reorders, drawer sheets.
 
 ## Colors
 
-A monochrome ink-on-paper roadbook with two highlighter pens and one quiet green for savings.
+A warm cream cloth carrying soft thread colours by day, inverted into night-blue cloth with cream, silver and gold threads by night; colour lives in the embroidery and small sewn details, never in large fills.
 
 ### Primary
-- **Highlighter Yellow** (`highlighter`): the best and the selected. Swiped behind the leading station's name, behind the current fuel name in the station sheet, as the fill of the top map pin, the selected choice chip, the filled favourite star, the active tab icon, the settings sheet's main action, text selection, and the 3px halo around a focused field (paired with an ink border). Text on it is always `highlighter-ink`, in both themes.
+- **Dark Thread Ink** (`accent` / `ink`, light): the primary action ("Y aller", "Ajouter au carnet", "Voir les stations") is filled with the same warm near-black as the text, so the button reads as a dense satin-stitched block. Selected fuel chips and selected choices invert to this ink too.
+- **Gold Thread** (`accent-dark`): at night the primary action becomes gold thread on night cloth with near-black lettering (`accent-ink-dark`). Gold is also the night satin hatching on leaves and petals.
 
 ### Secondary
-- **Caution Orange** (`caution`, `caution-bg`, `caution-ink`): the second highlighter. Used only for the caution mark on a case whose price is more than 48 hours old: a pale orange swipe (`caution-bg`) behind dark burnt text (`caution-ink`) with an orange stroked triangle (`caution`). Also tints a negative gain in the fuel log (`caution-ink`).
+- **Dusty Rose Thread** (`rose-thread`): the signature sewn detail: header mark, start-point pin icon, active tab icon, dashed rank rings, map pin stitching, the best station's filled pin. `rose` (deeper) is the text colour inside rank badges and the current fuel name in the station sheet, chosen for legibility on cloth.
 
 ### Tertiary
-- **Saving Green** (`good`): only for the leading case's saving line ("−2,41 € vs la plus proche"). Never a fill, never a button.
+- **Lavender Blue** (`lavender`) with **Lavender Fill** (`lavender-fill`): embroidery thread (lavender sprig, French knots) and the selection / focus halo colour (`::selection`, input focus ring).
+- **Coral**, **Ochre**, **Sage**, **Pale Sky**: embroidery threads only (coral blossoms, ochre flower hearts and the filled favourite star, sage stems and leaves, sky running-stitch curls). At night sage and sky shift to silver threads (`sage-dark`, `sky-dark`).
 
 ### Neutral
-- **Holder Ink** (`frame`, `frame-ink`, `frame-muted`, `frame-edge`): the roadbook holder. Top bar and bottom tab bar background, its pale text, its muted secondary text (freshness line, inactive tabs), and the 1px edge of the start-point button. Also the page background outside the 560px shell and the PWA theme colour.
-- **Roll Paper** (`paper`): the app background between the frame bars, carrying the faint grid (`grid-faint`, 16px). Also the fill of inputs and unselected choice chips, and the pressed/hovered state of a case.
-- **Case White** (`case`): the case surface, sheets, the fuel segments at rest, outline buttons, map pins.
-- **Ink** (`ink`, `rule`): text, all rules, control borders, tulip strokes, the selected fuel segment fill, ink buttons, toast background.
-- **Pencil Grey** (`ink-2`): secondary text: column heads, addresses, units, "prix affiché il y a…", form labels, legends.
-- **Grid Blue-Grey** (`grid`): column hairlines inside cases, list separators, input borders at rest, the sheet grabber, skeleton blocks, the map background while tiles load.
-
-Every role has a dark counterpart with the `-dark` suffix in the frontmatter; they are swapped wholesale under `prefers-color-scheme: dark`, and the component tokens resolve through the same names.
+- **Cream Ground** (`ground`) / **Night Cloth Ground** (`ground-dark`): page background, theme-color, map background, input wells and choice chips inside sheets.
+- **Cloth Patch** (`cloth`) / `cloth-dark`: every raised surface: answer patch, rows, chips at rest, tabs bar, sheets, fill card.
+- **Warm Ink** (`ink`) / **Cream Thread** (`ink-dark`): all primary text and figures.
+- **Faded Ink** (`ink-2`): secondary text, units, captions, inactive tabs.
+- **Seam** (`seam`): solid 1.5px borders on rows, chips, buttons, inputs; grabber; dashed separators in price lists.
+- **Stitch** (`stitch`): dashed stitch outlines (answer patch, map, Carnet total, fill card, tab bar top edge, "Voir toutes les stations").
+- **Good** (`good`): savings figures only ("2,41 € de moins", Carnet totals). **Warn** (`warn-bg` / `warn-ink`): stale-price and outage flags, negative savings.
 
 ### Named Rules
-**The Two Highlighters Rule.** Colour on the roll comes only from a highlighter pen: yellow means "best" or "selected", orange means "be careful". If an element is neither, it is ink, pencil grey or paper.
+**The Threads-Are-Embroidery Rule.** Rose, lavender, coral, ochre, sage and sky are thread colours: they draw the bouquet and small sewn marks (rings, pins, active icon, mark). They never fill a card, a section or a background.
 
-**The Highlighter Ink Rule.** Text sitting on yellow is always `highlighter-ink` (#121416), in light and in dark mode. The highlighter never carries pale text.
+**The One Satin Block Rule.** Exactly one filled `accent` action per view. Everything else is cloth with a seam.
 
-**The Backlight Rule.** Dark mode is not a new palette; it is the same roles relit. Add a role to both sets or not at all.
+**The Day-and-Night Pair Rule.** Every colour token exists as a light and a `-dark` pair, switched by `prefers-color-scheme`; the map basemap is recoloured to the same cloth palette in both modes.
 
 ## Typography
 
-**Display Font:** Archivo variable, width axis 62–125% (self-hosted `fonts/archivo-wdth.woff2`), falling back to Arial Narrow, then system-ui.
-**Body Font:** the same Archivo at normal width (100%).
+**Display Font:** Archivo variable, width axis 62–125% (with Arial Narrow, system-ui)
+**Name Font:** Young Serif 400 (with Georgia)
 
-**Character:** one family on two widths. Extra-condensed black figures read like the numbers printed on a rally roll-chart; normal-width text reads like the navigator's handwritten notes beside them.
+**Character:** A soft, old-style serif with ink traps for names, like an embroidered label, against a condensed grotesque for numbers, like a printed price tag. The serif carries warmth; the condensed Archivo carries legibility at arm's length. Tabular numerals are on globally.
 
 ### Hierarchy
-- **Display** (800, 52px, line-height 1, width 75%): the leading case's price per litre; the thousandth digit is a superscript at 0.52em.
-- **Distance lead** (800, 44px, line-height 0.95, width 62%): kilometres in the leading case.
-- **Distance** (800, 30px, line-height 0.95, width 62%): kilometres in ordinary cases and in the sheet's case strip.
-- **Price** (800, 24px, width 75%): price per litre in ordinary cases; 22px in the sheet price list and the radius readout.
-- **Headline** (800, 22px, line-height 1.15, width 85%): the leading station's name under the highlighter.
-- **Wordmark** (800, 22px, width 75%, uppercase, +0.01em): "PLEIN SUD" in the top bar only.
-- **Title** (800, 20px, width 80%): sheet and form headings ("Départ et véhicule", "Noter un plein"). Fill totals use the same voice at 20px width 80% (lead case) and 30px width 75% (log total).
-- **Station** (700, 17px, line-height 1.2, width 100%): station names in ordinary cases, clamped to two lines. Fuel segment names use 800 / 17px / width 75%.
-- **Body** (400, 16px, line-height 1.45, width 100%): base text; explanatory paragraphs cap at 46–65ch.
-- **Meta** (400–600, 12–14px, width 100%): addresses, gaps in euros, ages, units, form labels, station counts in fuel segments.
-- **Label** (700, 11px, +0.1em, uppercase): the roadbook column heads (KM / TULIPE / NOTES) and, at +0.14em, the fieldset legends in the settings sheet. These are table and form group labels, never decorative lines above a headline.
+- **Display** (Archivo 800, width 68%, clamp(76px, 23vw, 100px), line-height 0.86, -0.02em): the answer's price per litre only. The third decimal is a superscript at 0.45em; "€/L" is 15px 600 faded ink beside it.
+- **Figure** (Archivo 800, width 72%, 30px, line-height 1): distance and full-tank cost side by side under the price; Carnet total (width 75%, good colour).
+- **Figure Row** (Archivo 800, width 72%, 26px): price in alternative rows; 24px in the station sheet price list.
+- **Brand** (Young Serif 22px/1): "Plein Sud" in the header.
+- **Title** (Young Serif 26px/1.1): view titles ("Tes stations", "Carnet").
+- **Headline** (Young Serif 24px/1.12, balanced): the answer's station name.
+- **Section** (Young Serif 20–21px): "Ensuite", sheet titles, "Noter un plein", fill card title.
+- **Row Name** (Young Serif 17px/1.2, single line, ellipsis): station names in rows.
+- **Action** (Archivo 800, width 90%, 21px): "Y aller" (19px inside the station sheet).
+- **Chip** (Archivo 700, width 80%, 16px): fuel names in the segmented control; rank numerals 15px 800 width 80%.
+- **Body** (Archivo 400, 16px/1.45): running text; explanatory paragraphs capped at 65ch.
+- **Label** (Archivo 600, 12–13px): tab labels, field labels, legends (700), captions under figures.
 
 ### Named Rules
-**The Two Widths Rule.** Figures (km, prices, totals, case numbers, pins, the radius readout) are set condensed (62–85%); words that people read as sentences are set at 100%. Never condense a station name in an ordinary case or an explanatory line.
+**The Serif-Names, Condensed-Numbers Rule.** Words that name a place or a section are Young Serif; every quantity (price, km, €, rank, litres) is condensed Archivo 800. Never set a figure in Young Serif or a station name in Archivo.
 
-**The Tabular Figures Rule.** `tabular-nums` is set on the body; every number on the roll aligns in its column.
+**The Single-Weight Serif Rule.** Young Serif ships one weight (400). Hierarchy among names comes from size only; never fake-bold it.
 
 ## Layout
 
-A single 560px column centred on the holder-ink page (`shell`). On a phone it fills the width; on desktop the frame colour shows on both sides and nothing reflows into multiple columns. There are no breakpoints; the only media queries are colour scheme, reduced motion, and `(hover: hover) and (pointer: fine)` for hover states.
+A single phone column, max 560px wide, centred, full dynamic viewport height. Side gutters are 16px, extended by safe-area insets. Vertical order: slim header (mark, brand, start-point pill on the right), horizontally scrolling fuel chip rail (snap, hidden scrollbar), the active view, and a sticky bottom tab bar (four equal columns: Stations, Carte, Favoris, Carnet).
 
-Vertical order is fixed: sticky top bar (wordmark, price freshness, start-point button), a horizontally scrolling fuel segmented control with snap, the view area on the gridded paper, and a sticky four-column tab bar. Side gutters are 16px, extended by safe-area insets on every edge.
+On the Stations view the answer patch is at least 420px tall; its text block is limited to ~62% width so the bouquet (absolute, right edge, 60% of the patch height, max 50% width) climbs beside it. Facts sit in a row with a 26px gap. Rows are a 3-column grid (30px rank badge, flexible name/meta, right-aligned price/gap). Spacing steps are small and repeated: 6, 8, 10, 12, 14, 16, 22px. Overlays (fill card, toast) sit above the tab bar at bottom offsets of 76px and 84px plus safe area. The map is `min(64dvh, 560px)` tall.
 
-The roadbook is a three-column grid: KM 58px, TULIPE 64px, NOTES the rest. Cells pad 10px. Ordinary cases are at least 64px tall; the leading case is at least 150px, and its action row (Y aller + star) is indented to line up with the NOTES column (58 + 64 + 10px). The station sheet repeats the same three-column strip so a station always reads as its case.
-
-Spacing is small-step and tight: 4, 6, 8, 10, 12, 16, 24px. Every interactive target is at least 44px (buttons and fields 46px, tabs 52px).
+Touch targets are at least 44px everywhere (chips 44, rows ~60, buttons 48, primary 62, tabs 52, icon buttons 46). Hover tints apply only under `(hover: hover) and (pointer: fine)`.
 
 ## Elevation & Depth
 
-Paper-flat. The roll, the cases, the fuel segments, the buttons and the map frame carry no shadow; depth on the roll is expressed by ink rules and by case white sitting on gridded paper. Only layers that float above the roll cast a shadow, and both shadows point away from their anchor.
+Depth is cloth on cloth: a patch is one tone lighter than the ground, edged by a seam or an inset stitch, and lifted by a soft, low-spread shadow pulled in with a negative spread so it reads as fabric thickness, not a floating card. Rows and chips are flat (seam border only). Shadows appear on the answer patch and on overlays that genuinely sit above the cloth.
 
 ### Shadow Vocabulary
-- **Sheet lift** (`box-shadow: 0 -12px 32px -16px rgba(5, 6, 7, .35)`): the bottom sheet, casting upward onto the roll, over a 50% ink scrim.
-- **Toast lift** (`box-shadow: 0 10px 24px -12px rgba(5, 6, 7, .5)`): the ink toast floating above the tab bar.
+- **Patch lift** (`box-shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 14px 30px -22px rgba(42, 36, 32, .45)`): the answer patch only.
+- **Sheet** (`box-shadow: 0 -14px 34px -18px rgba(14, 10, 8, .45)`): bottom sheets, upward.
+- **Fill card** (`box-shadow: 0 18px 40px -18px rgba(14, 10, 8, .55)`): the floating "Tu fais le plein ?" card.
+- **Toast** (`box-shadow: 0 10px 24px -12px rgba(14, 10, 8, .5)`).
+- **Pin** (`box-shadow: 0 4px 10px -6px rgba(14, 10, 8, .5)`): map pins.
 
 ### Named Rules
-**The Flat Paper Rule.** Nothing printed on the roll has a shadow. If it needs separation, give it an ink rule or a grid hairline. Leaflet's control shadows are explicitly removed and replaced with a 2px ink border.
+**The Flat-Rows Rule.** Lists, chips and form wells never carry shadows; only the answer patch and true overlays lift.
 
 ## Shapes
 
-The roll is square-cornered: cases, the column-head rule, the log total, the map frame have no radius. Controls the hand touches are gently rounded (10px): buttons, icon buttons, choice chips, fields, the start-point button, tab hit areas, the toast. Fuel segments are full pills (999px) to read as a separate control strip. Case numbers are tiny 3px-cornered boxes like printed instruction numbers; map pins are 6px-cornered squares carrying the same numbers. The bottom sheet rounds only its top corners (18px). The highlighter swipe has deliberately uneven corners (3px 7px 4px 8px) so it reads as a pen stroke, sized to 80% of the line height and offset to 62% so it sits slightly low like a real highlighter.
+Soft, generously rounded, textile corners, growing with the surface: flags 8px, inputs and tabs 12px, buttons / icon buttons / choices / toast 14px, rows 16px, the primary action and panels 18px, the map and fill card 22px, the answer patch and sheet tops 24px. Fuel chips and the start-point pill are full pills (999px). Rank badges and map pins are circles.
 
-Borders are ink and deliberate: 1.5px ink on controls at rest, 2px ink between cases and around the map and pins, 3px ink under column heads and atop each sheet section.
+The recurring silhouette is the **inset stitch**: a 1.5px dashed outline drawn with `outline` and a negative `outline-offset` (-9px on the answer patch, -7px on map / Carnet total / fill card, -6px on the primary button), so the running stitch sits inside the hem. Dashed rings (1.5–2px dashed rose thread) mark ranks and pins. Separators are dashed seams (tab bar top edge, price list rows).
 
 ## Components
 
-### Top Bar (roadbook holder)
-- **Style:** `frame` background, sticky, wordmark mark (yellow 30px rounded square with an ink tulip) + "PLEIN SUD" + right-aligned freshness line in `frame-muted`.
-- **Start point:** a full-width 44px button with a 1px `frame-edge` border and 10px radius, pin icon, one-line summary ("Depuis ta position · 450MT · 15 km") and a sliders icon. While locating, the pin icon pulses (opacity 0.35 at mid-cycle, 1.2s).
-
-### Fuel Segmented Control
-- **Style:** a horizontally scrolling radiogroup of pills (44px, 1.5px ink border, case white). Each pill shows the fuel name (800, 17px, width 75%) and the station count in meta grey.
-- **Selected:** ink fill, case-white text, count at 70% opacity.
-- **Press:** scale 0.97 over 120ms. **Hover (fine pointer only):** border goes ink.
-
-### Roadbook Case (signature)
-- **Structure:** KM | TULIPE | NOTES grid on case white, 2px ink rule below, 1px grid hairlines between columns. KM holds the case number box above the condensed distance and a "km" unit. TULIPE holds the tulip and the bearing in degrees (800, 14px, width 75%). NOTES holds station name and price on the first line, town and the gap to the leader ("+0,29 €" or "même total") on the second, and the caution mark if any.
-- **Column heads:** label type in pencil grey sitting on a 3px ink rule.
-- **Press / hover:** the case fills with `paper` (120ms).
-- **Loading:** skeleton cases keep the grid; text goes transparent and km/notes become `grid` blocks.
-- **Empty:** a case-white block with a 2px rule, one sentence and an ink button to widen the radius.
-
-### Lead Case (signature)
-- **Structure:** the first case grows to at least 150px; its column hairlines are drawn as background lines so the action row can span under NOTES without breaking them.
-- **Highlighter:** the station name (headline type) sits under a yellow swipe that clones across line breaks. When the leader, the fuel or the leading total changes, the swipe redraws from 0% to 100% width over 380ms ease-out.
-- **Content:** display price with "€/L", total fill cost with detour ("28,28 € le plein avec détour"), the saving in `good` (or a neutral grey line when there is none), and the price age or caution mark.
-- **Actions:** ink "Y aller" button and a star icon button; the star fills yellow when favourited and pops from scale 0.9 over 200ms.
-- **Case number:** inverted (ink box, case-white figure).
-
-### Tulip (signature)
-- **Style:** a 48-unit SVG drawn at 34px (46px in the lead case): a filled ink start dot at the bottom, a 3px round-capped ink road up to a case-white junction circle with a 2px ink ring, and a leg with an arrowhead rotated to the station's bearing from the start point.
-- **Behind:** when the bearing is between 115° and 245°, the leg is replaced by a hairpin U-turn to the left or right, as on a real roadbook; it fades in over 200ms.
-- **Motion:** when the start point changes, the leg rotates by the shortest path to the new bearing over 280ms ease-in-out.
-
-### Case Number
-- **Style:** a 22×20px box, 1.5px ink border, 3px radius, 800 / 12px / width 85%. Inverted (ink fill) in the lead case. Map pins repeat the same numbers.
-
-### Caution Mark
-- **Style:** an inline label (700, 12px) in `caution-ink` with an orange-stroked 14px triangle icon, on a `caution-bg` swipe covering 70% of the line height. Text reads "prix il y a 3 j". Shown when a price is more than 48 hours old.
-
 ### Buttons
-- **Shape:** gently rounded (10px), 46px tall, 10px 16px padding, 700 weight, icon + label with 8px gap.
-- **Ink:** ink fill, case-white text: "Y aller", "Ajouter au carnet", "Chercher jusqu'à…". In dark mode it inverts to a pale fill with dark text.
-- **Highlighter:** yellow fill and border, highlighter ink text: the settings sheet's "Voir le classement".
-- **Outline:** case white with 1.5px ink border: "Noter un plein ici".
-- **Icon button:** 46px square, same border and radius (close, star, share).
-- **Press:** scale 0.97 over 120ms ease-out.
+Dense and tactile, like a satin-stitched block.
+- **Primary "Y aller":** full width, 62px tall, 18px radius, `accent` fill with `accent-ink` text, Archivo 800 width 90% 21px, 24px send icon, optional nav-app suffix in 14px 500. An inner dashed stitch in `accent-stitch` sits 6px inside the edge. Gold with dark lettering at night.
+- **Main (`btn-main`):** same fill on a 48px, 14px-radius button for form submits and the fill card's quick action.
+- **Secondary:** cloth with a 1.5px seam border, 48px, 14px radius, 700 ink. **Text button:** transparent, faded ink, 44px.
+- **Icon button:** 46px square, 14px radius, cloth with seam border; the favourite star fills ochre when pressed.
+- **Press:** `scale(0.97)` (0.95 icon buttons, 0.985 rows) over 120ms ease-out; no hover lift. Focus: 3px solid `accent` outline, 2px offset.
 
-### Choice Chips
-- **Style:** 46px, 10px radius, `paper` fill with a 1.5px `grid` border; optional meta subtitle ("14 L · 4,5 L/100").
-- **Selected:** yellow fill, highlighter-ink text and border. A wide variant spans the sheet ("Ma position").
-- **Hover (fine pointer):** border goes ink.
+### Chips (fuel segmented control and choices)
+- **Style:** pill, 44px, cloth with seam border, Archivo 700 width 80%. Selected: inverted to ink fill with ground-coloured text (`aria-checked`). Choices in sheets are 14px-radius, ground-filled, same inversion when pressed.
+
+### Answer Patch (signature)
+The single stitched answer. Cloth, 24px radius, dashed `stitch` outline inset 9px, patch-lift shadow, min 420px. Contents: station name (Young Serif headline, tappable to open the station sheet), town, giant display price, two figures (distance, "plein + détour"), the primary button, a footer with the saving in `good` or a stale-price flag and the favourite icon button. The embroidered bouquet climbs the right edge.
+
+### Embroidered Bouquet (signature art)
+Hand-authored inline SVG (viewBox 200×380, copy in `web/art/bouquet.svg`). Vocabulary: solid stems (2px sage) doubled by a 1px running-stitch line (`stroke-dasharray: 3.2 1.8`); leaves and the rose's back petals in **satin hatching** (pattern fills of fine lines at 35° and -20°); lavender sprig of paired ellipse **French knots** filled with `lavender-fill`; coral five-petal blossoms with ochre knot hearts; pale-sky running-stitch spiral curls; an ochre French-knot crown at the rose's centre. Strokes 1–2px, round caps and joins, no fills except knots and satin. At night satin hatching switches to ochre (gold) thread.
+
+### Station Rows
+Cloth, 16px radius, 1.5px seam border, 12×14px padding. Rank badge: 30px circle with 1.5px dashed rose-thread ring, rose numeral. Name in Young Serif 17px; meta (km · town · stale age) 13px faded; right column price (figure-row) over the gap to the best ("+0,29 €" or "même total"). "Voir toutes les stations" is a 48px transparent button with a dashed stitch border and a chevron that rotates 180° when expanded.
 
 ### Inputs / Fields
-- **Style:** label above in meta grey (600, 13px); control 46px, 10px radius, `paper` fill, 1.5px `grid` border, 17px / 500 text. Numeric fields use `inputmode="decimal"`.
-- **Focus:** border goes ink and a 3px yellow halo surrounds it (`box-shadow: 0 0 0 3px` highlighter).
-- **Range:** native slider with ink accent and a condensed 22px readout ("15 km").
+- **Style:** 48px, 12px radius, ground well inside a cloth form, 1.5px seam border, 17px 500 text; labels 13px 600 faded above.
+- **Focus:** border turns `accent`, plus a 3px `lavender-fill` halo.
 
-### Navigation (bottom tabs)
-- **Style:** sticky four-column tab bar on `frame`, 52px targets, stroke icon above a 12px / 600 label in `frame-muted`.
-- **Selected:** label goes `frame-ink`, icon goes yellow. **Hover (fine pointer):** label goes `frame-ink`.
-- **View change:** the incoming view rises 6px and fades in over 200ms ease-out.
+### Navigation
+- **Header:** mark (28px rose compass flower, provisional), "Plein Sud" in Young Serif 22px, start-point pill (pin icon in rose thread, vehicle · radius text, sliders icon) opening the settings sheet; the pin icon breathes (opacity 1.4s) while locating.
+- **Bottom tabs:** sticky, cloth, dashed stitch top edge, four 52px columns of icon + 12px 600 label. Inactive faded ink; active ink text with the icon in rose thread. View switch fades in from 6px below over 200ms.
 
-### Bottom Sheet
-- **Style:** native `<dialog>` hosting a 50% ink scrim and a case-white sheet, max 560px wide and 90dvh tall, 18px top corners, grabber (40×5px, `grid`), header with title and close icon button, sections opened by a 3px ink rule.
-- **Station sheet:** repeats the case strip (number, km, tulip, rank), then the fill total, the price list per fuel (current fuel under the yellow highlighter), optional facts (24/24 automaton, hours, services, outages), actions.
-- **Motion:** slides up from 100% over 320ms with the drawer curve; scrim fades over 240ms.
-
-### Toast
-- **Style:** ink pill-ish box (10px radius), case-white 15px text, optional yellow 800-weight action ("Annuler"), centred 84px above the bottom edge.
-- **Motion:** rises 12px and fades in over 220ms; stays 3.5s (5s with an action).
+### Bottom Sheets
+Native `<dialog>` hosts with a scrim (`scrim`, 240ms fade) and a cloth sheet, 24px top corners, max 90dvh, 40×5px seam grabber, Young Serif title and a close icon button. Slides from `translateY(100%)` over 320ms `cubic-bezier(0.32, 0.72, 0, 1)`; drag down from the grabber or header beyond 90px to dismiss. Used for station details (price list with dashed seams, facts, actions), nav-app choice and Départ et véhicule settings.
 
 ### Map Pins
-- **Station pin:** 26px case-white square, 6px radius, 2px ink border, rank number in 800 / 14px / width 70%.
-- **Top pin:** 34px, yellow fill, 17px number, stacked above the others.
-- **Origin:** 16px ink dot with a case-white ring.
-- **Map frame:** 2px ink border, `grid` background while loading, Leaflet zoom controls restyled as 40px case-white buttons in a 2px ink frame with no shadow, CARTO light or dark tiles following the colour scheme.
+Stitched patches: 30px cloth circles with a 2px dashed rose-thread ring and a condensed rank numeral; the best station is a 40px rose-filled pin with a dashed cloth stitch and a solid rose outline. Overlapping pins fan out by 30px. The user is a 18px accent dot with a cloth ring. Basemap is recoloured to the cloth palette (cream / night blue, pale water, ochre major roads). The map frame carries the inset stitch.
 
-### Fuel Log
-- **Total block and form:** case white opened by a 3px ink rule and closed by a 2px rule; total in condensed 30px.
-- **Entries:** 1px grid separators, gain in condensed 18px (`caution-ink` when negative), 44px delete target.
+### Fill-Up Card
+"Tu fais le plein ?" floats bottom right above the tab bar (max 330px), cloth with inset stitch and fill-card shadow. It grows out of the Carnet tab corner: `transform-origin: 85% 110%`, from `translateY(14px) scale(.6)` and transparent, over 340ms ease-out (opacity 260ms). Actions: quick-log main button, secondary "Modifier…", text "Pas maintenant".
+
+### Toast
+Inverted ink pill (14px radius) above the tab bar, 15px text, optional ochre action ("Annuler"); rises 12px and fades in over 220ms; 3.5s, or 5s with an action.
+
+### Flag
+Small 8px-radius warn tag with a caution icon for stale prices and reported outages.
+
+### Motion Grammar (applies across components)
+
+Easing tokens: `ease-out` `cubic-bezier(0.23, 1, 0.32, 1)`, `ease-in-out` `cubic-bezier(0.77, 0, 0.175, 1)`, `ease-drawer` `cubic-bezier(0.32, 0.72, 0, 1)`.
+
+- **Stitch-in (load):** the bouquet's stitch group is revealed bottom-to-top by `clip-path: inset(100% 0 0 0)` → `inset(0)` over 1100ms ease-out; it is held hidden by a `pending` class until first data render.
+- **Re-stitch:** when the best station (or fuel) changes, the same reveal runs in 600ms and the answer text rises from 6px at 25% opacity over 240ms.
+- **Unroll (first render):** alternative rows rise 8px from 30% opacity, 260ms, staggered 50ms.
+- **FLIP reorder:** existing rows slide from their old position over 260ms ease-in-out; new rows rise 8px, 220ms, staggered 30ms (max 6).
+- **Sheets:** 320ms drawer curve; scrim 240ms.
+- **Fill card:** 340ms scale-and-rise from the Carnet corner.
+- **Toast:** 220ms. **Favourite toggle:** star pops from 0.88 over 220ms. **Press:** 120ms scale.
+- **Reduced motion:** stitch-in becomes a 300ms opacity fade; rows and views fade 180ms with no stagger; sheets, fill card and toast fade (200ms) without translation; press scales and the locating pulse are disabled; FLIP is skipped.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** build every list of stations as roadbook cases on the 58px / 64px / rest grid, with a 2px ink rule between cases and a 3px rule under the column heads.
-- **Do** set figures condensed (wdth 62–85%, weight 800) and prose at wdth 100%.
-- **Do** use yellow only for the best or the selected item, always with `highlighter-ink` text on it.
-- **Do** use the orange caution mark for anything the rider should doubt (stale price), and nothing else.
-- **Do** draw icons as inline SVG strokes (1.8px, round caps and joins, 22px), sharing one sprite.
-- **Do** keep every touch target at least 44px.
-- **Do** give every motion a reduced-motion fallback: unroll and view entry become a 180ms opacity fade; the highlighter swipe, tulip rotation, FLIP reorder, locating pulse and press scale are removed; the sheet and toast only fade.
-- **Do** use the three curves as built: ease-out `cubic-bezier(0.23, 1, 0.32, 1)` for entries and presses, ease-in-out `cubic-bezier(0.77, 0, 0.175, 1)` for reorder and tulip rotation, drawer `cubic-bezier(0.32, 0.72, 0, 1)` for the sheet; keep durations between 120ms and 380ms.
+- **Do** set every station name and heading in Young Serif 400 and every figure in condensed Archivo 800 with tabular numerals.
+- **Do** mark patches with a 1.5px dashed `stitch` outline inset 6–9px inside the edge.
+- **Do** keep thread colours (rose, lavender, coral, ochre, sage, sky) for embroidery, rings, pins and the active icon.
+- **Do** keep exactly one filled `accent` action per view: ink thread by day, gold thread by night.
+- **Do** draw new decorative art as SVG line embroidery: running-stitch dashes `3.2 1.8`, satin hatching patterns, French knots, 1–2px round-capped strokes.
+- **Do** define every new colour as a light / `-dark` pair and check it on both cloths.
+- **Do** give every animation a reduced-motion fallback (fade, no translation).
 
 ### Don't:
-- **Don't** render stations as grey rounded cards with a pin icon; that is the category default the roadbook replaces.
-- **Don't** add shadows to anything printed on the roll; only the sheet and toast float.
-- **Don't** introduce a new accent colour; a role either fits ink, pencil grey, paper, yellow, orange or the saving green, or it doesn't ship.
-- **Don't** put pale text on the yellow highlighter, in either theme.
-- **Don't** use glyph or emoji icons, or an icon font.
-- **Don't** condense station names in ordinary cases, addresses or explanatory text.
+- **Don't** fill cards, sections or backgrounds with thread colours; the cloth stays cream or night blue.
+- **Don't** add shadows to rows, chips or inputs; only the answer patch and overlays lift.
+- **Don't** fake a bold Young Serif or set prices in the serif.
+- **Don't** treat the compass-flower mark as final identity; it is provisional pending the owner's choice.
+- **Don't** reintroduce the previous roadbook vocabulary (ruled cases, highlighter yellow, tulip diagrams, hard frames).

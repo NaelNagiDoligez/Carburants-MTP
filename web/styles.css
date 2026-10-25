@@ -89,7 +89,6 @@ a { color: inherit; text-underline-offset: 3px; }
 }
 .mark { width: 28px; height: 28px; fill: var(--rose-thread); }
 .top h1 { margin: 0; font: 400 22px/1 var(--f-name); letter-spacing: -.005em; }
-.fresh { margin: 0; font-size: 13px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
 .icon-btn {
   width: 46px; height: 46px; display: grid; place-items: center; border-radius: 14px; cursor: pointer;
   border: 1.5px solid var(--seam); background: var(--cloth); color: var(--ink);

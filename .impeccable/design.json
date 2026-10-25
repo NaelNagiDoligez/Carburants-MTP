@@ -1,850 +1,1043 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-25T19:48:11+00:00",
+  "generatedAt": "2026-10-25T20:39:53+00:00",
   "title": "Design System: Plein Sud",
   "extensions": {
     "colorMeta": {
-      "highlighter": {
-        "role": "primary",
-        "displayName": "Highlighter Yellow",
-        "canonical": "oklch(90.8% 0.181 104)",
-        "tonalRamp": [
-          "#0F0B00",
-          "#2A2600",
-          "#494303",
-          "#6B6313",
-          "#8F851C",
-          "#B5A818",
-          "#DCCD32",
-          "#FEF385"
-        ]
-      },
-      "highlighter-ink": {
-        "role": "primary",
-        "displayName": "Ink on Highlighter",
-        "canonical": "oklch(19.0% 0.005 248)",
-        "tonalRamp": [
-          "#090B0D",
-          "#232527",
-          "#404245",
-          "#5F6164",
-          "#808385",
-          "#A3A5A8",
-          "#C7C9CC",
-          "#ECEFF2"
-        ]
-      },
-      "caution": {
-        "role": "secondary",
-        "displayName": "Caution Orange",
-        "canonical": "oklch(70.1% 0.200 44)",
-        "tonalRamp": [
-          "#1E0100",
-          "#421500",
-          "#6E2A05",
-          "#A13D00",
-          "#CE5B20",
-          "#FE7839",
-          "#FFB597",
-          "#FEEAE2"
-        ]
-      },
-      "caution-bg": {
-        "role": "secondary",
-        "displayName": "Caution Swipe",
-        "canonical": "oklch(93.6% 0.039 57)",
-        "tonalRamp": [
-          "#170600",
-          "#332011",
-          "#523D2D",
-          "#735C4C",
-          "#957D6C",
-          "#B99F8E",
-          "#DEC3B1",
-          "#FEEADC"
-        ]
-      },
-      "caution-ink": {
-        "role": "secondary",
-        "displayName": "Caution Burnt Ink",
-        "canonical": "oklch(40.5% 0.117 44)",
-        "tonalRamp": [
-          "#1E0100",
-          "#421500",
-          "#6D2B05",
-          "#964721",
-          "#BB6944",
-          "#E28C66",
-          "#FEB696",
-          "#FFE9E0"
-        ]
-      },
-      "good": {
-        "role": "tertiary",
-        "displayName": "Saving Green",
-        "canonical": "oklch(51.3% 0.117 154)",
-        "tonalRamp": [
-          "#001004",
-          "#002E15",
-          "#00502A",
-          "#127441",
-          "#3F9762",
-          "#64BB83",
-          "#89E0A7",
-          "#C7FED8"
-        ]
-      },
-      "frame": {
+      "ground": {
         "role": "neutral",
-        "displayName": "Holder Ink",
-        "canonical": "oklch(19.0% 0.005 248)",
+        "displayName": "Cream Ground",
+        "mode": "light",
+        "canonical": "#F3EDE0",
+        "oklch": "oklch(94.7% 0.018 86.1)",
         "tonalRamp": [
-          "#090B0D",
-          "#232527",
-          "#404245",
-          "#5F6164",
-          "#808385",
-          "#A3A5A8",
-          "#C7C9CC",
-          "#ECEFF2"
+          "#0F0B04",
+          "#29251B",
+          "#464137",
+          "#666156",
+          "#878276",
+          "#AAA498",
+          "#CEC9BC",
+          "#F4EEE1"
         ]
       },
-      "frame-ink": {
+      "cloth": {
         "role": "neutral",
-        "displayName": "Holder Pale Text",
-        "canonical": "#F4F5F3",
+        "displayName": "Cloth Patch",
+        "mode": "light",
+        "canonical": "#FBF7EE",
+        "oklch": "oklch(97.7% 0.013 86.8)",
         "tonalRamp": [
-          "#0A0C0A",
-          "#242524",
-          "#414241",
-          "#606260",
-          "#818381",
-          "#A4A5A4",
-          "#C8CAC8",
-          "#EDEFED"
-        ]
-      },
-      "frame-muted": {
-        "role": "neutral",
-        "displayName": "Holder Muted Text",
-        "canonical": "oklch(75.6% 0.012 240)",
-        "tonalRamp": [
-          "#070C10",
-          "#20262B",
-          "#3C4348",
-          "#5B6268",
-          "#7C8389",
-          "#9EA6AC",
-          "#C2CAD1",
-          "#E7F0F6"
-        ]
-      },
-      "frame-edge": {
-        "role": "neutral",
-        "displayName": "Holder Edge",
-        "canonical": "#2E3439",
-        "tonalRamp": [
-          "#070C10",
-          "#20262B",
-          "#3C4349",
-          "#5B6268",
-          "#7C838A",
-          "#9EA6AD",
-          "#C2CAD1",
-          "#E7F0F7"
-        ]
-      },
-      "paper": {
-        "role": "neutral",
-        "displayName": "Roll Paper",
-        "canonical": "oklch(95.3% 0.003 146)",
-        "tonalRamp": [
-          "#0A0C0A",
-          "#242524",
-          "#414241",
-          "#606260",
-          "#818381",
-          "#A4A5A4",
-          "#C8CAC8",
-          "#EDEFED"
-        ]
-      },
-      "case": {
-        "role": "neutral",
-        "displayName": "Case White",
-        "canonical": "oklch(100.0% 0.000 90)",
-        "tonalRamp": [
-          "#0B0B0B",
-          "#252525",
-          "#424242",
-          "#616161",
-          "#828282",
-          "#A5A5A5",
-          "#C9C9C9",
-          "#EEEEEE"
+          "#0D0B06",
+          "#28251E",
+          "#45423A",
+          "#646159",
+          "#86827A",
+          "#A8A59C",
+          "#CDC9C0",
+          "#F2EEE5"
         ]
       },
       "ink": {
-        "role": "neutral",
-        "displayName": "Ink",
-        "canonical": "oklch(19.0% 0.005 248)",
+        "role": "primary",
+        "displayName": "Warm Dark-Thread Ink",
+        "mode": "light",
+        "canonical": "#2A2420",
+        "oklch": "oklch(26.6% 0.012 55.8)",
         "tonalRamp": [
-          "#090B0D",
-          "#232527",
-          "#404245",
-          "#5F6164",
-          "#808385",
-          "#A3A5A8",
-          "#C7C9CC",
-          "#ECEFF2"
-        ]
-      },
-      "rule": {
-        "role": "neutral",
-        "displayName": "Ink Rule",
-        "canonical": "oklch(19.0% 0.005 248)",
-        "tonalRamp": [
-          "#090B0D",
-          "#232527",
-          "#404245",
-          "#5F6164",
-          "#808385",
-          "#A3A5A8",
-          "#C7C9CC",
-          "#ECEFF2"
+          "#0F0A07",
+          "#2A2420",
+          "#47403C",
+          "#67605B",
+          "#88817C",
+          "#ABA39E",
+          "#CFC7C2",
+          "#F5EDE7"
         ]
       },
       "ink-2": {
         "role": "neutral",
-        "displayName": "Pencil Grey",
-        "canonical": "oklch(43.1% 0.013 244)",
+        "displayName": "Faded Ink",
+        "mode": "light",
+        "canonical": "#6A5F55",
+        "oklch": "oklch(49.3% 0.021 64.6)",
         "tonalRamp": [
-          "#070C10",
-          "#20262B",
-          "#3C4349",
-          "#5B6268",
-          "#7C838A",
-          "#9EA6AD",
-          "#C2CAD1",
-          "#E7F0F7"
+          "#110903",
+          "#2C231A",
+          "#4A4036",
+          "#6A5F55",
+          "#8C8075",
+          "#AFA398",
+          "#D3C7BB",
+          "#F9ECE0"
         ]
       },
-      "grid": {
+      "seam": {
         "role": "neutral",
-        "displayName": "Grid Blue-Grey",
-        "canonical": "oklch(88.5% 0.011 244)",
+        "displayName": "Seam",
+        "mode": "light",
+        "canonical": "#DCD1BC",
+        "oklch": "oklch(86.4% 0.031 83.6)",
         "tonalRamp": [
-          "#070C10",
-          "#21262A",
-          "#3D4348",
-          "#5C6267",
-          "#7D8389",
-          "#9FA6AC",
-          "#C3CAD0",
-          "#E8EFF6"
+          "#110A00",
+          "#2C2413",
+          "#4A412F",
+          "#6A604D",
+          "#8B816E",
+          "#AEA490",
+          "#D3C8B3",
+          "#F8EDD8"
         ]
       },
-      "grid-faint": {
+      "stitch": {
         "role": "neutral",
-        "displayName": "Printed Grid",
-        "canonical": "rgba(118, 146, 170, .16)",
+        "displayName": "Stitch",
+        "mode": "light",
+        "canonical": "#C4B392",
+        "oklch": "oklch(77.3% 0.049 83.9)",
         "tonalRamp": [
-          "#070C10",
-          "#21262A",
-          "#3D4348",
-          "#5C6267",
-          "#7D8389",
-          "#9FA6AC",
-          "#C3CAD0",
-          "#E8EFF6"
+          "#150800",
+          "#302304",
+          "#4E4022",
+          "#6F5F41",
+          "#908061",
+          "#B4A382",
+          "#D8C7A6",
+          "#FEECCA"
+        ]
+      },
+      "rose": {
+        "role": "secondary",
+        "displayName": "Deep Dusty Rose",
+        "mode": "light",
+        "canonical": "#A8506A",
+        "oklch": "oklch(54.8% 0.119 3.1)",
+        "tonalRamp": [
+          "#2B0007",
+          "#4E001F",
+          "#711E3C",
+          "#96405A",
+          "#BC627B",
+          "#E2849E",
+          "#FFA8C1",
+          "#FFCDE7"
+        ]
+      },
+      "rose-thread": {
+        "role": "secondary",
+        "displayName": "Dusty Rose Thread",
+        "mode": "light",
+        "canonical": "#C2617F",
+        "oklch": "oklch(61.6% 0.128 1.9)",
+        "tonalRamp": [
+          "#2C0007",
+          "#500020",
+          "#74193D",
+          "#993C5C",
+          "#BF5E7C",
+          "#E6819F",
+          "#FFA5C3",
+          "#FFCAE8"
+        ]
+      },
+      "lavender": {
+        "role": "tertiary",
+        "displayName": "Lavender Blue Thread",
+        "mode": "light",
+        "canonical": "#5E5FB3",
+        "oklch": "oklch(52.6% 0.130 280.4)",
+        "tonalRamp": [
+          "#0D003F",
+          "#1F1261",
+          "#383484",
+          "#5555A8",
+          "#7577CE",
+          "#969BF4",
+          "#B9BFFF",
+          "#DEE5FF"
+        ]
+      },
+      "lavender-fill": {
+        "role": "tertiary",
+        "displayName": "Lavender Knot Fill",
+        "mode": "light",
+        "canonical": "#D6D5F1",
+        "oklch": "oklch(88.2% 0.038 287.2)",
+        "tonalRamp": [
+          "#0A081A",
+          "#242237",
+          "#403F56",
+          "#5F5E76",
+          "#807F99",
+          "#A3A2BC",
+          "#C7C6E2",
+          "#ECEBFF"
+        ]
+      },
+      "coral": {
+        "role": "tertiary",
+        "displayName": "Coral Thread",
+        "mode": "light",
+        "canonical": "#D86A4A",
+        "oklch": "oklch(64.9% 0.146 37.0)",
+        "tonalRamp": [
+          "#2F0000",
+          "#530000",
+          "#771D00",
+          "#9D4025",
+          "#C36347",
+          "#EA8669",
+          "#FFAA8C",
+          "#FFCFB0"
+        ]
+      },
+      "ochre": {
+        "role": "tertiary",
+        "displayName": "Ochre Thread",
+        "mode": "light",
+        "canonical": "#C98F22",
+        "oklch": "oklch(69.0% 0.134 77.4)",
+        "tonalRamp": [
+          "#250000",
+          "#451400",
+          "#663400",
+          "#895400",
+          "#AD7600",
+          "#D29937",
+          "#F8BE5F",
+          "#FFE385"
+        ]
+      },
+      "sage": {
+        "role": "tertiary",
+        "displayName": "Sage Thread",
+        "mode": "light",
+        "canonical": "#6F8769",
+        "oklch": "oklch(59.6% 0.053 139.4)",
+        "tonalRamp": [
+          "#011000",
+          "#172B11",
+          "#33492E",
+          "#52694C",
+          "#728A6C",
+          "#94AE8E",
+          "#B8D2B2",
+          "#DDF8D6"
+        ]
+      },
+      "sky": {
+        "role": "tertiary",
+        "displayName": "Pale Sky Thread",
+        "mode": "light",
+        "canonical": "#8FB0C6",
+        "oklch": "oklch(74.0% 0.048 237.5)",
+        "tonalRamp": [
+          "#000D1D",
+          "#092839",
+          "#284659",
+          "#47667A",
+          "#67879C",
+          "#89AAC0",
+          "#ADCEE5",
+          "#D1F4FF"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Satin Block (Ink Thread)",
+        "mode": "light",
+        "canonical": "#2A2420",
+        "oklch": "oklch(26.6% 0.012 55.8)",
+        "tonalRamp": [
+          "#0F0A07",
+          "#2A2420",
+          "#47403C",
+          "#67605B",
+          "#88817C",
+          "#ABA39E",
+          "#CFC7C2",
+          "#F5EDE7"
+        ]
+      },
+      "accent-ink": {
+        "role": "primary",
+        "displayName": "Satin Block Lettering",
+        "mode": "light",
+        "canonical": "#FBF7EE",
+        "oklch": "oklch(97.7% 0.013 86.8)",
+        "tonalRamp": [
+          "#0D0B06",
+          "#28251E",
+          "#45423A",
+          "#646159",
+          "#86827A",
+          "#A8A59C",
+          "#CDC9C0",
+          "#F2EEE5"
+        ]
+      },
+      "accent-stitch": {
+        "role": "primary",
+        "displayName": "Satin Block Inner Stitch",
+        "mode": "light",
+        "canonical": "rgba(251, 247, 238, .55)"
+      },
+      "good": {
+        "role": "status",
+        "displayName": "Savings Green",
+        "mode": "light",
+        "canonical": "#46653F",
+        "oklch": "oklch(47.2% 0.070 139.9)",
+        "tonalRamp": [
+          "#001100",
+          "#102D09",
+          "#2D4B26",
+          "#4C6B45",
+          "#6C8D65",
+          "#8EB087",
+          "#B2D5AA",
+          "#D7FBCE"
+        ]
+      },
+      "warn-bg": {
+        "role": "status",
+        "displayName": "Warn Patch",
+        "mode": "light",
+        "canonical": "#F8DFD3",
+        "oklch": "oklch(92.1% 0.032 47.3)",
+        "tonalRamp": [
+          "#160702",
+          "#322017",
+          "#513D33",
+          "#715C52",
+          "#937D72",
+          "#B79F94",
+          "#DCC3B8",
+          "#FFE9DD"
+        ]
+      },
+      "warn-ink": {
+        "role": "status",
+        "displayName": "Warn Ink",
+        "mode": "light",
+        "canonical": "#8A3A1E",
+        "oklch": "oklch(45.2% 0.117 39.1)",
+        "tonalRamp": [
+          "#2C0000",
+          "#4F0000",
+          "#732404",
+          "#97462A",
+          "#BD684B",
+          "#E38A6D",
+          "#FFAE90",
+          "#FFD4B4"
         ]
       },
       "scrim": {
         "role": "neutral",
-        "displayName": "Sheet Scrim",
-        "canonical": "rgba(5, 6, 7, .5)",
+        "displayName": "Scrim",
+        "mode": "light",
+        "canonical": "rgba(42, 36, 32, .42)"
+      },
+      "ground-dark": {
+        "role": "neutral",
+        "displayName": "Night Cloth Ground",
+        "mode": "dark",
+        "canonical": "#0E1430",
+        "oklch": "oklch(20.4% 0.056 271.5)",
         "tonalRamp": [
-          "#090B0D",
-          "#232527",
-          "#404245",
-          "#5F6164",
-          "#808385",
-          "#A3A5A8",
-          "#C7C9CC",
-          "#ECEFF2"
+          "#050822",
+          "#1B2340",
+          "#374060",
+          "#566082",
+          "#7681A5",
+          "#98A4C9",
+          "#BCC8EF",
+          "#E1EDFF"
         ]
       },
-      "frame-dark": {
+      "cloth-dark": {
         "role": "neutral",
-        "displayName": "Holder Ink (night)",
+        "displayName": "Night Cloth Patch",
+        "mode": "dark",
+        "canonical": "#151D40",
+        "oklch": "oklch(24.5% 0.067 271.0)",
         "tonalRamp": [
-          "#090B0D",
-          "#232527",
-          "#404245",
-          "#5F6164",
-          "#808385",
-          "#A3A5A8",
-          "#C7C9CC",
-          "#ECEFF2"
-        ],
-        "scheme": "dark"
-      },
-      "frame-ink-dark": {
-        "role": "neutral",
-        "displayName": "Holder Pale Text (night)",
-        "tonalRamp": [
-          "#0A0C0A",
-          "#242524",
-          "#414241",
-          "#606260",
-          "#818381",
-          "#A4A5A4",
-          "#C8CAC8",
-          "#EDEFED"
-        ],
-        "scheme": "dark"
-      },
-      "frame-muted-dark": {
-        "role": "neutral",
-        "displayName": "Holder Muted Text (night)",
-        "tonalRamp": [
-          "#070C10",
-          "#20262B",
-          "#3C4348",
-          "#5B6268",
-          "#7C8389",
-          "#9EA6AC",
-          "#C2CAD1",
-          "#E7F0F6"
-        ],
-        "scheme": "dark"
-      },
-      "paper-dark": {
-        "role": "neutral",
-        "displayName": "Roll Paper (night)",
-        "tonalRamp": [
-          "#0A0C0A",
-          "#242524",
-          "#414241",
-          "#606260",
-          "#818381",
-          "#A4A5A4",
-          "#C8CAC8",
-          "#EDEFED"
-        ],
-        "scheme": "dark"
-      },
-      "case-dark": {
-        "role": "neutral",
-        "displayName": "Case White (night)",
-        "tonalRamp": [
-          "#0B0B0B",
-          "#252525",
-          "#424242",
-          "#616161",
-          "#828282",
-          "#A5A5A5",
-          "#C9C9C9",
-          "#EEEEEE"
-        ],
-        "scheme": "dark"
+          "#040627",
+          "#192245",
+          "#354066",
+          "#535F88",
+          "#7380AB",
+          "#95A3D0",
+          "#B9C8F6",
+          "#DEEDFF"
+        ]
       },
       "ink-dark": {
-        "role": "neutral",
-        "displayName": "Ink (night)",
+        "role": "primary",
+        "displayName": "Cream Thread",
+        "mode": "dark",
+        "canonical": "#EFE8D8",
+        "oklch": "oklch(93.2% 0.023 87.2)",
         "tonalRamp": [
-          "#090B0D",
-          "#232527",
-          "#404245",
-          "#5F6164",
-          "#808385",
-          "#A3A5A8",
-          "#C7C9CC",
-          "#ECEFF2"
-        ],
-        "scheme": "dark"
+          "#0F0A02",
+          "#2A2418",
+          "#474134",
+          "#676153",
+          "#888273",
+          "#ABA495",
+          "#CFC9B9",
+          "#F5EEDE"
+        ]
       },
       "ink-2-dark": {
         "role": "neutral",
-        "displayName": "Pencil Grey (night)",
+        "displayName": "Silver-Blue Faded Ink",
+        "mode": "dark",
+        "canonical": "#A8AECB",
+        "oklch": "oklch(75.6% 0.042 276.1)",
         "tonalRamp": [
-          "#070C10",
-          "#20262B",
-          "#3C4349",
-          "#5B6268",
-          "#7C838A",
-          "#9EA6AD",
-          "#C2CAD1",
-          "#E7F0F7"
-        ],
-        "scheme": "dark"
+          "#07091C",
+          "#1F2339",
+          "#3C4059",
+          "#5A5F7A",
+          "#7B819C",
+          "#9DA3C0",
+          "#C1C7E5",
+          "#E6EDFF"
+        ]
       },
-      "grid-dark": {
+      "seam-dark": {
         "role": "neutral",
-        "displayName": "Grid Blue-Grey (night)",
+        "displayName": "Seam (night)",
+        "mode": "dark",
+        "canonical": "#2A3462",
+        "oklch": "oklch(34.1% 0.081 272.2)",
         "tonalRamp": [
-          "#070C10",
-          "#21262A",
-          "#3D4348",
-          "#5C6267",
-          "#7D8389",
-          "#9FA6AC",
-          "#C3CAD0",
-          "#E8EFF6"
-        ],
-        "scheme": "dark"
+          "#04032C",
+          "#18204C",
+          "#333E6D",
+          "#515E90",
+          "#717FB4",
+          "#93A2D9",
+          "#B6C7FF",
+          "#DBECFF"
+        ]
       },
-      "grid-faint-dark": {
+      "stitch-dark": {
         "role": "neutral",
-        "displayName": "Printed Grid (night)",
+        "displayName": "Stitch (night)",
+        "mode": "dark",
+        "canonical": "#46528A",
+        "oklch": "oklch(45.5% 0.093 273.1)",
         "tonalRamp": [
-          "#070C10",
-          "#21262A",
-          "#3D4348",
-          "#5C6267",
-          "#7D8389",
-          "#9FA6AC",
-          "#C3CAD0",
-          "#E8EFF6"
-        ],
-        "scheme": "dark"
+          "#050131",
+          "#181E51",
+          "#323D73",
+          "#505D96",
+          "#707EBA",
+          "#92A1E0",
+          "#B5C6FF",
+          "#DAEBFF"
+        ]
       },
-      "rule-dark": {
-        "role": "neutral",
-        "displayName": "Ink Rule (night)",
+      "rose-dark": {
+        "role": "secondary",
+        "displayName": "Deep Dusty Rose (night)",
+        "mode": "dark",
+        "canonical": "#E8A3B8",
+        "oklch": "oklch(78.7% 0.086 359.4)",
         "tonalRamp": [
-          "#090B0D",
-          "#232527",
-          "#404245",
-          "#5F6164",
-          "#808385",
-          "#A3A5A8",
-          "#C7C9CC",
-          "#ECEFF2"
-        ],
-        "scheme": "dark"
+          "#23000A",
+          "#430D24",
+          "#652C41",
+          "#884B60",
+          "#AC6C81",
+          "#D28FA3",
+          "#F8B2C7",
+          "#FFD7ED"
+        ]
       },
-      "highlighter-dark": {
+      "rose-thread-dark": {
+        "role": "secondary",
+        "displayName": "Dusty Rose Thread (night)",
+        "mode": "dark",
+        "canonical": "#E08FA9",
+        "oklch": "oklch(74.0% 0.103 359.2)",
+        "tonalRamp": [
+          "#27000A",
+          "#480324",
+          "#6B2641",
+          "#8F4660",
+          "#B46781",
+          "#DA89A3",
+          "#FFADC7",
+          "#FFD2ED"
+        ]
+      },
+      "lavender-dark": {
+        "role": "tertiary",
+        "displayName": "Lavender Blue Thread (night)",
+        "mode": "dark",
+        "canonical": "#A4A6EC",
+        "oklch": "oklch(75.0% 0.100 282.4)",
+        "tonalRamp": [
+          "#0B0033",
+          "#201A53",
+          "#3B3975",
+          "#595998",
+          "#797ABD",
+          "#9B9DE2",
+          "#BFC1FF",
+          "#E4E7FF"
+        ]
+      },
+      "lavender-fill-dark": {
+        "role": "tertiary",
+        "displayName": "Lavender Knot Fill (night)",
+        "mode": "dark",
+        "canonical": "#2E336B",
+        "oklch": "oklch(34.8% 0.096 276.4)",
+        "tonalRamp": [
+          "#070032",
+          "#1B1C52",
+          "#353B74",
+          "#535B97",
+          "#737DBC",
+          "#95A0E1",
+          "#B8C4FF",
+          "#DDEAFF"
+        ]
+      },
+      "coral-dark": {
+        "role": "tertiary",
+        "displayName": "Coral Thread (night)",
+        "mode": "dark",
+        "canonical": "#E89A7E",
+        "oklch": "oklch(75.7% 0.102 40.5)",
+        "tonalRamp": [
+          "#290000",
+          "#4A0800",
+          "#6D2B10",
+          "#914B31",
+          "#B66C52",
+          "#DC8F73",
+          "#FFB396",
+          "#FFD8BA"
+        ]
+      },
+      "ochre-dark": {
+        "role": "tertiary",
+        "displayName": "Gold Thread",
+        "mode": "dark",
+        "canonical": "#D8B25A",
+        "oklch": "oklch(78.0% 0.115 86.2)",
+        "tonalRamp": [
+          "#1F0100",
+          "#3D1C00",
+          "#5D3B00",
+          "#7E5B00",
+          "#A17C1C",
+          "#C5A047",
+          "#EAC46C",
+          "#FFEA91"
+        ]
+      },
+      "sage-dark": {
+        "role": "tertiary",
+        "displayName": "Silver Thread",
+        "mode": "dark",
+        "canonical": "#C3CAD9",
+        "oklch": "oklch(83.8% 0.022 265.7)",
+        "tonalRamp": [
+          "#070B15",
+          "#202530",
+          "#3C424E",
+          "#5B616E",
+          "#7C8290",
+          "#9EA5B4",
+          "#C2C9D8",
+          "#E7EFFE"
+        ]
+      },
+      "sky-dark": {
+        "role": "tertiary",
+        "displayName": "Pale Silver Thread",
+        "mode": "dark",
+        "canonical": "#C9D1E0",
+        "oklch": "oklch(85.9% 0.023 263.2)",
+        "tonalRamp": [
+          "#070B15",
+          "#1F2530",
+          "#3C424E",
+          "#5B616E",
+          "#7B8390",
+          "#9EA5B4",
+          "#C2C9D8",
+          "#E7EFFE"
+        ]
+      },
+      "accent-dark": {
         "role": "primary",
-        "displayName": "Highlighter Yellow (night)",
+        "displayName": "Satin Block (Gold Thread)",
+        "mode": "dark",
+        "canonical": "#D8B25A",
+        "oklch": "oklch(78.0% 0.115 86.2)",
+        "tonalRamp": [
+          "#1F0100",
+          "#3D1C00",
+          "#5D3B00",
+          "#7E5B00",
+          "#A17C1C",
+          "#C5A047",
+          "#EAC46C",
+          "#FFEA91"
+        ]
+      },
+      "accent-ink-dark": {
+        "role": "primary",
+        "displayName": "Satin Block Lettering (night)",
+        "mode": "dark",
+        "canonical": "#1A1606",
+        "oklch": "oklch(20.0% 0.029 96.0)",
         "tonalRamp": [
           "#0F0B00",
-          "#2A2600",
-          "#494303",
-          "#6B6313",
-          "#8F851C",
-          "#B5A818",
-          "#DCCD32",
-          "#FEF385"
-        ],
-        "scheme": "dark"
+          "#292514",
+          "#464230",
+          "#66614F",
+          "#87836F",
+          "#AAA591",
+          "#CFC9B4",
+          "#F4EFD9"
+        ]
       },
-      "highlighter-ink-dark": {
+      "accent-stitch-dark": {
         "role": "primary",
-        "displayName": "Ink on Highlighter (night)",
-        "tonalRamp": [
-          "#090B0D",
-          "#232527",
-          "#404245",
-          "#5F6164",
-          "#808385",
-          "#A3A5A8",
-          "#C7C9CC",
-          "#ECEFF2"
-        ],
-        "scheme": "dark"
-      },
-      "caution-dark": {
-        "role": "secondary",
-        "displayName": "Caution Orange (night)",
-        "tonalRamp": [
-          "#1E0100",
-          "#421500",
-          "#6E2A05",
-          "#A13D00",
-          "#CE5B20",
-          "#FE7839",
-          "#FFB597",
-          "#FEEAE2"
-        ],
-        "scheme": "dark"
-      },
-      "caution-bg-dark": {
-        "role": "secondary",
-        "displayName": "Caution Swipe (night)",
-        "tonalRamp": [
-          "#170600",
-          "#332011",
-          "#523D2D",
-          "#735C4C",
-          "#957D6C",
-          "#B99F8E",
-          "#DEC3B1",
-          "#FEEADC"
-        ],
-        "scheme": "dark"
-      },
-      "caution-ink-dark": {
-        "role": "secondary",
-        "displayName": "Caution Burnt Ink (night)",
-        "tonalRamp": [
-          "#1E0100",
-          "#421500",
-          "#6D2B05",
-          "#964721",
-          "#BB6944",
-          "#E28C66",
-          "#FEB696",
-          "#FFE9E0"
-        ],
-        "scheme": "dark"
+        "displayName": "Satin Block Inner Stitch (night)",
+        "mode": "dark",
+        "canonical": "rgba(26, 22, 6, .45)"
       },
       "good-dark": {
-        "role": "tertiary",
-        "displayName": "Saving Green (night)",
+        "role": "status",
+        "displayName": "Savings Green (night)",
+        "mode": "dark",
+        "canonical": "#A3D6A6",
+        "oklch": "oklch(82.8% 0.085 146.3)",
         "tonalRamp": [
-          "#001004",
-          "#002E15",
-          "#00502A",
-          "#127441",
-          "#3F9762",
-          "#64BB83",
-          "#89E0A7",
-          "#C7FED8"
-        ],
-        "scheme": "dark"
+          "#001300",
+          "#002F07",
+          "#1F4E25",
+          "#3F6E43",
+          "#609064",
+          "#82B485",
+          "#A6D9A9",
+          "#CAFFCD"
+        ]
+      },
+      "warn-bg-dark": {
+        "role": "status",
+        "displayName": "Warn Patch (night)",
+        "mode": "dark",
+        "canonical": "#3D2433",
+        "oklch": "oklch(29.8% 0.045 343.4)",
+        "tonalRamp": [
+          "#170410",
+          "#341C2B",
+          "#533848",
+          "#745768",
+          "#967889",
+          "#BA9AAC",
+          "#DFBED1",
+          "#FFE3F6"
+        ]
+      },
+      "warn-ink-dark": {
+        "role": "status",
+        "displayName": "Warn Ink (night)",
+        "mode": "dark",
+        "canonical": "#F3B9A6",
+        "oklch": "oklch(83.4% 0.073 38.9)",
+        "tonalRamp": [
+          "#210000",
+          "#411506",
+          "#623324",
+          "#855242",
+          "#A97362",
+          "#CE9684",
+          "#F4BAA7",
+          "#FFDFCB"
+        ]
+      },
+      "scrim-dark": {
+        "role": "neutral",
+        "displayName": "Scrim (night)",
+        "mode": "dark",
+        "canonical": "rgba(4, 6, 18, .6)"
       }
     },
     "typographyMeta": {
       "display": {
-        "displayName": "Display price",
-        "purpose": "Leading case price per litre; thousandth digit as 0.52em superscript."
+        "displayName": "Display Price",
+        "purpose": "The answer's price per litre only; third decimal as 0.45em superscript."
       },
-      "distance-lead": {
-        "displayName": "Distance (lead)",
-        "purpose": "Kilometres in the leading case."
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Distance and full-tank cost under the price; Carnet total."
       },
-      "distance": {
-        "displayName": "Distance",
-        "purpose": "Kilometres in ordinary cases and the sheet case strip."
-      },
-      "price": {
-        "displayName": "Price",
-        "purpose": "Price per litre in ordinary cases (22px in sheet list and radius readout)."
+      "figure-row": {
+        "displayName": "Row Figure",
+        "purpose": "Prices in station rows (26px) and the station sheet list (24px)."
       },
       "headline": {
-        "displayName": "Lead station",
-        "purpose": "Leading station name under the yellow highlighter."
-      },
-      "wordmark": {
-        "displayName": "Wordmark",
-        "purpose": "PLEIN SUD in the top bar, uppercase."
+        "displayName": "Station Name",
+        "purpose": "The answer's station name, balanced wrap."
       },
       "title": {
-        "displayName": "Title",
-        "purpose": "Sheet and form headings; fill totals."
+        "displayName": "View Title",
+        "purpose": "Titles of the Favoris and Carnet views."
       },
-      "station": {
-        "displayName": "Station",
-        "purpose": "Station names in ordinary cases, two-line clamp, normal width."
+      "section": {
+        "displayName": "Section",
+        "purpose": "\"Ensuite\", sheet titles, form and fill card titles (20-21px)."
+      },
+      "row-name": {
+        "displayName": "Row Name",
+        "purpose": "Station names in rows, single line with ellipsis."
+      },
+      "brand": {
+        "displayName": "Brand",
+        "purpose": "\"Plein Sud\" in the header."
+      },
+      "action": {
+        "displayName": "Action",
+        "purpose": "The \"Y aller\" primary button."
+      },
+      "chip": {
+        "displayName": "Chip",
+        "purpose": "Fuel names in the segmented control."
       },
       "body": {
         "displayName": "Body",
-        "purpose": "Base text, tabular figures, 46-65ch for explanations."
-      },
-      "meta": {
-        "displayName": "Meta",
-        "purpose": "Addresses, gaps, ages, units, form labels."
+        "purpose": "Running text; explanatory paragraphs capped at 65ch."
       },
       "label": {
-        "displayName": "Column label",
-        "purpose": "KM / TULIPE / NOTES column heads and fieldset legends, uppercase tracked."
+        "displayName": "Label",
+        "purpose": "Tab labels, field labels, captions under figures (12-13px)."
       }
     },
     "shadows": [
       {
-        "name": "sheet-lift",
-        "value": "0 -12px 32px -16px rgba(5, 6, 7, .35)",
-        "purpose": "Bottom sheet casting upward onto the roll."
+        "name": "patch-lift",
+        "value": "0 1px 0 rgba(255,255,255,.4) inset, 0 14px 30px -22px rgba(42, 36, 32, .45)",
+        "purpose": "Answer patch only: fabric thickness, not a floating card."
       },
       {
-        "name": "toast-lift",
-        "value": "0 10px 24px -12px rgba(5, 6, 7, .5)",
-        "purpose": "Ink toast floating above the tab bar."
+        "name": "sheet",
+        "value": "0 -14px 34px -18px rgba(14, 10, 8, .45)",
+        "purpose": "Bottom sheets, cast upward."
+      },
+      {
+        "name": "fill-card",
+        "value": "0 18px 40px -18px rgba(14, 10, 8, .55)",
+        "purpose": "Floating fill-up card."
+      },
+      {
+        "name": "toast",
+        "value": "0 10px 24px -12px rgba(14, 10, 8, .5)",
+        "purpose": "Toast."
+      },
+      {
+        "name": "pin",
+        "value": "0 4px 10px -6px rgba(14, 10, 8, .5)",
+        "purpose": "Map pins."
       }
     ],
     "motion": [
       {
         "name": "ease-out",
         "value": "cubic-bezier(0.23, 1, 0.32, 1)",
-        "purpose": "Entries, presses, highlighter swipe, toast."
+        "purpose": "Entrances, stitch-in, press feedback, fill card, toast."
       },
       {
         "name": "ease-in-out",
         "value": "cubic-bezier(0.77, 0, 0.175, 1)",
-        "purpose": "FLIP reorder of cases and tulip leg rotation."
+        "purpose": "FLIP reorder of station rows."
       },
       {
         "name": "ease-drawer",
         "value": "cubic-bezier(0.32, 0.72, 0, 1)",
-        "purpose": "Bottom sheet slide."
+        "purpose": "Bottom sheets."
       },
       {
-        "name": "press",
-        "value": "120ms scale(0.97)",
-        "purpose": "Buttons and fuel segments on :active."
+        "name": "stitch-in",
+        "value": "clip-path inset(100% 0 0 0) -> inset(0) 1100ms ease-out",
+        "purpose": "Bouquet embroiders itself bottom-to-top on first load. Reduced motion: 300ms opacity fade."
       },
       {
-        "name": "state",
-        "value": "150ms ease",
-        "purpose": "Colour/background changes on controls, tabs, chips."
-      },
-      {
-        "name": "view-enter",
-        "value": "200ms ease-out, translateY(6px)+opacity",
-        "purpose": "Tab view entry."
+        "name": "re-stitch",
+        "value": "clip-path reveal 600ms ease-out + answer text rise 6px from 0.25 opacity 240ms",
+        "purpose": "When the best station or fuel changes."
       },
       {
         "name": "unroll",
-        "value": "260ms ease-out, stagger 40ms per case (max 10)",
-        "purpose": "First render of the roadbook."
+        "value": "translateY(8px), opacity .3 -> 1, 260ms ease-out, 50ms stagger",
+        "purpose": "Alternative rows on first render. Reduced motion: 180ms fade, no stagger."
       },
       {
         "name": "flip-reorder",
-        "value": "260ms ease-in-out; new cases 220ms ease-out, stagger 30ms",
-        "purpose": "Cases overtaking when the ranking changes."
-      },
-      {
-        "name": "tulip-turn",
-        "value": "280ms ease-in-out, shortest path",
-        "purpose": "Tulip leg swinging to a new bearing."
-      },
-      {
-        "name": "hairpin-in",
-        "value": "200ms opacity",
-        "purpose": "Hairpin U-turn appearing for stations behind."
-      },
-      {
-        "name": "highlighter-swipe",
-        "value": "380ms ease-out, background-size 0% to 100%",
-        "purpose": "Highlighter redraw on a new leader."
-      },
-      {
-        "name": "star-pop",
-        "value": "200ms ease-out, scale 0.9 to 1",
-        "purpose": "Favourite toggle."
+        "value": "translateY(dy) -> none 260ms ease-in-out; new rows 220ms, 30ms stagger (max 6)",
+        "purpose": "Rows slide to their new rank. Skipped under reduced motion."
       },
       {
         "name": "sheet",
-        "value": "320ms ease-drawer; scrim 240ms",
-        "purpose": "Bottom sheet open/close."
+        "value": "translateY(100%) -> 0 320ms ease-drawer; scrim opacity 240ms",
+        "purpose": "Station, nav and settings sheets; drag down > 90px to dismiss. Reduced motion: 200ms fade."
+      },
+      {
+        "name": "fill-card",
+        "value": "translateY(14px) scale(.6) -> none 340ms ease-out, opacity 260ms, transform-origin 85% 110%",
+        "purpose": "Card grows out of the Carnet tab corner. Reduced motion: 200ms fade."
       },
       {
         "name": "toast",
-        "value": "220ms ease-out, rise 12px + fade; 3.5s or 5s with action",
-        "purpose": "Toast."
+        "value": "translateY(12px) -> none, opacity, 220ms ease-out",
+        "purpose": "Toast in/out; 3.5s, 5s with action. Reduced motion: fade only."
       },
       {
-        "name": "locating-pulse",
-        "value": "1.2s infinite, opacity 0.35 at 50%",
-        "purpose": "Start-point pin while geolocating."
+        "name": "view-in",
+        "value": "translateY(6px), opacity .4 -> 1, 200ms ease-out",
+        "purpose": "Tab view switch."
       },
       {
-        "name": "reduced-motion",
-        "value": "prefers-reduced-motion: reduce",
-        "purpose": "Unroll and view entry become a 180ms fade; swipe, tulip turn, FLIP, pulse and press scale removed; sheet and toast fade only."
+        "name": "press",
+        "value": "scale(0.97) 120ms ease-out (0.95 icon buttons, 0.985 rows)",
+        "purpose": "Tap feedback. Disabled under reduced motion."
+      },
+      {
+        "name": "fav-pop",
+        "value": "scale(0.88) -> none 220ms ease-out",
+        "purpose": "Favourite star toggle."
+      },
+      {
+        "name": "locating",
+        "value": "opacity breathe 1.4s ease-in-out infinite",
+        "purpose": "Start-point pin while GPS resolves. Disabled under reduced motion."
       }
     ],
     "breakpoints": [
       {
-        "name": "shell",
+        "name": "shell-max",
         "value": "560px",
-        "purpose": "Max width of the single column; no other layout breakpoints."
+        "purpose": "Single centred phone column."
       },
       {
         "name": "fine-pointer",
         "value": "(hover: hover) and (pointer: fine)",
-        "purpose": "Hover states only."
+        "purpose": "Hover border tint only."
+      },
+      {
+        "name": "dark",
+        "value": "(prefers-color-scheme: dark)",
+        "purpose": "Fleurs de nuit palette."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "(prefers-reduced-motion: reduce)",
+        "purpose": "Fade-only motion."
       }
     ],
     "fonts": [
       {
+        "family": "Young Serif",
+        "file": "web/fonts/young-serif.woff2",
+        "weights": "400",
+        "license": "OFL"
+      },
+      {
         "family": "Archivo",
-        "source": "web/fonts/archivo-wdth.woff2",
-        "axes": {
-          "wght": "100 900",
-          "wdth": "62% 125%"
-        },
-        "license": "OFL (web/fonts/OFL-archivo.txt)"
+        "file": "web/fonts/archivo-wdth.woff2",
+        "weights": "100-900",
+        "stretch": "62%-125%",
+        "license": "OFL"
       }
-    ]
+    ],
+    "stitch": {
+      "runningStitchDash": "3.2 1.8",
+      "insetStitch": "outline: 1.5px dashed var(--stitch); outline-offset: -9px (answer), -7px (map, Carnet total, fill card), -6px (primary button, accent-stitch)",
+      "rankRing": "1.5px dashed rose-thread circle; pins 2px dashed",
+      "seam": "1.5px solid seam border on rows, chips, buttons, inputs",
+      "satinHatching": "SVG pattern of fine lines, 4px at 35deg (sage leaves) and 3.4px at -20deg (rose petals); ochre at night",
+      "frenchKnots": "paired 3.6x5.2 ellipses filled lavender-fill; ochre filled circles r 2-3.1",
+      "art": "web/art/bouquet.svg (inlined in web/index.html, viewBox 200x380)"
+    },
+    "provisional": {
+      "headerMark": "Eight-petal compass flower in rose-thread (web/index.html .mark, web/icons/icon.svg); provisional logo pending the owner's choice."
+    },
+    "mapPalettes": {
+      "light": {
+        "bg": "#F3EDE0",
+        "water": "#C7DAE5",
+        "park": "#DDE5CF",
+        "building": "#E7DECD",
+        "road": "#FFFFFF",
+        "major": "#EBCB8E",
+        "rail": "#CBBFA8",
+        "text": "#6A5F55",
+        "halo": "#F3EDE0",
+        "boundary": "#C4B392"
+      },
+      "dark": {
+        "bg": "#0E1430",
+        "water": "#1A2856",
+        "park": "#16254A",
+        "building": "#151D40",
+        "road": "#25305C",
+        "major": "#6B5A33",
+        "rail": "#2E3A6A",
+        "text": "#A8AECB",
+        "halo": "#0E1430",
+        "boundary": "#46528A"
+      }
+    }
   },
   "components": [
     {
-      "name": "Roadbook Case",
+      "name": "Primary Button (Y aller)",
+      "kind": "button",
+      "refersTo": "button-go",
+      "description": "The one satin-stitched action per view: ink thread by day, gold thread by night, inner dashed stitch.",
+      "html": "<button class=\"ds-go\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 11.5 20 4l-7.5 16-1.8-6.7L4 11.5Z\"/></svg>Y aller<small>· Waze</small></button>",
+      "css": ":host{--ground:#F3EDE0;--cloth:#FBF7EE;--ink:#2A2420;--ink-2:#6A5F55;--seam:#DCD1BC;--stitch:#C4B392;--rose:#A8506A;--rose-thread:#C2617F;--lav-fill:#D6D5F1;--ochre:#C98F22;--accent:#2A2420;--accent-ink:#FBF7EE;--accent-stitch:rgba(251,247,238,.55);--good:#46653F;--warn-bg:#F8DFD3;--warn-ink:#8A3A1E;--f-ui:\"Archivo\",\"Arial Narrow\",system-ui,sans-serif;--f-name:\"Young Serif\",Georgia,serif;--ease-out:cubic-bezier(0.23,1,0.32,1)}@media (prefers-color-scheme: dark){:host{--ground:#0E1430;--cloth:#151D40;--ink:#EFE8D8;--ink-2:#A8AECB;--seam:#2A3462;--stitch:#46528A;--rose:#E8A3B8;--rose-thread:#E08FA9;--lav-fill:#2E336B;--ochre:#D8B25A;--accent:#D8B25A;--accent-ink:#1A1606;--accent-stitch:rgba(26,22,6,.45);--good:#A3D6A6;--warn-bg:#3D2433;--warn-ink:#F3B9A6}} .ds-go{display:flex;align-items:center;justify-content:center;gap:10px;min-height:62px;width:100%;border:0;border-radius:18px;cursor:pointer;background:var(--accent);color:var(--accent-ink);font-family:var(--f-ui);font-weight:800;font-stretch:90%;font-size:21px;outline:1.5px dashed var(--accent-stitch);outline-offset:-6px;transition:transform 120ms var(--ease-out)}.ds-go small{font-weight:500;font-size:14px;opacity:.85}.ds-go:active{transform:scale(.97)}.ds-go:focus-visible{outline:3px solid var(--accent);outline-offset:2px}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Cloth with a seam border for secondary actions.",
+      "html": "<button class=\"ds-btn\">Modifier les litres ou le prix</button>",
+      "css": ":host{--ground:#F3EDE0;--cloth:#FBF7EE;--ink:#2A2420;--ink-2:#6A5F55;--seam:#DCD1BC;--stitch:#C4B392;--rose:#A8506A;--rose-thread:#C2617F;--lav-fill:#D6D5F1;--ochre:#C98F22;--accent:#2A2420;--accent-ink:#FBF7EE;--accent-stitch:rgba(251,247,238,.55);--good:#46653F;--warn-bg:#F8DFD3;--warn-ink:#8A3A1E;--f-ui:\"Archivo\",\"Arial Narrow\",system-ui,sans-serif;--f-name:\"Young Serif\",Georgia,serif;--ease-out:cubic-bezier(0.23,1,0.32,1)}@media (prefers-color-scheme: dark){:host{--ground:#0E1430;--cloth:#151D40;--ink:#EFE8D8;--ink-2:#A8AECB;--seam:#2A3462;--stitch:#46528A;--rose:#E8A3B8;--rose-thread:#E08FA9;--lav-fill:#2E336B;--ochre:#D8B25A;--accent:#D8B25A;--accent-ink:#1A1606;--accent-stitch:rgba(26,22,6,.45);--good:#A3D6A6;--warn-bg:#3D2433;--warn-ink:#F3B9A6}} .ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:10px 16px;border-radius:14px;border:1.5px solid var(--seam);background:var(--cloth);color:var(--ink);font-family:var(--f-ui);font-weight:700;font-size:16px;cursor:pointer;transition:transform 120ms var(--ease-out),border-color 150ms ease}.ds-btn:hover{border-color:var(--ink-2)}.ds-btn:active{transform:scale(.97)}.ds-btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}"
+    },
+    {
+      "name": "Fuel Chips",
+      "kind": "chip",
+      "refersTo": "fuel-chip",
+      "description": "Pill segmented control; the selected fuel inverts to ink.",
+      "html": "<div class=\"ds-fuels\" role=\"radiogroup\"><button class=\"ds-fuel\" role=\"radio\" aria-checked=\"true\"><b>SP95-E10</b></button><button class=\"ds-fuel\" role=\"radio\" aria-checked=\"false\"><b>SP95</b></button><button class=\"ds-fuel\" role=\"radio\" aria-checked=\"false\"><b>Gazole</b></button></div>",
+      "css": ":host{--ground:#F3EDE0;--cloth:#FBF7EE;--ink:#2A2420;--ink-2:#6A5F55;--seam:#DCD1BC;--stitch:#C4B392;--rose:#A8506A;--rose-thread:#C2617F;--lav-fill:#D6D5F1;--ochre:#C98F22;--accent:#2A2420;--accent-ink:#FBF7EE;--accent-stitch:rgba(251,247,238,.55);--good:#46653F;--warn-bg:#F8DFD3;--warn-ink:#8A3A1E;--f-ui:\"Archivo\",\"Arial Narrow\",system-ui,sans-serif;--f-name:\"Young Serif\",Georgia,serif;--ease-out:cubic-bezier(0.23,1,0.32,1)}@media (prefers-color-scheme: dark){:host{--ground:#0E1430;--cloth:#151D40;--ink:#EFE8D8;--ink-2:#A8AECB;--seam:#2A3462;--stitch:#46528A;--rose:#E8A3B8;--rose-thread:#E08FA9;--lav-fill:#2E336B;--ochre:#D8B25A;--accent:#D8B25A;--accent-ink:#1A1606;--accent-stitch:rgba(26,22,6,.45);--good:#A3D6A6;--warn-bg:#3D2433;--warn-ink:#F3B9A6}} .ds-fuels{display:flex;gap:8px}.ds-fuel{min-height:44px;padding:8px 15px;cursor:pointer;border:1.5px solid var(--seam);border-radius:999px;background:var(--cloth);color:var(--ink);font-family:var(--f-ui);transition:background-color 150ms ease,color 150ms ease,border-color 150ms ease}.ds-fuel b{font-weight:700;font-stretch:80%;font-size:16px}.ds-fuel:hover{border-color:var(--ink-2)}.ds-fuel[aria-checked=true]{background:var(--ink);color:var(--ground);border-color:var(--ink)}.ds-fuel:focus-visible{outline:3px solid var(--accent);outline-offset:2px}"
+    },
+    {
+      "name": "Answer Patch",
       "kind": "card",
-      "refersTo": "roadbook-case",
-      "description": "Ordinary ruled case: KM | TULIPE | NOTES, 2px ink rule below, grid hairlines between columns.",
-      "html": "<ol class=\"ds-rb\"><li class=\"ds-case\"><button class=\"ds-case-btn\" type=\"button\"><span class=\"ds-km\"><span class=\"ds-no\">2</span>3,9<small>km</small></span><span class=\"ds-cap\"><svg class=\"ds-tulip\" style=\"width:34px;height:34px\" viewBox=\"0 0 48 48\" aria-hidden=\"true\"><circle class=\"d\" cx=\"24\" cy=\"42\" r=\"3.4\"/><path class=\"r\" d=\"M24 39V24\"/><g class=\"leg\" style=\"transform:rotate(268deg)\"><path class=\"r\" d=\"M24 24V7.5M18.5 13 24 7l5.5 6\"/></g><circle class=\"j\" cx=\"24\" cy=\"24\" r=\"3.2\"/></svg><small>268°</small></span><span class=\"ds-notes\"><span class=\"ds-top\"><span class=\"ds-ville\">129 Avenue de Lodeve</span><span class=\"ds-price\">1,99<sup>0</sup></span></span><span class=\"ds-sub\"><span>Montpellier</span><span>+0,29 €</span></span></span></button></li><li class=\"ds-case\"><button class=\"ds-case-btn\" type=\"button\"><span class=\"ds-km\"><span class=\"ds-no\">3</span>4,1<small>km</small></span><span class=\"ds-cap\"><svg class=\"ds-tulip\" style=\"width:34px;height:34px\" viewBox=\"0 0 48 48\" aria-hidden=\"true\"><circle class=\"d\" cx=\"24\" cy=\"42\" r=\"3.4\"/><path class=\"r\" d=\"M24 39V24\"/><g class=\"leg\" style=\"transform:rotate(256deg)\"><path class=\"r\" d=\"M24 24V7.5M18.5 13 24 7l5.5 6\"/></g><circle class=\"j\" cx=\"24\" cy=\"24\" r=\"3.2\"/></svg><small>256°</small></span><span class=\"ds-notes\"><span class=\"ds-top\"><span class=\"ds-ville\">Avenue de la Recambale</span><span class=\"ds-price\">1,99<sup>0</sup></span></span><span class=\"ds-sub\"><span>Montpellier</span><span>+0,31 €</span></span></span></button></li></ol>",
-      "css": ".ds-rb{--frame:#121416;--frame-ink:#F4F5F3;--frame-muted:#A9B1B7;--paper:#EEF0EE;--case:#FFFFFF;--ink:#121416;--ink-2:#4A5157;--grid:#D3DAE0;--rule:#121416;--hl:#F6E52F;--hl-ink:#121416;--warn:#FF6A13;--warn-bg:#FFE4D1;--warn-ink:#7A2E00;--good:#1C7A47;font-family:Archivo,'Arial Narrow',system-ui,sans-serif;font-variant-numeric:tabular-nums;background:var(--case);color:var(--ink);list-style:none;margin:0;padding:0;max-width:420px}.ds-case{border-bottom:2px solid var(--rule)}.ds-case-btn{display:grid;grid-template-columns:58px 64px minmax(0,1fr);width:100%;border:0;background:transparent;padding:0;text-align:left;min-height:64px;cursor:pointer;font:inherit;color:inherit;transition:background-color 120ms ease}.ds-case-btn:hover,.ds-case-btn:active{background:var(--paper)}.ds-case-btn:focus-visible{outline:3px solid var(--ink);outline-offset:-3px}.ds-case-btn>*{padding:10px;min-width:0}.ds-case-btn>*+*{border-left:1px solid var(--grid)}.ds-km{font-weight:800;font-stretch:62%;font-size:30px;line-height:.95;letter-spacing:-.01em}.ds-km small{display:block;font-size:12px;font-weight:600;font-stretch:100%;color:var(--ink-2);margin-top:3px}.ds-no{display:grid;place-items:center;width:fit-content;min-width:22px;height:20px;padding:0 4px;margin-bottom:6px;border:1.5px solid var(--ink);border-radius:3px;font-size:12px;font-weight:800;font-stretch:85%;line-height:1}.ds-cap{display:grid;justify-items:center;align-content:start;gap:2px}.ds-cap small{font-size:14px;font-weight:800;font-stretch:75%}.ds-notes{display:grid;gap:2px;align-content:start}.ds-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}.ds-ville{font-weight:700;font-size:17px;line-height:1.2}.ds-price{font-weight:800;font-stretch:75%;font-size:24px;line-height:1;white-space:nowrap}.ds-price sup{font-size:.52em}.ds-sub{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--ink-2)}.ds-tulip{overflow:visible}.ds-tulip .r{fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.ds-tulip .d{fill:var(--ink)}.ds-tulip .j{fill:var(--case);stroke:var(--ink);stroke-width:2}.ds-tulip .leg{transform-box:view-box;transform-origin:24px 24px;transition:transform 280ms cubic-bezier(0.77,0,0.175,1)}.ds-ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}"
+      "refersTo": "answer-patch",
+      "description": "Signature: the single stitched answer with serif name, giant condensed price and side-by-side figures (bouquet omitted here).",
+      "html": "<article class=\"ds-answer\"><p class=\"ds-name\">459 Avenue de la Justice</p><p class=\"ds-ville\">Montpellier</p><p class=\"ds-price\"><span class=\"ds-num\">1,99<sup>0</sup></span><span class=\"ds-unit\">€/L</span></p><div class=\"ds-facts\"><p><b>2,3 km</b><span>distance</span></p><p><b>28,28 €</b><span>plein + détour</span></p></div><p class=\"ds-save\">2,41 € de moins que la plus proche</p></article>",
+      "css": ":host{--ground:#F3EDE0;--cloth:#FBF7EE;--ink:#2A2420;--ink-2:#6A5F55;--seam:#DCD1BC;--stitch:#C4B392;--rose:#A8506A;--rose-thread:#C2617F;--lav-fill:#D6D5F1;--ochre:#C98F22;--accent:#2A2420;--accent-ink:#FBF7EE;--accent-stitch:rgba(251,247,238,.55);--good:#46653F;--warn-bg:#F8DFD3;--warn-ink:#8A3A1E;--f-ui:\"Archivo\",\"Arial Narrow\",system-ui,sans-serif;--f-name:\"Young Serif\",Georgia,serif;--ease-out:cubic-bezier(0.23,1,0.32,1)}@media (prefers-color-scheme: dark){:host{--ground:#0E1430;--cloth:#151D40;--ink:#EFE8D8;--ink-2:#A8AECB;--seam:#2A3462;--stitch:#46528A;--rose:#E8A3B8;--rose-thread:#E08FA9;--lav-fill:#2E336B;--ochre:#D8B25A;--accent:#D8B25A;--accent-ink:#1A1606;--accent-stitch:rgba(26,22,6,.45);--good:#A3D6A6;--warn-bg:#3D2433;--warn-ink:#F3B9A6}} .ds-answer{border-radius:24px;background:var(--cloth);color:var(--ink);outline:1.5px dashed var(--stitch);outline-offset:-9px;box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 14px 30px -22px rgba(42,36,32,.45);padding:22px 20px 20px 22px;display:grid;gap:8px;font-family:var(--f-ui);font-variant-numeric:tabular-nums}.ds-answer p{margin:0}.ds-name{font:400 24px/1.12 var(--f-name)}.ds-ville{font-size:15px;color:var(--ink-2)}.ds-price{display:flex;align-items:flex-start;gap:6px}.ds-num{font-weight:800;font-stretch:68%;font-size:88px;line-height:.86;letter-spacing:-.02em}.ds-num sup{font-size:.45em}.ds-unit{font-size:15px;font-weight:600;color:var(--ink-2);margin-top:6px}.ds-facts{display:flex;gap:26px}.ds-facts b{display:block;font-weight:800;font-stretch:72%;font-size:30px;line-height:1}.ds-facts span{font-size:13px;color:var(--ink-2)}.ds-save{color:var(--good);font-weight:700;font-size:14px}"
     },
     {
-      "name": "Lead Case with Highlighter",
+      "name": "Station Row",
       "kind": "custom",
-      "refersTo": "roadbook-case-lead",
-      "description": "Leading case: inverted number, big condensed km and price, station name under a yellow highlighter swipe, total and saving, Y aller.",
-      "html": "<div class=\"ds-rb\"><div class=\"ds-case\"><div class=\"ds-case-btn ds-lead\"><span class=\"ds-km\" style=\"font-size:44px\"><span class=\"ds-no ds-no-lead\">1</span>2,3<small>km</small></span><span class=\"ds-cap\"><svg class=\"ds-tulip\" style=\"width:46px;height:46px\" viewBox=\"0 0 48 48\" aria-hidden=\"true\"><circle class=\"d\" cx=\"24\" cy=\"42\" r=\"3.4\"/><path class=\"r\" d=\"M24 39V24\"/><g class=\"leg\" style=\"transform:rotate(358deg)\"><path class=\"r\" d=\"M24 24V7.5M18.5 13 24 7l5.5 6\"/></g><circle class=\"j\" cx=\"24\" cy=\"24\" r=\"3.2\"/></svg><small>358°</small></span><span class=\"ds-notes\"><span class=\"ds-lv\"><span class=\"ds-hl\">459 Avenue de la Justice</span></span><span class=\"ds-sub\">Montpellier</span><span class=\"ds-lp\"><span class=\"ds-price\" style=\"font-size:52px\">1,99<sup>0</sup></span><span class=\"ds-u\">€/L</span></span><span class=\"ds-tot\"><b>28,28 €</b> le plein avec détour</span><span class=\"ds-save\">−2,41 € vs la plus proche</span></span></div></div></div>",
-      "css": ".ds-rb{--frame:#121416;--frame-ink:#F4F5F3;--frame-muted:#A9B1B7;--paper:#EEF0EE;--case:#FFFFFF;--ink:#121416;--ink-2:#4A5157;--grid:#D3DAE0;--rule:#121416;--hl:#F6E52F;--hl-ink:#121416;--warn:#FF6A13;--warn-bg:#FFE4D1;--warn-ink:#7A2E00;--good:#1C7A47;font-family:Archivo,'Arial Narrow',system-ui,sans-serif;font-variant-numeric:tabular-nums;background:var(--case);color:var(--ink);list-style:none;margin:0;padding:0;max-width:420px}.ds-case{border-bottom:2px solid var(--rule)}.ds-case-btn{display:grid;grid-template-columns:58px 64px minmax(0,1fr);width:100%;border:0;background:transparent;padding:0;text-align:left;min-height:64px;cursor:pointer;font:inherit;color:inherit;transition:background-color 120ms ease}.ds-case-btn:hover,.ds-case-btn:active{background:var(--paper)}.ds-case-btn:focus-visible{outline:3px solid var(--ink);outline-offset:-3px}.ds-case-btn>*{padding:10px;min-width:0}.ds-case-btn>*+*{border-left:1px solid var(--grid)}.ds-km{font-weight:800;font-stretch:62%;font-size:30px;line-height:.95;letter-spacing:-.01em}.ds-km small{display:block;font-size:12px;font-weight:600;font-stretch:100%;color:var(--ink-2);margin-top:3px}.ds-no{display:grid;place-items:center;width:fit-content;min-width:22px;height:20px;padding:0 4px;margin-bottom:6px;border:1.5px solid var(--ink);border-radius:3px;font-size:12px;font-weight:800;font-stretch:85%;line-height:1}.ds-cap{display:grid;justify-items:center;align-content:start;gap:2px}.ds-cap small{font-size:14px;font-weight:800;font-stretch:75%}.ds-notes{display:grid;gap:2px;align-content:start}.ds-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}.ds-ville{font-weight:700;font-size:17px;line-height:1.2}.ds-price{font-weight:800;font-stretch:75%;font-size:24px;line-height:1;white-space:nowrap}.ds-price sup{font-size:.52em}.ds-sub{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--ink-2)}.ds-tulip{overflow:visible}.ds-tulip .r{fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.ds-tulip .d{fill:var(--ink)}.ds-tulip .j{fill:var(--case);stroke:var(--ink);stroke-width:2}.ds-tulip .leg{transform-box:view-box;transform-origin:24px 24px;transition:transform 280ms cubic-bezier(0.77,0,0.175,1)}.ds-ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}.ds-lead{min-height:150px}.ds-no-lead{background:var(--ink);color:var(--case)}.ds-lv{font-size:22px;font-weight:800;font-stretch:85%;line-height:1.15}.ds-hl{color:var(--hl-ink);padding:0 4px;margin:0 -4px;border-radius:3px 7px 4px 8px;background:linear-gradient(var(--hl),var(--hl)) no-repeat 0 62%/100% 80%;-webkit-box-decoration-break:clone;box-decoration-break:clone;animation:ds-swipe 380ms cubic-bezier(0.23,1,0.32,1) both}@keyframes ds-swipe{from{background-size:0% 80%}}.ds-lp{display:flex;align-items:flex-start;gap:6px;margin-top:6px}.ds-u{font-size:13px;font-weight:600;color:var(--ink-2);margin-top:6px}.ds-tot{font-size:15px}.ds-tot b{font-weight:800;font-stretch:80%;font-size:20px}.ds-save{font-size:14px;font-weight:700;color:var(--good)}@media (prefers-reduced-motion:reduce){.ds-hl{animation:none}}"
+      "refersTo": "station-row",
+      "description": "Alternative station with a dashed rose-thread rank ring, serif name and condensed price.",
+      "html": "<button class=\"ds-row\"><span class=\"ds-rank\">2</span><span class=\"ds-rname\">129 Avenue de Lodeve</span><span class=\"ds-rprice\">1,99<sup>0</sup></span><span class=\"ds-meta\">3,9 km · Montpellier</span><span class=\"ds-gap\">+0,29 €</span></button>",
+      "css": ":host{--ground:#F3EDE0;--cloth:#FBF7EE;--ink:#2A2420;--ink-2:#6A5F55;--seam:#DCD1BC;--stitch:#C4B392;--rose:#A8506A;--rose-thread:#C2617F;--lav-fill:#D6D5F1;--ochre:#C98F22;--accent:#2A2420;--accent-ink:#FBF7EE;--accent-stitch:rgba(251,247,238,.55);--good:#46653F;--warn-bg:#F8DFD3;--warn-ink:#8A3A1E;--f-ui:\"Archivo\",\"Arial Narrow\",system-ui,sans-serif;--f-name:\"Young Serif\",Georgia,serif;--ease-out:cubic-bezier(0.23,1,0.32,1)}@media (prefers-color-scheme: dark){:host{--ground:#0E1430;--cloth:#151D40;--ink:#EFE8D8;--ink-2:#A8AECB;--seam:#2A3462;--stitch:#46528A;--rose:#E8A3B8;--rose-thread:#E08FA9;--lav-fill:#2E336B;--ochre:#D8B25A;--accent:#D8B25A;--accent-ink:#1A1606;--accent-stitch:rgba(26,22,6,.45);--good:#A3D6A6;--warn-bg:#3D2433;--warn-ink:#F3B9A6}} .ds-row{width:100%;display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:2px 12px;align-items:center;padding:12px 14px;border-radius:16px;border:1.5px solid var(--seam);background:var(--cloth);color:var(--ink);cursor:pointer;text-align:left;font-family:var(--f-ui);transition:transform 120ms var(--ease-out),border-color 150ms ease}.ds-row:hover{border-color:var(--ink-2)}.ds-row:active{transform:scale(.985)}.ds-row:focus-visible{outline:3px solid var(--accent);outline-offset:2px}.ds-rank{grid-row:span 2;width:30px;height:30px;display:grid;place-items:center;border-radius:50%;border:1.5px dashed var(--rose-thread);color:var(--rose);font-weight:800;font-stretch:80%;font-size:15px}.ds-rname{font:400 17px/1.2 var(--f-name);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ds-rprice{font-weight:800;font-stretch:72%;font-size:26px;line-height:1;text-align:right}.ds-rprice sup{font-size:.5em}.ds-meta,.ds-gap{font-size:13px;color:var(--ink-2)}.ds-gap{text-align:right}"
     },
     {
-      "name": "Tulip",
-      "kind": "custom",
-      "refersTo": "tulip",
-      "description": "Data-driven roadbook tulip: start dot, road, junction, leg rotated to the station bearing; rotates by shortest path.",
-      "html": "<div class=\"ds-tulips\" style=\"--ink:#121416;--case:#FFFFFF\"><svg class=\"ds-tulip\" style=\"width:46px;height:46px\" viewBox=\"0 0 48 48\" aria-hidden=\"true\"><circle class=\"d\" cx=\"24\" cy=\"42\" r=\"3.4\"/><path class=\"r\" d=\"M24 39V24\"/><g class=\"leg\" style=\"transform:rotate(358deg)\"><path class=\"r\" d=\"M24 24V7.5M18.5 13 24 7l5.5 6\"/></g><circle class=\"j\" cx=\"24\" cy=\"24\" r=\"3.2\"/></svg><svg class=\"ds-tulip\" style=\"width:34px;height:34px\" viewBox=\"0 0 48 48\" aria-hidden=\"true\"><circle class=\"d\" cx=\"24\" cy=\"42\" r=\"3.4\"/><path class=\"r\" d=\"M24 39V24\"/><g class=\"leg\" style=\"transform:rotate(268deg)\"><path class=\"r\" d=\"M24 24V7.5M18.5 13 24 7l5.5 6\"/></g><circle class=\"j\" cx=\"24\" cy=\"24\" r=\"3.2\"/></svg><svg class=\"ds-tulip\" style=\"width:34px;height:34px\" viewBox=\"0 0 48 48\" aria-hidden=\"true\"><circle class=\"d\" cx=\"24\" cy=\"42\" r=\"3.4\"/><path class=\"r\" d=\"M24 39V24\"/><g class=\"leg\" style=\"transform:rotate(45deg)\"><path class=\"r\" d=\"M24 24V7.5M18.5 13 24 7l5.5 6\"/></g><circle class=\"j\" cx=\"24\" cy=\"24\" r=\"3.2\"/></svg><svg class=\"ds-tulip\" style=\"width:34px;height:34px\" viewBox=\"0 0 48 48\" aria-hidden=\"true\"><circle class=\"d\" cx=\"24\" cy=\"42\" r=\"3.4\"/><path class=\"r\" d=\"M24 39V24\"/><path class=\"r\" d=\"M24 24V13a7 7 0 0 1 14 0v22M33 30l5 6 5-6\"/><circle class=\"j\" cx=\"24\" cy=\"24\" r=\"3.2\"/></svg></div>",
-      "css": ".ds-tulips{display:flex;gap:20px;align-items:center;padding:12px;background:#fff}.ds-tulip{overflow:visible}.ds-tulip .r{fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.ds-tulip .d{fill:var(--ink)}.ds-tulip .j{fill:var(--case);stroke:var(--ink);stroke-width:2}.ds-tulip .leg{transform-box:view-box;transform-origin:24px 24px;transition:transform 280ms cubic-bezier(0.77,0,0.175,1)}.ds-tulips:hover .leg{transform:rotate(90deg)!important}@media (prefers-reduced-motion:reduce){.ds-tulip .leg{transition:none}}"
-    },
-    {
-      "name": "Case Number",
-      "kind": "chip",
-      "refersTo": "case-number",
-      "description": "Printed instruction number box; inverted for the lead case.",
-      "html": "<div class=\"ds-nos\"><span class=\"ds-n ds-n-lead\">1</span><span class=\"ds-n\">2</span><span class=\"ds-n\">14</span></div>",
-      "css": ".ds-nos{display:flex;gap:8px;font-family:Archivo,'Arial Narrow',system-ui,sans-serif;font-variant-numeric:tabular-nums;}.ds-n{display:inline-grid;place-items:center;min-width:22px;height:20px;padding:0 4px;border:1.5px solid #121416;border-radius:3px;font-size:12px;font-weight:800;font-stretch:85%;line-height:1;color:#121416;background:#fff}.ds-n-lead{background:#121416;color:#fff}"
-    },
-    {
-      "name": "Fuel Segmented Control",
-      "kind": "chip",
-      "refersTo": "fuel-segment",
-      "description": "Scrolling radiogroup of pills; selected is ink-filled.",
-      "html": "<div class=\"ds-fuels\" role=\"radiogroup\" aria-label=\"Carburant\"><button class=\"ds-fuel\" role=\"radio\" aria-checked=\"true\"><b>SP95-E10</b><small>207</small></button><button class=\"ds-fuel\" role=\"radio\" aria-checked=\"false\"><b>SP95</b><small>56</small></button><button class=\"ds-fuel\" role=\"radio\" aria-checked=\"false\"><b>Gazole</b><small>245</small></button></div>",
-      "css": ".ds-fuels{--frame:#121416;--frame-ink:#F4F5F3;--frame-muted:#A9B1B7;--paper:#EEF0EE;--case:#FFFFFF;--ink:#121416;--ink-2:#4A5157;--grid:#D3DAE0;--rule:#121416;--hl:#F6E52F;--hl-ink:#121416;--warn:#FF6A13;--warn-bg:#FFE4D1;--warn-ink:#7A2E00;--good:#1C7A47;font-family:Archivo,'Arial Narrow',system-ui,sans-serif;font-variant-numeric:tabular-nums;display:flex;gap:6px;overflow-x:auto}.ds-fuel{flex:none;min-height:44px;padding:8px 14px;border:1.5px solid var(--ink);border-radius:999px;background:var(--case);color:var(--ink);display:inline-flex;align-items:baseline;gap:6px;cursor:pointer;font:inherit;transition:background-color 150ms ease,color 150ms ease,transform 120ms cubic-bezier(0.23,1,0.32,1)}.ds-fuel b{font-weight:800;font-stretch:75%;font-size:17px;letter-spacing:.02em}.ds-fuel small{font-size:12px;color:var(--ink-2)}.ds-fuel[aria-checked=true]{background:var(--ink);color:var(--case)}.ds-fuel[aria-checked=true] small{color:inherit;opacity:.7}.ds-fuel:active{transform:scale(.97)}.ds-fuel:focus-visible{outline:3px solid var(--ink);outline-offset:2px}"
-    },
-    {
-      "name": "Ink Button",
-      "kind": "button",
-      "refersTo": "button-ink",
-      "description": "Primary action (Y aller), with outline and icon siblings.",
-      "html": "<div class=\"ds-row\"><a class=\"ds-btn ds-btn-ink\" href=\"#\"><svg class=\"ds-ic\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 11.5 20 4l-7.5 16-1.8-6.7L4 11.5Z\"/></svg>Y aller</a><button class=\"ds-ibtn\" type=\"button\" aria-pressed=\"true\" aria-label=\"Favori\"><svg class=\"ds-ic\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9L12 3.5Z\"/></svg></button><button class=\"ds-btn\" type=\"button\">Noter un plein ici</button></div>",
-      "css": ".ds-row{--frame:#121416;--frame-ink:#F4F5F3;--frame-muted:#A9B1B7;--paper:#EEF0EE;--case:#FFFFFF;--ink:#121416;--ink-2:#4A5157;--grid:#D3DAE0;--rule:#121416;--hl:#F6E52F;--hl-ink:#121416;--warn:#FF6A13;--warn-bg:#FFE4D1;--warn-ink:#7A2E00;--good:#1C7A47;font-family:Archivo,'Arial Narrow',system-ui,sans-serif;font-variant-numeric:tabular-nums;display:flex;gap:8px;flex-wrap:wrap}.ds-ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}.ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:10px 16px;border-radius:10px;border:1.5px solid var(--ink);background:var(--case);color:var(--ink);font:inherit;font-weight:700;text-decoration:none;cursor:pointer;transition:transform 120ms cubic-bezier(0.23,1,0.32,1),background-color 150ms ease}.ds-btn:active{transform:scale(.97)}.ds-btn-ink{background:var(--ink);color:var(--case)}.ds-ibtn{width:46px;height:46px;display:grid;place-items:center;border-radius:10px;border:1.5px solid var(--ink);background:var(--case);color:var(--ink);cursor:pointer}.ds-ibtn[aria-pressed=true] .ds-ic{fill:var(--hl);stroke:var(--ink)}.ds-btn:focus-visible,.ds-ibtn:focus-visible{outline:3px solid var(--ink);outline-offset:2px}"
-    },
-    {
-      "name": "Highlighter Button and Choices",
-      "kind": "button",
-      "refersTo": "button-highlighter",
-      "description": "Settings sheet choices (selected = yellow) and the yellow main action.",
-      "html": "<div class=\"ds-ch\"><div class=\"ds-choices\"><button class=\"ds-choice\" aria-pressed=\"true\">CFMoto 450MT <small>14 L · 4,5 L/100</small></button><button class=\"ds-choice\" aria-pressed=\"false\">Scooter 125 <small>6 L · 2,8 L/100</small></button></div><button class=\"ds-btn-hl\" type=\"button\">Voir le classement</button></div>",
-      "css": ".ds-ch{--frame:#121416;--frame-ink:#F4F5F3;--frame-muted:#A9B1B7;--paper:#EEF0EE;--case:#FFFFFF;--ink:#121416;--ink-2:#4A5157;--grid:#D3DAE0;--rule:#121416;--hl:#F6E52F;--hl-ink:#121416;--warn:#FF6A13;--warn-bg:#FFE4D1;--warn-ink:#7A2E00;--good:#1C7A47;font-family:Archivo,'Arial Narrow',system-ui,sans-serif;font-variant-numeric:tabular-nums;display:grid;gap:16px;background:var(--case);padding:16px}.ds-choices{display:flex;flex-wrap:wrap;gap:8px}.ds-choice{display:inline-flex;align-items:center;gap:8px;min-height:46px;padding:8px 14px;border-radius:10px;border:1.5px solid var(--grid);background:var(--paper);color:var(--ink);font:inherit;cursor:pointer;transition:background-color 150ms ease,border-color 150ms ease}.ds-choice small{font-size:12px;color:var(--ink-2)}.ds-choice:hover{border-color:var(--ink)}.ds-choice[aria-pressed=true]{background:var(--hl);color:var(--hl-ink);border-color:var(--hl-ink)}.ds-choice[aria-pressed=true] small{color:var(--hl-ink)}.ds-btn-hl{min-height:46px;padding:10px 16px;border-radius:10px;border:1.5px solid var(--hl);background:var(--hl);color:var(--hl-ink);font:inherit;font-weight:700;cursor:pointer;transition:transform 120ms cubic-bezier(0.23,1,0.32,1)}.ds-btn-hl:active{transform:scale(.97)}.ds-choice:focus-visible,.ds-btn-hl:focus-visible{outline:3px solid var(--ink);outline-offset:2px}"
-    },
-    {
-      "name": "Field",
+      "name": "Text Field",
       "kind": "input",
-      "refersTo": "field",
-      "description": "Labelled 46px field on paper fill; focus = ink border + 3px yellow halo.",
-      "html": "<label class=\"ds-field\">Prix au litre (€)<input inputmode=\"decimal\" placeholder=\"1,989\"></label>",
-      "css": ".ds-field{--frame:#121416;--frame-ink:#F4F5F3;--frame-muted:#A9B1B7;--paper:#EEF0EE;--case:#FFFFFF;--ink:#121416;--ink-2:#4A5157;--grid:#D3DAE0;--rule:#121416;--hl:#F6E52F;--hl-ink:#121416;--warn:#FF6A13;--warn-bg:#FFE4D1;--warn-ink:#7A2E00;--good:#1C7A47;font-family:Archivo,'Arial Narrow',system-ui,sans-serif;font-variant-numeric:tabular-nums;display:grid;gap:6px;font-size:13px;font-weight:600;color:var(--ink-2);max-width:260px}.ds-field input{min-height:46px;padding:8px 12px;border-radius:10px;border:1.5px solid var(--grid);background:var(--paper);color:var(--ink);font:inherit;font-size:17px;font-weight:500}.ds-field input:focus{border-color:var(--ink);outline:none;box-shadow:0 0 0 3px var(--hl)}"
+      "refersTo": "input-field",
+      "description": "Ground well with seam border; focus turns the border to accent with a lavender halo.",
+      "html": "<label class=\"ds-field\">Litres<input class=\"ds-input\" inputmode=\"decimal\" placeholder=\"14\"></label>",
+      "css": ":host{--ground:#F3EDE0;--cloth:#FBF7EE;--ink:#2A2420;--ink-2:#6A5F55;--seam:#DCD1BC;--stitch:#C4B392;--rose:#A8506A;--rose-thread:#C2617F;--lav-fill:#D6D5F1;--ochre:#C98F22;--accent:#2A2420;--accent-ink:#FBF7EE;--accent-stitch:rgba(251,247,238,.55);--good:#46653F;--warn-bg:#F8DFD3;--warn-ink:#8A3A1E;--f-ui:\"Archivo\",\"Arial Narrow\",system-ui,sans-serif;--f-name:\"Young Serif\",Georgia,serif;--ease-out:cubic-bezier(0.23,1,0.32,1)}@media (prefers-color-scheme: dark){:host{--ground:#0E1430;--cloth:#151D40;--ink:#EFE8D8;--ink-2:#A8AECB;--seam:#2A3462;--stitch:#46528A;--rose:#E8A3B8;--rose-thread:#E08FA9;--lav-fill:#2E336B;--ochre:#D8B25A;--accent:#D8B25A;--accent-ink:#1A1606;--accent-stitch:rgba(26,22,6,.45);--good:#A3D6A6;--warn-bg:#3D2433;--warn-ink:#F3B9A6}} .ds-field{display:grid;gap:6px;font-family:var(--f-ui);font-size:13px;font-weight:600;color:var(--ink-2)}.ds-input{min-height:48px;padding:8px 12px;border-radius:12px;border:1.5px solid var(--seam);background:var(--ground);color:var(--ink);font:500 17px var(--f-ui)}.ds-input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--lav-fill)}"
     },
     {
       "name": "Bottom Tabs",
       "kind": "nav",
-      "refersTo": "tab",
-      "description": "Sticky ink tab bar; selected label pale, icon yellow.",
-      "html": "<nav class=\"ds-tabs\" role=\"tablist\"><button role=\"tab\" aria-selected=\"true\"><svg class=\"ds-ic\" viewBox=\"0 0 24 24\"><path d=\"M4 5h16M4 12h16M4 19h16M8 5v14\"/></svg><span>Classement</span></button><button role=\"tab\" aria-selected=\"false\"><svg class=\"ds-ic\" viewBox=\"0 0 24 24\"><path d=\"M9 4 3 6.5v13L9 17l6 2.5 6-2.5v-13L15 6.5 9 4Zm0 0v13m6-10.5v13\"/></svg><span>Carte</span></button><button role=\"tab\" aria-selected=\"false\"><svg class=\"ds-ic\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9L12 3.5Z\"/></svg><span>Favoris</span></button><button role=\"tab\" aria-selected=\"false\"><svg class=\"ds-ic\" viewBox=\"0 0 24 24\"><path d=\"M6 3.5h11a1.5 1.5 0 0 1 1.5 1.5v14A1.5 1.5 0 0 1 17 20.5H6zM6 3.5v17M9.5 8h5.5M9.5 12h5.5\"/></svg><span>Carnet</span></button></nav>",
-      "css": ".ds-tabs{--frame:#121416;--frame-ink:#F4F5F3;--frame-muted:#A9B1B7;--paper:#EEF0EE;--case:#FFFFFF;--ink:#121416;--ink-2:#4A5157;--grid:#D3DAE0;--rule:#121416;--hl:#F6E52F;--hl-ink:#121416;--warn:#FF6A13;--warn-bg:#FFE4D1;--warn-ink:#7A2E00;--good:#1C7A47;font-family:Archivo,'Arial Narrow',system-ui,sans-serif;font-variant-numeric:tabular-nums;display:grid;grid-template-columns:repeat(4,1fr);background:var(--frame);padding:6px 8px 8px;max-width:420px}.ds-ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}.ds-tabs button{display:grid;justify-items:center;gap:2px;min-height:52px;padding:6px 4px;border:0;border-radius:10px;background:transparent;color:var(--frame-muted);font:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:color 150ms ease}.ds-tabs button:hover{color:var(--frame-ink)}.ds-tabs button[aria-selected=true]{color:var(--frame-ink)}.ds-tabs button[aria-selected=true] .ds-ic{color:var(--hl)}.ds-tabs button:focus-visible{outline:3px solid var(--hl);outline-offset:-3px}"
+      "refersTo": "bottom-tabs",
+      "description": "Sticky cloth bar with a dashed stitch top edge; active tab icon in rose thread.",
+      "html": "<nav class=\"ds-tabs\"><button aria-selected=\"true\"><svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\"><path d=\"M9 6h11M9 12h11M9 18h11\"/><circle cx=\"4.5\" cy=\"6\" r=\"1.3\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"4.5\" cy=\"12\" r=\"1.3\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"4.5\" cy=\"18\" r=\"1.3\" fill=\"currentColor\" stroke=\"none\"/></svg><span>Stations</span></button><button aria-selected=\"false\"><svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linejoin=\"round\"><path d=\"M9 4 3 6.5v13L9 17l6 2.5 6-2.5v-13L15 6.5 9 4Zm0 0v13m6-10.5v13\"/></svg><span>Carte</span></button><button aria-selected=\"false\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9L12 3.5Z\"/></svg><span>Favoris</span></button><button aria-selected=\"false\"><svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\"><path d=\"M6 3.5h11a1.5 1.5 0 0 1 1.5 1.5v14A1.5 1.5 0 0 1 17 20.5H6zM6 3.5v17M9.5 8h5.5M9.5 12h5.5\"/></svg><span>Carnet</span></button></nav>",
+      "css": ":host{--ground:#F3EDE0;--cloth:#FBF7EE;--ink:#2A2420;--ink-2:#6A5F55;--seam:#DCD1BC;--stitch:#C4B392;--rose:#A8506A;--rose-thread:#C2617F;--lav-fill:#D6D5F1;--ochre:#C98F22;--accent:#2A2420;--accent-ink:#FBF7EE;--accent-stitch:rgba(251,247,238,.55);--good:#46653F;--warn-bg:#F8DFD3;--warn-ink:#8A3A1E;--f-ui:\"Archivo\",\"Arial Narrow\",system-ui,sans-serif;--f-name:\"Young Serif\",Georgia,serif;--ease-out:cubic-bezier(0.23,1,0.32,1)}@media (prefers-color-scheme: dark){:host{--ground:#0E1430;--cloth:#151D40;--ink:#EFE8D8;--ink-2:#A8AECB;--seam:#2A3462;--stitch:#46528A;--rose:#E8A3B8;--rose-thread:#E08FA9;--lav-fill:#2E336B;--ochre:#D8B25A;--accent:#D8B25A;--accent-ink:#1A1606;--accent-stitch:rgba(26,22,6,.45);--good:#A3D6A6;--warn-bg:#3D2433;--warn-ink:#F3B9A6}} .ds-tabs{display:grid;grid-template-columns:repeat(4,1fr);background:var(--cloth);border-top:1.5px dashed var(--stitch);padding:6px 8px 8px}.ds-tabs button{display:grid;justify-items:center;gap:2px;min-height:52px;padding:6px 4px;border:0;border-radius:12px;background:transparent;color:var(--ink-2);font:600 12px var(--f-ui);cursor:pointer;transition:color 150ms ease}.ds-tabs button:hover{color:var(--ink)}.ds-tabs button[aria-selected=true]{color:var(--ink)}.ds-tabs button[aria-selected=true] svg{color:var(--rose-thread)}.ds-tabs button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}"
     },
     {
-      "name": "Bottom Sheet",
+      "name": "Map Pins",
       "kind": "custom",
-      "refersTo": "bottom-sheet",
-      "description": "Case-white sheet with 18px top corners, grabber, ruled sections, upward shadow.",
-      "html": "<div class=\"ds-sheet\"><div class=\"ds-grab\"></div><div class=\"ds-sh\"><div><h2>129 Avenue de Lodeve</h2><p>Montpellier · 34070</p></div><button class=\"ds-x\" aria-label=\"Fermer\"><svg class=\"ds-ic\" viewBox=\"0 0 24 24\"><path d=\"M6 6l12 12M18 6 6 18\"/></svg></button></div><ul class=\"ds-prices\"><li><span><span class=\"ds-hl2\">SP95-E10</span></span><b>1,99<sup>0</sup></b><small>prix affiché il y a 20 h</small></li><li><span>Gazole</span><b>2,25<sup>0</sup></b><small>prix affiché il y a 20 h</small></li></ul></div>",
-      "css": ".ds-sheet{--frame:#121416;--frame-ink:#F4F5F3;--frame-muted:#A9B1B7;--paper:#EEF0EE;--case:#FFFFFF;--ink:#121416;--ink-2:#4A5157;--grid:#D3DAE0;--rule:#121416;--hl:#F6E52F;--hl-ink:#121416;--warn:#FF6A13;--warn-bg:#FFE4D1;--warn-ink:#7A2E00;--good:#1C7A47;font-family:Archivo,'Arial Narrow',system-ui,sans-serif;font-variant-numeric:tabular-nums;background:var(--case);color:var(--ink);border-radius:18px 18px 0 0;padding:8px 16px 18px;display:grid;gap:16px;max-width:420px;box-shadow:0 -12px 32px -16px rgba(5,6,7,.35)}.ds-ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}.ds-grab{width:40px;height:5px;border-radius:3px;background:var(--grid);justify-self:center}.ds-sh{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.ds-sh h2{margin:0;font-size:20px;font-weight:800;font-stretch:80%}.ds-sh p{margin:4px 0 0;color:var(--ink-2);font-size:14px}.ds-x{width:46px;height:46px;display:grid;place-items:center;border-radius:10px;border:1.5px solid var(--ink);background:var(--case);color:var(--ink);cursor:pointer}.ds-prices{list-style:none;margin:0;padding:0;border-top:3px solid var(--rule)}.ds-prices li{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:9px 0;border-bottom:1px solid var(--grid);align-items:baseline;font-weight:700}.ds-prices b{font-weight:800;font-stretch:75%;font-size:22px}.ds-prices sup{font-size:.52em}.ds-prices small{grid-column:1/-1;font-size:12px;color:var(--ink-2);font-weight:400}.ds-hl2{padding:0 4px;margin:0 -4px;border-radius:3px 7px 4px 8px;background:linear-gradient(var(--hl),var(--hl)) no-repeat 0 62%/100% 80%}"
+      "description": "Stitched patch pins: dashed rose ring with rank numeral; the best station is a larger rose-filled pin.",
+      "html": "<div class=\"ds-pins\"><button class=\"ds-pin ds-best\">1</button><button class=\"ds-pin\">2</button><button class=\"ds-pin\">3</button></div>",
+      "css": ":host{--ground:#F3EDE0;--cloth:#FBF7EE;--ink:#2A2420;--ink-2:#6A5F55;--seam:#DCD1BC;--stitch:#C4B392;--rose:#A8506A;--rose-thread:#C2617F;--lav-fill:#D6D5F1;--ochre:#C98F22;--accent:#2A2420;--accent-ink:#FBF7EE;--accent-stitch:rgba(251,247,238,.55);--good:#46653F;--warn-bg:#F8DFD3;--warn-ink:#8A3A1E;--f-ui:\"Archivo\",\"Arial Narrow\",system-ui,sans-serif;--f-name:\"Young Serif\",Georgia,serif;--ease-out:cubic-bezier(0.23,1,0.32,1)}@media (prefers-color-scheme: dark){:host{--ground:#0E1430;--cloth:#151D40;--ink:#EFE8D8;--ink-2:#A8AECB;--seam:#2A3462;--stitch:#46528A;--rose:#E8A3B8;--rose-thread:#E08FA9;--lav-fill:#2E336B;--ochre:#D8B25A;--accent:#D8B25A;--accent-ink:#1A1606;--accent-stitch:rgba(26,22,6,.45);--good:#A3D6A6;--warn-bg:#3D2433;--warn-ink:#F3B9A6}} .ds-pins{display:flex;gap:14px;align-items:center}.ds-pin{width:30px;height:30px;display:flex;align-items:center;justify-content:center;padding:0;border-radius:50%;cursor:pointer;background:var(--cloth);border:2px dashed var(--rose-thread);box-shadow:0 4px 10px -6px rgba(14,10,8,.5);font:800 14px/1 var(--f-ui);font-stretch:75%;color:var(--ink)}.ds-pin.ds-best{width:40px;height:40px;font-size:18px;background:var(--rose-thread);border:2px dashed var(--cloth);color:var(--cloth);outline:2px solid var(--rose-thread)}.ds-pin:focus-visible{outline:3px solid var(--accent);outline-offset:2px}"
+    },
+    {
+      "name": "Fill-Up Card",
+      "kind": "card",
+      "description": "\"Tu fais le plein ?\" card that grows out of the Carnet tab corner (origin 85% 110%, 340ms).",
+      "html": "<aside class=\"ds-fill\"><p class=\"ds-ft\">Tu fais le plein ?</p><p class=\"ds-fx\">Tu es à la station de l'Avenue de la Justice depuis 3 minutes.</p><button class=\"ds-fm\">Noter 14 L à 1,990 €</button><button class=\"ds-fn\">Pas maintenant</button></aside>",
+      "css": ":host{--ground:#F3EDE0;--cloth:#FBF7EE;--ink:#2A2420;--ink-2:#6A5F55;--seam:#DCD1BC;--stitch:#C4B392;--rose:#A8506A;--rose-thread:#C2617F;--lav-fill:#D6D5F1;--ochre:#C98F22;--accent:#2A2420;--accent-ink:#FBF7EE;--accent-stitch:rgba(251,247,238,.55);--good:#46653F;--warn-bg:#F8DFD3;--warn-ink:#8A3A1E;--f-ui:\"Archivo\",\"Arial Narrow\",system-ui,sans-serif;--f-name:\"Young Serif\",Georgia,serif;--ease-out:cubic-bezier(0.23,1,0.32,1)}@media (prefers-color-scheme: dark){:host{--ground:#0E1430;--cloth:#151D40;--ink:#EFE8D8;--ink-2:#A8AECB;--seam:#2A3462;--stitch:#46528A;--rose:#E8A3B8;--rose-thread:#E08FA9;--lav-fill:#2E336B;--ochre:#D8B25A;--accent:#D8B25A;--accent-ink:#1A1606;--accent-stitch:rgba(26,22,6,.45);--good:#A3D6A6;--warn-bg:#3D2433;--warn-ink:#F3B9A6}} .ds-fill{width:min(330px,100%);padding:16px;border-radius:22px;background:var(--cloth);color:var(--ink);outline:1.5px dashed var(--stitch);outline-offset:-7px;box-shadow:0 18px 40px -18px rgba(14,10,8,.55);display:grid;gap:10px;font-family:var(--f-ui);transform-origin:85% 110%;animation:ds-grow 340ms var(--ease-out)}@keyframes ds-grow{from{opacity:0;transform:translateY(14px) scale(.6)}}@media (prefers-reduced-motion: reduce){.ds-fill{animation:ds-fade 200ms ease}@keyframes ds-fade{from{opacity:0}}}.ds-fill p{margin:0}.ds-ft{font:400 20px/1.15 var(--f-name)}.ds-fx{font-size:15px;color:var(--ink-2)}.ds-fm{min-height:48px;border-radius:14px;border:0;background:var(--accent);color:var(--accent-ink);font:700 16px var(--f-ui);cursor:pointer}.ds-fn{min-height:44px;border:0;background:transparent;color:var(--ink-2);font:700 16px var(--f-ui);cursor:pointer}.ds-fm:focus-visible,.ds-fn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}"
     },
     {
       "name": "Toast",
       "kind": "custom",
       "refersTo": "toast",
-      "description": "Ink toast with optional yellow action.",
-      "html": "<div class=\"ds-toast\" role=\"status\"><span>Plein supprimé</span><button type=\"button\">Annuler</button></div>",
-      "css": ".ds-toast{--frame:#121416;--frame-ink:#F4F5F3;--frame-muted:#A9B1B7;--paper:#EEF0EE;--case:#FFFFFF;--ink:#121416;--ink-2:#4A5157;--grid:#D3DAE0;--rule:#121416;--hl:#F6E52F;--hl-ink:#121416;--warn:#FF6A13;--warn-bg:#FFE4D1;--warn-ink:#7A2E00;--good:#1C7A47;font-family:Archivo,'Arial Narrow',system-ui,sans-serif;font-variant-numeric:tabular-nums;display:inline-flex;gap:14px;align-items:center;background:var(--ink);color:var(--case);border-radius:10px;padding:10px 14px;font-size:15px;box-shadow:0 10px 24px -12px rgba(5,6,7,.5)}.ds-toast button{border:0;background:transparent;color:var(--hl);font:inherit;font-weight:800;cursor:pointer;min-height:36px}.ds-toast button:focus-visible{outline:3px solid var(--hl);outline-offset:2px}"
-    },
-    {
-      "name": "Caution Mark",
-      "kind": "chip",
-      "refersTo": "caution-mark",
-      "description": "Orange highlighter swipe with stroked triangle for prices older than 48 h.",
-      "html": "<div class=\"ds-cw\" style=\"--frame:#121416;--frame-ink:#F4F5F3;--frame-muted:#A9B1B7;--paper:#EEF0EE;--case:#FFFFFF;--ink:#121416;--ink-2:#4A5157;--grid:#D3DAE0;--rule:#121416;--hl:#F6E52F;--hl-ink:#121416;--warn:#FF6A13;--warn-bg:#FFE4D1;--warn-ink:#7A2E00;--good:#1C7A47;\"><span class=\"ds-flag\"><svg class=\"ds-ic\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 4 2.8 19.5h18.4L12 4ZM12 10v4.5M12 17.2v.3\"/></svg>prix il y a 3 j</span></div>",
-      "css": ".ds-cw{font-family:Archivo,'Arial Narrow',system-ui,sans-serif;font-variant-numeric:tabular-nums;padding:12px;background:#fff}.ds-ic{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}.ds-flag{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--warn-ink);width:fit-content;padding:0 4px;margin-left:-4px;background:linear-gradient(var(--warn-bg),var(--warn-bg)) no-repeat 0 60%/100% 70%}.ds-flag .ds-ic{width:14px;height:14px;stroke-width:2.2;color:var(--warn)}"
-    },
-    {
-      "name": "Map Pins",
-      "kind": "custom",
-      "refersTo": "map-pin",
-      "description": "Numbered square pins; top pin yellow and larger; origin ink dot.",
-      "html": "<div class=\"ds-map\"><span class=\"ds-pin ds-pin-top\">1</span><span class=\"ds-pin\">2</span><span class=\"ds-pin\">10</span><span class=\"ds-pin ds-pin-me\"></span></div>",
-      "css": ".ds-map{font-family:Archivo,'Arial Narrow',system-ui,sans-serif;font-variant-numeric:tabular-nums;display:flex;gap:14px;align-items:center;padding:16px;background:#EEF0EE;border:2px solid #121416}.ds-pin{display:grid;place-items:center;width:26px;height:26px;border-radius:6px;background:#fff;color:#121416;border:2px solid #121416;font-weight:800;font-size:14px;line-height:1;font-stretch:70%}.ds-pin-top{background:#F6E52F;color:#121416;width:34px;height:34px;font-size:17px}.ds-pin-me{background:#121416;border-color:#fff;border-radius:50%;width:16px;height:16px}"
+      "description": "Inverted ink toast above the tab bar with an optional ochre action.",
+      "html": "<div class=\"ds-toast\"><span>Plein supprimé</span><button>Annuler</button></div>",
+      "css": ":host{--ground:#F3EDE0;--cloth:#FBF7EE;--ink:#2A2420;--ink-2:#6A5F55;--seam:#DCD1BC;--stitch:#C4B392;--rose:#A8506A;--rose-thread:#C2617F;--lav-fill:#D6D5F1;--ochre:#C98F22;--accent:#2A2420;--accent-ink:#FBF7EE;--accent-stitch:rgba(251,247,238,.55);--good:#46653F;--warn-bg:#F8DFD3;--warn-ink:#8A3A1E;--f-ui:\"Archivo\",\"Arial Narrow\",system-ui,sans-serif;--f-name:\"Young Serif\",Georgia,serif;--ease-out:cubic-bezier(0.23,1,0.32,1)}@media (prefers-color-scheme: dark){:host{--ground:#0E1430;--cloth:#151D40;--ink:#EFE8D8;--ink-2:#A8AECB;--seam:#2A3462;--stitch:#46528A;--rose:#E8A3B8;--rose-thread:#E08FA9;--lav-fill:#2E336B;--ochre:#D8B25A;--accent:#D8B25A;--accent-ink:#1A1606;--accent-stitch:rgba(26,22,6,.45);--good:#A3D6A6;--warn-bg:#3D2433;--warn-ink:#F3B9A6}} .ds-toast{display:inline-flex;gap:14px;align-items:center;background:var(--ink);color:var(--ground);border-radius:14px;padding:10px 14px;font:400 15px var(--f-ui);box-shadow:0 10px 24px -12px rgba(14,10,8,.5)}.ds-toast button{border:0;background:transparent;color:var(--ochre);font:800 15px var(--f-ui);cursor:pointer;min-height:36px}.ds-toast button:focus-visible{outline:3px solid var(--ochre);outline-offset:2px}"
     }
   ],
   "narrative": {
-    "northStar": "The Pocket Roadbook",
-    "overview": "**Creative North Star: \"The Pocket Roadbook\"**\n\nPlein Sud is a rally roll-chart clipped into an ink holder. The dark frame at top and bottom is the roadbook holder; between them runs a roll of cool white paper printed with a faint blue-grey 16px grid, and on it every station is a ruled case with three columns: KM, TULIPE, NOTES. The rider reads the next case the way a rally rider reads the next instruction: distance in big condensed figures, a drawn tulip pointing the way, then the notes. The best case is longer than the others and its station name is struck with a yellow highlighter; anything to be cautious about gets an orange highlighter. Nothing else is coloured.\n\nDensity is high but legible at arm's length: numerals are extra-condensed black Archivo so they can be large without crowding, and everything that is prose (station names, addresses, explanations) runs at normal width. Depth is paper-flat; only the things that physically float over the roll (the bottom sheet and the toast) cast a shadow. Night mode is the same roadbook under a reader's backlight: the paper goes near-black, the ink goes pale, the highlighter stays yellow with dark ink on it.\n\nMotion is mechanical and short, like a roll advancing: cases unroll on first load, overtake each other with FLIP when the ranking changes, the tulip leg swings to its new bearing, and the highlighter redraws left to right across the new leader. Every one of those moves degrades to a plain fade or nothing under reduced motion.",
+    "northStar": "The Embroidered Tee",
+    "overview": "Plein Sud looks like nothing from the fuel world. The phone is a piece of cloth: cream cotton by day, deep night-blue \"fleurs de nuit\" by night, and every surface on it is a patch sewn onto that cloth. The one answer that matters (where to fill up, at what price per litre, how far, for how much) is stitched large on a single patch, and a hand-embroidered bouquet climbs that patch's right edge. Everything else (alternatives, the map, favourites, the Carnet) is quieter cloth with the same seams.\n\nThe world is carried by three materials only: thread colour, stitch line, and type. Thread colours (dusty rose, lavender blue, coral, ochre, sage, pale sky) belong to the embroidery and to small sewn details; information is set in a warm dark-thread ink (cream thread at night). The stitch line is a dashed 1.5px outline set just inside a patch's edge, the way a running stitch sits inside a hem. Type pairs Young Serif, a soft, ink-trapped display serif for names and headings, with Archivo at condensed widths for every figure, so prices read as hard numerals at arm's length on a soft ground.\n\nDensity is low and the hierarchy is steep: one giant price, two side-by-side facts, one full-width button, two compact rows. Motion behaves like sewing: the bouquet stitches itself upward on load and re-stitches when the answer changes; rows slide to their new rank rather than reappearing. The header mark (an eight-petal compass flower in rose thread) is a **provisional logo**, pending the owner's choice; do not build further identity on it.",
     "keyCharacteristics": [
-      "Ink frame (top bar, bottom tabs) around a paper roll printed with a 16px faint grid.",
-      "Ruled cases: 3px ink rule under the column heads, 2px ink rule between cases, 1px grid hairlines between columns.",
-      "Two highlighters only: yellow for the best and the selected, orange for caution.",
-      "Archivo on its width axis: 62–80% for figures, 100% for notes; tabular figures everywhere.",
-      "Authored SVG stroke icons and a data-driven tulip per case; no glyph icons.",
-      "Flat paper; shadows only on floating layers."
+      "Cream cloth ground (light) and night-blue cloth (dark), with patches one step lighter than the ground.",
+      "Dashed stitch outlines inset inside patch edges; dashed rings on rank badges and map pins.",
+      "Hand-authored SVG line embroidery: running-stitch dashes, satin hatching, French knots.",
+      "Young Serif for station names and headings; condensed Archivo for every number.",
+      "One ink-thread primary action per view, which turns gold thread at night.",
+      "Motion as sewing: clip-path stitch-in from the bottom, FLIP reorders, drawer sheets."
     ],
     "rules": [
       {
-        "name": "The Two Highlighters Rule",
-        "body": "Colour on the roll comes only from a highlighter pen: yellow means \"best\" or \"selected\", orange means \"be careful\". If an element is neither, it is ink, pencil grey or paper.",
+        "name": "The Threads-Are-Embroidery Rule",
+        "body": "Rose, lavender, coral, ochre, sage and sky are thread colours: they draw the bouquet and small sewn marks (rings, pins, active icon, mark). They never fill a card, a section or a background.",
         "section": "colors"
       },
       {
-        "name": "The Highlighter Ink Rule",
-        "body": "Text sitting on yellow is always `highlighter-ink` (#121416), in light and in dark mode. The highlighter never carries pale text.",
+        "name": "The One Satin Block Rule",
+        "body": "Exactly one filled `accent` action per view. Everything else is cloth with a seam.",
         "section": "colors"
       },
       {
-        "name": "The Backlight Rule",
-        "body": "Dark mode is not a new palette; it is the same roles relit. Add a role to both sets or not at all.",
+        "name": "The Day-and-Night Pair Rule",
+        "body": "Every colour token exists as a light and a `-dark` pair, switched by `prefers-color-scheme`; the map basemap is recoloured to the same cloth palette in both modes.",
         "section": "colors"
       },
       {
-        "name": "The Two Widths Rule",
-        "body": "Figures (km, prices, totals, case numbers, pins, the radius readout) are set condensed (62–85%); words that people read as sentences are set at 100%. Never condense a station name in an ordinary case or an explanatory line.",
+        "name": "The Serif-Names, Condensed-Numbers Rule",
+        "body": "Words that name a place or a section are Young Serif; every quantity (price, km, €, rank, litres) is condensed Archivo 800. Never set a figure in Young Serif or a station name in Archivo.",
         "section": "typography"
       },
       {
-        "name": "The Tabular Figures Rule",
-        "body": "`tabular-nums` is set on the body; every number on the roll aligns in its column.",
+        "name": "The Single-Weight Serif Rule",
+        "body": "Young Serif ships one weight (400). Hierarchy among names comes from size only; never fake-bold it.",
         "section": "typography"
       },
       {
-        "name": "The Flat Paper Rule",
-        "body": "Nothing printed on the roll has a shadow. If it needs separation, give it an ink rule or a grid hairline. Leaflet's control shadows are explicitly removed and replaced with a 2px ink border.",
+        "name": "The Flat-Rows Rule",
+        "body": "Lists, chips and form wells never carry shadows; only the answer patch and true overlays lift.",
         "section": "elevation"
       }
     ],
     "dos": [
-      "Do build every list of stations as roadbook cases on the 58px / 64px / rest grid, with a 2px ink rule between cases and a 3px rule under the column heads.",
-      "Do set figures condensed (wdth 62–85%, weight 800) and prose at wdth 100%.",
-      "Do use yellow only for the best or the selected item, always with `highlighter-ink` text on it.",
-      "Do use the orange caution mark for anything the rider should doubt (stale price), and nothing else.",
-      "Do draw icons as inline SVG strokes (1.8px, round caps and joins, 22px), sharing one sprite.",
-      "Do keep every touch target at least 44px.",
-      "Do give every motion a reduced-motion fallback: unroll and view entry become a 180ms opacity fade; the highlighter swipe, tulip rotation, FLIP reorder, locating pulse and press scale are removed; the sheet and toast only fade.",
-      "Do use the three curves as built: ease-out `cubic-bezier(0.23, 1, 0.32, 1)` for entries and presses, ease-in-out `cubic-bezier(0.77, 0, 0.175, 1)` for reorder and tulip rotation, drawer `cubic-bezier(0.32, 0.72, 0, 1)` for the sheet; keep durations between 120ms and 380ms."
+      "Do set every station name and heading in Young Serif 400 and every figure in condensed Archivo 800 with tabular numerals.",
+      "Do mark patches with a 1.5px dashed `stitch` outline inset 6–9px inside the edge.",
+      "Do keep thread colours (rose, lavender, coral, ochre, sage, sky) for embroidery, rings, pins and the active icon.",
+      "Do keep exactly one filled `accent` action per view: ink thread by day, gold thread by night.",
+      "Do draw new decorative art as SVG line embroidery: running-stitch dashes `3.2 1.8`, satin hatching patterns, French knots, 1–2px round-capped strokes.",
+      "Do define every new colour as a light / `-dark` pair and check it on both cloths.",
+      "Do give every animation a reduced-motion fallback (fade, no translation)."
     ],
     "donts": [
-      "Don't render stations as grey rounded cards with a pin icon; that is the category default the roadbook replaces.",
-      "Don't add shadows to anything printed on the roll; only the sheet and toast float.",
-      "Don't introduce a new accent colour; a role either fits ink, pencil grey, paper, yellow, orange or the saving green, or it doesn't ship.",
-      "Don't put pale text on the yellow highlighter, in either theme.",
-      "Don't use glyph or emoji icons, or an icon font.",
-      "Don't condense station names in ordinary cases, addresses or explanatory text."
+      "Don't fill cards, sections or backgrounds with thread colours; the cloth stays cream or night blue.",
+      "Don't add shadows to rows, chips or inputs; only the answer patch and overlays lift.",
+      "Don't fake a bold Young Serif or set prices in the serif.",
+      "Don't treat the compass-flower mark as final identity; it is provisional pending the owner's choice.",
+      "Don't reintroduce the previous roadbook vocabulary (ruled cases, highlighter yellow, tulip diagrams, hard frames)."
     ]
   }
 }
