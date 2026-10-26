@@ -11,14 +11,15 @@ const PROFILES = [
   { id: "mt450", label: "CFMoto 450MT", short: "450MT", detail: "14 L, 4,5 L/100", litres: 14, conso: 4.5 },
   { id: "scooter", label: "Scooter 125", short: "Scooter", detail: "6 L, 2,8 L/100", litres: 6, conso: 2.8 },
   { id: "car", label: "Voiture", short: "Voiture", detail: "40 L, 6,5 L/100", litres: 40, conso: 6.5 },
-  { id: "custom", label: "Personnalisé", short: "Perso", detail: "tes valeurs" },
 ];
 const NAV_APPS = [
   { id: "apple", label: "Plans", detail: "l'appli Plans de l'iPhone" },
   { id: "google", label: "Google Maps", detail: "appli ou site" },
   { id: "waze", label: "Waze", detail: "appli ou site" },
 ];
-const FUEL_ORDER = ["e10", "sp95", "sp98", "gazole", "e85", "gplc"];
+const FUEL_ORDER = ["sp95", "e10", "sp98", "gazole", "e85", "gplc"];
+// Noms affichés : le flux dit « SP95 », on précise E5 pour la distinguer de l’E10.
+const FUEL_NAMES = { sp95: "SP95-E5", e10: "SP95-E10" };
 const STORE_KEY = "plein-sud:v3";
 const ALTS = 2;
 const ALL_MAX = 30;
@@ -29,7 +30,7 @@ const DWELL_IN_M = 50;            // à moins de 50 m d'une station
 const DWELL_OUT_M = 90;           // au-delà de 90 m, on considère qu'on est reparti
 const REORIGIN_M = 300;           // on ne reclasse qu'après 300 m de déplacement
 const DEFAULTS = {
-  fuel: "e10", placeId: "gps", gps: null, profileId: "mt450", custom: { litres: 14, conso: 4.5 },
+  fuel: "sp95", placeId: "gps", gps: null, profileId: "mt450", vehicles: [],
   radius: 15, favs: [], log: [], nav: null, fillSeen: {},
 };
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -48,13 +49,26 @@ let lastLeadKey = "";
 let locating = false;
 let showAll = false;
 let watchId = null;
+let vehEditing = null; // null = formulaire fermé, "new" = ajout, sinon l'id édité
 let dwell = null;
+
+const litresText = (n) => commaNum(Number(n), Number(n) % 1 ? 1 : 0);
+function newVehicleId() { return "v" + Date.now().toString(36); }
 
 function loadState() {
   try {
     const raw = JSON.parse(localStorage.getItem(STORE_KEY) || "null") || JSON.parse(localStorage.getItem("plein-sud:v2") || "null");
     if (!raw) return structuredClone(DEFAULTS);
-    return { ...structuredClone(DEFAULTS), ...raw, custom: { ...DEFAULTS.custom, ...(raw.custom || {}) } };
+    const merged = { ...structuredClone(DEFAULTS), ...raw };
+    if (!Array.isArray(merged.vehicles)) merged.vehicles = [];
+    if (merged.profileId === "custom") { // ancien profil « Personnalisé » -> un vrai véhicule
+      const c = raw.custom || {};
+      const id = newVehicleId();
+      merged.vehicles.push({ id, label: "Mon véhicule", litres: Number(c.litres) || 14, conso: Number(c.conso) || 4.5 });
+      merged.profileId = id;
+    }
+    delete merged.custom;
+    return merged;
   } catch {
     return structuredClone(DEFAULTS);
   }
@@ -115,7 +129,8 @@ const els = {
   logPrice: $("logPrice"), logPreview: $("logPreview"), logList: $("logList"),
   stationSheet: $("stationSheet"), stationBody: $("stationBody"), navSheet: $("navSheet"), navApps: $("navApps"), navRemember: $("navRemember"),
   settingsSheet: $("settingsSheet"), settingsForm: $("settingsForm"), places: $("places"), profiles: $("profiles"), navPref: $("navPref"),
-  custom: $("custom"), litres: $("litres"), conso: $("conso"), radius: $("radius"), radiusOut: $("radiusOut"),
+  vehForm: $("vehForm"), vehName: $("vehName"), vehLitres: $("vehLitres"), vehConso: $("vehConso"), vehFuel: $("vehFuel"), vehHint: $("vehHint"),
+  vehSave: $("vehSave"), vehCancel: $("vehCancel"), vehDelete: $("vehDelete"), vehEdit: $("vehEdit"), radius: $("radius"), radiusOut: $("radiusOut"),
   useGps: $("useGps"), useGpsText: $("useGpsText"), gpsHint: $("gpsHint"), toast: $("toast"),
   fillCard: $("fillCard"), fillText: $("fillText"), fillQuick: $("fillQuick"), fillYes: $("fillYes"), fillNo: $("fillNo"), hapticLabel: $("hapticLabel"),
 };
@@ -130,7 +145,8 @@ function originLabel() {
   return (PLACES.find((p) => p.id === state.placeId) || PLACES[0]).short;
 }
 function vehicle() {
-  if (state.profileId === "custom") return { label: "Personnalisé", short: "Perso", ...state.custom };
+  const own = state.vehicles.find((v) => v.id === state.profileId);
+  if (own) return { ...own, short: own.label };
   return PROFILES.find((p) => p.id === state.profileId) || PROFILES[0];
 }
 const stationById = (id) => data?.stations.find((s) => s.id === id);
@@ -531,11 +547,14 @@ function enableDragToClose(dlg) {
 
 function renderSettings() {
   els.places.innerHTML = PLACES.map((p) => `<button type="button" class="choice" data-place="${p.id}" aria-pressed="${state.placeId === p.id}">${esc(p.label)}</button>`).join("");
-  els.profiles.innerHTML = PROFILES.map((p) => `<button type="button" class="choice" data-profile="${p.id}" aria-pressed="${state.profileId === p.id}">${esc(p.label)}<small>${esc(p.detail)}</small></button>`).join("");
+  const mine = state.vehicles.map((v) => ({ ...v, detail: `${litresText(v.litres)} L, ${commaNum(Number(v.conso), 1)} L/100` }));
+  els.profiles.innerHTML = [...PROFILES, ...mine].map((p) => `<button type="button" class="choice" data-profile="${p.id}" aria-pressed="${state.profileId === p.id}">${esc(p.label)}<small>${esc(p.detail)}</small></button>`).join("")
+    + `<button type="button" class="choice choice-add" data-veh-add><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Ajouter un véhicule</button>`;
+  const isMine = state.vehicles.some((v) => v.id === state.profileId);
+  els.vehEdit.hidden = !isMine || vehEditing !== null;
+  els.vehForm.hidden = vehEditing === null;
+  els.vehDelete.hidden = vehEditing === null || vehEditing === "new";
   els.navPref.innerHTML = [{ id: "", label: "Me demander" }, ...NAV_APPS].map((a) => `<button type="button" class="choice" data-nav-pref="${a.id}" aria-pressed="${(state.nav || "") === a.id}">${esc(a.label)}</button>`).join("");
-  els.custom.hidden = state.profileId !== "custom";
-  els.litres.value = commaNum(Number(state.custom.litres), 0);
-  els.conso.value = commaNum(Number(state.custom.conso), 1);
   els.radius.value = state.radius;
   els.radiusOut.textContent = `${state.radius} km`;
   els.useGps.setAttribute("aria-pressed", String(state.placeId === "gps"));
@@ -805,20 +824,63 @@ els.settingsSheet.addEventListener("click", (e) => {
   const place = e.target.closest("[data-place]");
   if (place) { state.placeId = place.dataset.place; renderSettings(); return update(); }
   const prof = e.target.closest("[data-profile]");
-  if (prof) { state.profileId = prof.dataset.profile; renderSettings(); return update(); }
+  if (prof) {
+    state.profileId = prof.dataset.profile;
+    const own = state.vehicles.find((v) => v.id === state.profileId);
+    if (own?.fuel && data?.fuels[own.fuel]) state.fuel = own.fuel;
+    vehEditing = null;
+    renderSettings();
+    return update();
+  }
+  if (e.target.closest("[data-veh-add]")) return openVehForm("new");
   const nav = e.target.closest("[data-nav-pref]");
   if (nav) { state.nav = nav.dataset.navPref || null; renderSettings(); return update(); }
 });
 els.useGps.addEventListener("click", () => locate({ fromUser: true }));
 els.radius.addEventListener("input", () => { state.radius = Number(els.radius.value); els.radiusOut.textContent = `${state.radius} km`; update(); });
-for (const input of [els.litres, els.conso]) {
-  input.addEventListener("change", () => {
-    const l = parseNum(els.litres.value);
-    const c = parseNum(els.conso.value);
-    if (l > 0 && l < 200) state.custom.litres = l;
-    if (c > 0 && c < 30) state.custom.conso = c;
-    update();
-  });
+function openVehForm(which) {
+  vehEditing = which;
+  const v = which === "new" ? { label: "", litres: 14, conso: 5, fuel: state.fuel } : state.vehicles.find((x) => x.id === which);
+  els.vehName.value = v.label;
+  els.vehLitres.value = litresText(v.litres);
+  els.vehConso.value = commaNum(Number(v.conso), 1);
+  els.vehFuel.innerHTML = FUEL_ORDER.filter((f) => data?.fuels[f]).map((f) => `<option value="${f}"${f === (v.fuel || state.fuel) ? " selected" : ""}>${esc(data.fuels[f].label)}</option>`).join("");
+  els.vehHint.hidden = true;
+  renderSettings();
+  els.vehName.focus();
+}
+function saveVehicle() {
+  const litres = parseNum(els.vehLitres.value);
+  const conso = parseNum(els.vehConso.value);
+  if (!(litres > 0 && litres < 200)) return vehError("Le réservoir doit être entre 1 et 199 litres.");
+  if (!(conso > 0 && conso < 30)) return vehError("La consommation doit être entre 0,1 et 30 L/100 km.");
+  const label = els.vehName.value.trim().slice(0, 24) || "Mon véhicule";
+  const fuel = els.vehFuel.value;
+  if (vehEditing === "new") {
+    const id = newVehicleId();
+    state.vehicles.push({ id, label, litres, conso, fuel });
+    state.profileId = id;
+  } else {
+    Object.assign(state.vehicles.find((x) => x.id === vehEditing), { label, litres, conso, fuel });
+  }
+  if (fuel && data?.fuels[fuel]) state.fuel = fuel;
+  vehEditing = null;
+  renderSettings();
+  update();
+}
+function vehError(msg) { els.vehHint.textContent = msg; els.vehHint.hidden = false; }
+els.vehSave.addEventListener("click", saveVehicle);
+els.vehCancel.addEventListener("click", () => { vehEditing = null; renderSettings(); });
+els.vehEdit.addEventListener("click", () => openVehForm(state.profileId));
+els.vehDelete.addEventListener("click", () => {
+  state.vehicles = state.vehicles.filter((x) => x.id !== vehEditing);
+  if (state.profileId === vehEditing) state.profileId = PROFILES[0].id;
+  vehEditing = null;
+  renderSettings();
+  update();
+});
+for (const input of [els.vehName, els.vehLitres, els.vehConso]) {
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveVehicle(); } });
 }
 els.settingsForm.addEventListener("submit", (e) => { e.preventDefault(); closeSheet(els.settingsSheet); });
 
@@ -888,6 +950,7 @@ async function boot() {
     const res = await fetch("data/latest.json", { cache: "no-cache" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     data = await res.json();
+    for (const [f, name] of Object.entries(FUEL_NAMES)) if (data.fuels[f]) data.fuels[f].label = name;
   } catch {
     els.answerBody.innerHTML = `<div class="ans-head"><p class="ans-name">Prix indisponibles</p><p class="ans-ville">Impossible de charger les prix. Vérifie ta connexion puis recharge la page.</p></div>`;
     return;

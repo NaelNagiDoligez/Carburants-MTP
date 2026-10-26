@@ -148,9 +148,20 @@
       <fieldset>
         <legend>Véhicule</legend>
         <div class="choices" id="profiles"></div>
-        <div class="field-row" id="custom" hidden>
-          <label class="field" for="litres">Litres par plein<input id="litres" type="text" inputmode="decimal"></label>
-          <label class="field" for="conso">Conso (L/100 km)<input id="conso" type="text" inputmode="decimal"></label>
+        <button class="btn btn-text veh-edit" type="button" id="vehEdit" hidden>Modifier ce véhicule</button>
+        <div class="veh-form" id="vehForm" hidden>
+          <label class="field" for="vehName">Nom du véhicule<input id="vehName" type="text" maxlength="24" autocomplete="off" placeholder="Ma Yamaha, la Clio de Papa…"></label>
+          <div class="field-row">
+            <label class="field" for="vehLitres">Réservoir (litres)<input id="vehLitres" type="text" inputmode="decimal"></label>
+            <label class="field" for="vehConso">Conso (L/100 km)<input id="vehConso" type="text" inputmode="decimal"></label>
+          </div>
+          <label class="field" for="vehFuel">Carburant<select id="vehFuel"></select></label>
+          <p class="hint" id="vehHint" role="alert" hidden></p>
+          <div class="veh-actions">
+            <button class="btn btn-main" type="button" id="vehSave">Enregistrer</button>
+            <button class="btn" type="button" id="vehCancel">Annuler</button>
+            <button class="btn btn-text" type="button" id="vehDelete" hidden>Supprimer</button>
+          </div>
         </div>
       </fieldset>
       <fieldset>

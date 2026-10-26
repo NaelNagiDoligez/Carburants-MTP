@@ -399,3 +399,9 @@ button:disabled, input:disabled, select:disabled { opacity: .5; cursor: not-allo
 .btn-main:disabled { background: var(--seam); border-color: var(--seam); color: var(--ink-2); cursor: not-allowed; opacity: 1; }
 h1, h2, h3, .fill-title, .next-title { text-wrap: balance; }
 .btn-text { white-space: nowrap; }
+
+/* Ajout et édition d'un véhicule. */
+.choice-add { display: inline-flex; align-items: center; gap: 6px; border-style: dashed; background: transparent; color: var(--ink-2); }
+.veh-form { display: grid; gap: 12px; margin-top: 12px; padding: 14px; border-radius: 16px; outline: 1.5px dashed var(--stitch); outline-offset: -6px; }
+.veh-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.veh-edit { margin-top: 8px; }
