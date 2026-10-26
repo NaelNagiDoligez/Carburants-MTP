@@ -33,6 +33,13 @@
   --warn-bg: #F8DFD3;
   --warn-ink: #8A3A1E;
   --scrim: rgba(42, 36, 32, .42);
+  --hi: rgba(255, 255, 255, .4);
+  --shade-ink: rgba(42, 36, 32, .45);
+  --shade-1: rgba(14, 10, 8, .45);
+  --shade-2: rgba(14, 10, 8, .5);
+  --shade-3: rgba(14, 10, 8, .55);
+  /* Fond brodé d'automne : rouille, prune, olive, ocre. */
+  --au-rose: #B4532F; --au-lav: #7C4A6D; --au-lav-fill: #E7D3D6; --au-coral: #C98429; --au-sage: #7D7C42; --au-sky: #B8A98A;
 
   --f-ui: "Archivo", "Arial Narrow", system-ui, sans-serif;
   --f-name: "Young Serif", Georgia, serif;
@@ -64,12 +71,14 @@
     --warn-bg: #3D2433;
     --warn-ink: #F3B9A6;
     --scrim: rgba(4, 6, 18, .6);
+    --au-rose: #E8A07A; --au-lav: #D3A5C8; --au-lav-fill: #4A2F5E; --au-coral: #E3B068; --au-sage: #C9C79A; --au-sky: #B9B2C6;
     color-scheme: dark;
   }
 }
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; background: var(--ground); }
+html, body { overflow-x: clip; }
 body { margin: 0; min-height: 100dvh; background: var(--ground); color: var(--ink); font: 400 16px/1.45 var(--f-ui); font-variant-numeric: tabular-nums; -webkit-tap-highlight-color: transparent; }
 ::selection { background: var(--lav-fill); color: var(--ink); }
 button, input, select { font: inherit; color: inherit; }
@@ -134,7 +143,7 @@ a { color: inherit; text-underline-offset: 3px; }
 .answer {
   position: relative; overflow: hidden; border-radius: 24px; background: var(--cloth);
   outline: 1.5px dashed var(--stitch); outline-offset: -9px;
-  box-shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 14px 30px -22px rgba(42, 36, 32, .45);
+  box-shadow: 0 1px 0 var(--hi) inset, 0 14px 30px -22px var(--shade-ink);
   min-height: 420px;
 }
 .bouquet {
@@ -215,7 +224,7 @@ a { color: inherit; text-underline-offset: 3px; }
 .map-note { font-size: 13px; color: var(--ink-2); margin: 10px 4px 0; }
 .pin {
   width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; text-align: center; cursor: pointer; padding: 0; border-radius: 50%;
-  background: var(--cloth); border: 2px dashed var(--rose-thread); box-shadow: 0 4px 10px -6px rgba(14, 10, 8, .5);
+  background: var(--cloth); border: 2px dashed var(--rose-thread); box-shadow: 0 4px 10px -6px var(--shade-2);
   font: 800 14px/1 var(--f-ui); font-stretch: 75%; color: var(--ink);
 }
 .pin.is-best { width: 40px; height: 40px; font-size: 18px; background: var(--rose-thread); border: 2px dashed var(--cloth); color: var(--cloth); outline: 2px solid var(--rose-thread); }
@@ -277,7 +286,7 @@ a { color: inherit; text-underline-offset: 3px; }
   background: var(--cloth); color: var(--ink); border-radius: 24px 24px 0 0;
   padding: 8px max(18px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
   display: grid; gap: 16px; transform: translateY(100%); transition: transform 320ms var(--ease-drawer);
-  box-shadow: 0 -14px 34px -18px rgba(14, 10, 8, .45);
+  box-shadow: 0 -14px 34px -18px var(--shade-1);
 }
 .sheet p { margin: 0; }
 .sheet-host.is-open .scrim { opacity: 1; }
@@ -323,13 +332,13 @@ legend { font-size: 13px; font-weight: 700; color: var(--ink-2); padding: 0; mar
 /* Carte « tu fais le plein ? » : part de l'onglet Carnet */
 .fillcard {
   position: fixed; z-index: 30; right: max(12px, env(safe-area-inset-right)); bottom: calc(76px + env(safe-area-inset-bottom));
-  width: min(330px, calc(100vw - 24px)); padding: 16px; border-radius: 22px;
+  width: min(330px, calc(100% - 24px)); padding: 16px; border-radius: 22px;
   background: var(--cloth); color: var(--ink); outline: 1.5px dashed var(--stitch); outline-offset: -7px;
-  box-shadow: 0 18px 40px -18px rgba(14, 10, 8, .55);
+  box-shadow: 0 18px 40px -18px var(--shade-3);
   display: grid; gap: 10px; transform-origin: 85% 110%;
-  opacity: 0; transform: translateY(14px) scale(.6); transition: opacity 260ms ease, transform 340ms var(--ease-out);
+  transition: opacity 260ms ease, transform 340ms var(--ease-out);
 }
-.fillcard.show { opacity: 1; transform: none; }
+.js .fillcard:not(.show) { opacity: 0; transform: translateY(14px) scale(.6); }
 .fillcard p { margin: 0; }
 .fill-title { font: 400 20px/1.15 var(--f-name); }
 .fill-text { font-size: 15px; color: var(--ink-2); }
@@ -342,7 +351,7 @@ legend { font-size: 13px; font-weight: 700; color: var(--ink-2); padding: 0; mar
   position: fixed; left: 16px; right: 16px; margin-inline: auto; width: fit-content; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 20;
   transform: translateY(12px); opacity: 0; transition: transform 220ms var(--ease-out), opacity 220ms ease;
   background: var(--ink); color: var(--ground); border-radius: 14px; padding: 10px 14px; display: flex; gap: 14px; align-items: center;
-  font-size: 15px; box-shadow: 0 10px 24px -12px rgba(14, 10, 8, .5); max-width: calc(100vw - 32px);
+  font-size: 15px; box-shadow: 0 10px 24px -12px var(--shade-2); max-width: calc(100vw - 32px);
 }
 .toast.show { transform: none; opacity: 1; }
 .toast button { border: 0; background: transparent; color: var(--ochre); font-weight: 800; cursor: pointer; min-height: 36px; }
@@ -382,8 +391,11 @@ legend { font-size: 13px; font-weight: 700; color: var(--ink-2); padding: 0; mar
 .garden .satin-rose { fill: url(#satin-rose); }
 .shell { position: relative; z-index: 1; }
 .next-title { display: table; background: var(--ground); padding: 1px 12px 3px; margin-left: -8px; border-radius: 12px; }
-/* Automne : rouille, prune, olive, ocre. */
-.garden[data-season="automne"] { --rose-thread: #B4532F; --lav: #7C4A6D; --lav-fill: #E7D3D6; --coral: #C98429; --sage: #7D7C42; --sky: #B8A98A; }
-@media (prefers-color-scheme: dark) {
-  .garden[data-season="automne"] { --rose-thread: #E8A07A; --lav: #D3A5C8; --lav-fill: #4A2F5E; --coral: #E3B068; --sage: #C9C79A; --sky: #B9B2C6; }
-}
+/* Automne : les valeurs vivent dans les jetons --au-* de :root. */
+.garden[data-season="automne"] { --rose-thread: var(--au-rose); --lav: var(--au-lav); --lav-fill: var(--au-lav-fill); --coral: var(--au-coral); --sage: var(--au-sage); --sky: var(--au-sky); }
+
+/* États désactivés, titres équilibrés. */
+button:disabled, input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
+.btn-main:disabled { background: var(--seam); border-color: var(--seam); color: var(--ink-2); cursor: not-allowed; opacity: 1; }
+h1, h2, h3, .fill-title, .next-title { text-wrap: balance; }
+.btn-text { white-space: nowrap; }

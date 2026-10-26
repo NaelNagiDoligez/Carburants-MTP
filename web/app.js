@@ -8,9 +8,9 @@ const PLACES = [
   { id: "triolet", label: "Campus Triolet", short: "Triolet", lat: 43.6318, lon: 3.8613 },
 ];
 const PROFILES = [
-  { id: "mt450", label: "CFMoto 450MT", short: "450MT", detail: "14 L · 4,5 L/100", litres: 14, conso: 4.5 },
-  { id: "scooter", label: "Scooter 125", short: "Scooter", detail: "6 L · 2,8 L/100", litres: 6, conso: 2.8 },
-  { id: "car", label: "Voiture", short: "Voiture", detail: "40 L · 6,5 L/100", litres: 40, conso: 6.5 },
+  { id: "mt450", label: "CFMoto 450MT", short: "450MT", detail: "14 L, 4,5 L/100", litres: 14, conso: 4.5 },
+  { id: "scooter", label: "Scooter 125", short: "Scooter", detail: "6 L, 2,8 L/100", litres: 6, conso: 2.8 },
+  { id: "car", label: "Voiture", short: "Voiture", detail: "40 L, 6,5 L/100", litres: 40, conso: 6.5 },
   { id: "custom", label: "Personnalisé", short: "Perso", detail: "tes valeurs" },
 ];
 const NAV_APPS = [
@@ -149,7 +149,7 @@ function renderStart() {
   const v = vehicle();
   els.start.classList.toggle("locating", locating);
   const where = state.placeId === "gps" ? (state.gps ? "Ta position" : "Comédie") : (PLACES.find((p) => p.id === state.placeId) || PLACES[0]).short;
-  els.startText.textContent = locating ? "Position…" : state.placeId === "gps" && state.gps ? `${v.short} · ${state.radius} km` : `${where} · ${v.short}`;
+  els.startText.textContent = locating ? "Position…" : state.placeId === "gps" && state.gps ? `${v.short}, ${state.radius} km` : `${where}, ${v.short}`;
 }
 function renderFuels() {
   const fuels = FUEL_ORDER.filter((f) => data.fuels[f]);
@@ -190,7 +190,7 @@ function renderAnswer() {
       <p class="fact"><b>${kmText(r.distanceKm)} km</b><span>distance</span></p>
       <p class="fact"><b>${eur.format(r.total)}</b><span>plein + détour</span></p>
     </div>
-    <button type="button" class="go" data-go="${esc(s.id)}">${icon("i-go")}Y aller${navLabel() ? `<small>· ${esc(navLabel())}</small>` : ""}</button>
+    <button type="button" class="go" data-go="${esc(s.id)}">${icon("i-go")}Y aller${navLabel() ? `<small>${esc(navLabel())}</small>` : ""}</button>
     <div class="ans-foot"><span>${saving}${age}</span>
       <button type="button" class="icon-btn star-btn" data-fav="${esc(s.id)}" aria-pressed="${isFav(s.id)}" aria-label="${isFav(s.id) ? "Retirer des favoris" : "Ajouter aux favoris"}">${icon("i-star")}</button>
     </div>`;
@@ -219,12 +219,12 @@ function altHTML(r, best, label) {
   const s = r.station;
   const delta = r.total - best.total;
   const right = label ?? (delta < 0.005 ? "même total" : `+${eur.format(delta)}`);
-  const stale = hoursOld(r.updatedAt) > STALE_HOURS ? ` · prix ${ago(r.updatedAt)}` : "";
+  const stale = hoursOld(r.updatedAt) > STALE_HOURS ? `, prix ${ago(r.updatedAt)}` : "";
   return `<button type="button" class="alt-btn" data-open="${esc(s.id)}" aria-label="${r.rank ? `${r.rank}e, ` : ""}${esc(stationName(s))}, ${priceSpoken(r.price)}, ${kmText(r.distanceKm)} kilomètres, ${esc(right)}">
       <span class="rank" aria-hidden="true">${r.rank ?? "–"}</span>
       <span class="alt-name">${esc(stationName(s))}</span>
       <span class="alt-price">${priceHTML(r.price)}</span>
-      <span class="alt-meta">${kmText(r.distanceKm)} km · ${esc(titleCase(s.ville))}${stale}</span>
+      <span class="alt-meta">${kmText(r.distanceKm)} km, ${esc(titleCase(s.ville))}${stale}</span>
       <span class="alt-gap">${esc(right)}</span>
     </button>`;
 }
@@ -478,7 +478,7 @@ function openStation(id) {
     <div class="grabber" aria-hidden="true"></div>
     <div class="sheet-head">
       <div><h2 id="stTitle">${esc(stationName(s))}</h2>
-        <p>${esc(titleCase(s.ville))}${r ? ` · ${kmText(r.distanceKm)} km · ${r.rank}${r.rank === 1 ? "re" : "e"} au classement` : " · hors rayon"}</p></div>
+        <p>${esc(titleCase(s.ville))}${r ? `, ${kmText(r.distanceKm)} km, ${r.rank}${r.rank === 1 ? "re" : "e"} au classement` : ", hors rayon"}</p></div>
       <button class="icon-btn" type="button" data-close aria-label="Fermer">${icon("i-close")}</button>
     </div>
     ${r ? `<p class="st-sum"><b>${eur.format(r.total)}</b> le plein de ${esc(fuelLabel())}, détour compris</p>` : ""}
@@ -671,7 +671,7 @@ function hideFillCard() {
 function fillLogForm(preselectId) {
   const favs = state.favs.map(stationById).filter((s) => s && s.prices[state.fuel]);
   const near = ranked.slice(0, 20).map((r) => r.station).filter((s) => !state.favs.includes(s.id));
-  const opt = (s) => `<option value="${esc(s.id)}">${esc(stationName(s))} · ${esc(titleCase(s.ville))}</option>`;
+  const opt = (s) => `<option value="${esc(s.id)}">${esc(stationName(s))}, ${esc(titleCase(s.ville))}</option>`;
   els.logStation.innerHTML =
     (favs.length ? `<optgroup label="Favoris">${favs.map(opt).join("")}</optgroup>` : "") +
     (near.length ? `<optgroup label="Autour de ${esc(originLabel())}">${near.map(opt).join("")}</optgroup>` : "");
@@ -706,7 +706,7 @@ function renderLog() {
     ? `<p><b>${eur.format(total)}</b> ${total >= 0 ? "économisés" : "dépensés en plus"} sur ${entries.length} plein${entries.length > 1 ? "s" : ""} depuis le ${dateFmt.format(new Date(entries[entries.length - 1].date))}, par rapport au prix médian de la zone le jour du plein.</p>`
     : `<p>Note tes pleins pour voir ce que Plein Sud te fait économiser par rapport au prix médian de la zone.</p>`;
   els.logList.innerHTML = entries.map((e) => `<li class="log-item">
-      <p>${esc(e.ville)} · ${esc(e.fuelLabel)}<small>${dateFmt.format(new Date(e.date))} · ${String(e.litres).replace(".", ",")} L à ${commaNum(e.price, 3)} €</small></p>
+      <p>${esc(e.ville)}, ${esc(e.fuelLabel)}<small>${dateFmt.format(new Date(e.date))}, ${String(e.litres).replace(".", ",")} L à ${commaNum(e.price, 3)} €</small></p>
       <span class="log-gain${e.gain < 0 ? " neg" : ""}">${e.gain >= 0 ? "−" : "+"}${eur.format(Math.abs(e.gain))}</span>
       <button type="button" class="log-del" data-del="${esc(e.id)}" aria-label="Supprimer ce plein">${icon("i-close")}</button>
     </li>`).join("");
