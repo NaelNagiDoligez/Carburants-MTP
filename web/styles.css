@@ -372,3 +372,18 @@ legend { font-size: 13px; font-weight: 700; color: var(--ink-2); padding: 0; mar
   .satin-line { stroke: var(--ochre); opacity: .5; }
   .satin-line-rose { stroke: var(--ochre); opacity: .45; }
 }
+
+/* Fond brodé : généré par garden.js à chaque ouverture, aux couleurs de la saison. */
+.garden { position: fixed; top: 0; bottom: 0; left: 50%; width: 100%; max-width: 560px; transform: translateX(-50%); z-index: 0; pointer-events: none; opacity: .95; }
+.garden path, .garden ellipse { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.garden .knot-fill { fill: var(--ochre); stroke: none; }
+.garden .knot { fill: var(--lav-fill); }
+.garden .satin { fill: url(#satin); }
+.garden .satin-rose { fill: url(#satin-rose); }
+.shell { position: relative; z-index: 1; }
+.next-title { display: table; background: var(--ground); padding: 1px 12px 3px; margin-left: -8px; border-radius: 12px; }
+/* Automne : rouille, prune, olive, ocre. */
+.garden[data-season="automne"] { --rose-thread: #B4532F; --lav: #7C4A6D; --lav-fill: #E7D3D6; --coral: #C98429; --sage: #7D7C42; --sky: #B8A98A; }
+@media (prefers-color-scheme: dark) {
+  .garden[data-season="automne"] { --rose-thread: #E8A07A; --lav: #D3A5C8; --lav-fill: #4A2F5E; --coral: #E3B068; --sage: #C9C79A; --sky: #B9B2C6; }
+}
