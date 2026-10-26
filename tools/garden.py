@@ -3,7 +3,9 @@
 Usage : python tools/garden.py lisiere|semis > web/art/garden.svg.html
 Même vocabulaire que le bouquet (classes t-*, w*, satin, knot) : les couleurs viennent du CSS.
 """
-import math, random, sys
+import math
+import random
+import sys
 
 W, H = 390, 844
 F = lambda v: f"{v:.1f}"
