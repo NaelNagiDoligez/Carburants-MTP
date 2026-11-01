@@ -18,7 +18,7 @@
     };
   }
 
-  function draw(seed, sea) {
+  function draw(seed, sea, grow = false) {
     const rand = rng(seed);
     const u = (a, b) => a + (b - a) * rand();
     const wob = (v, a = 0.9) => v + u(-a, a);
@@ -166,8 +166,17 @@
     const total = weights.reduce((a, b) => a + b, 0);
     const pick = () => { let r = rand() * total; for (let i = 0; i < kinds.length; i++) { r -= weights[i]; if (r < 0) return kinds[i]; } return "sprig"; };
 
+    // Chaque motif est un groupe qui « éclot » depuis sa base, du bas de l'écran vers le haut.
     function motif(x, y, edge) {
       const rot = u(-35, 35) + edge;
+      const start = out.length;
+      const delay = Math.round(((H - Math.min(H, Math.max(0, y))) / H) * 900 + u(0, 140));
+      const turn = (edge > 0 ? -1 : 1) * u(4, 9);
+      out.push(`<g class="m" style="--d:${delay}ms;--r:${F(turn)}deg;transform-origin:${F(x)}px ${F(y)}px">`);
+      grow(rot);
+      out.push("</g>");
+      if (out.length === start + 2) out.splice(start, 2);
+      function grow(rot) {
       switch (pick()) {
         case "daisy": daisy(x, y, u(12, 18), u(0, 45), rand() < 0.66 ? "t-rose" : "t-lav", sea === "automne" ? 14 : 8); break;
         case "five": five(x, y, u(8.5, 12.5), u(0, 72)); break;
@@ -184,6 +193,17 @@
         case "leaf": leaf(x, y, u(9, 13), u(0, 360)); break;
         default: seeds(x, y);
       }
+      }
+    }
+    // Nuit : quelques étoiles au point de croix, visibles seulement en thème sombre.
+    function stars() {
+      const g = [];
+      for (let i = 0; i < 9; i++) {
+        const left = i % 2 === 0;
+        const x = left ? u(10, 70) : u(W - 70, W - 10), y = u(150, H * 0.55), r = u(2.2, 3.6);
+        g.push(`<g class="star" style="--d:${Math.round(600 + i * 90)}ms"><path class="t-ochre w12" d="M${F(x - r)} ${F(y - r)}L${F(x + r)} ${F(y + r)}M${F(x + r)} ${F(y - r)}L${F(x - r)} ${F(y + r)}"/></g>`);
+      }
+      return `<g class="stars">${g.join("")}</g>`;
     }
 
     // Semis le long des bords et du bas : le centre reste calme.
@@ -195,7 +215,7 @@
       pts.push([x, y]);
     }
     pts.forEach(([x, y]) => motif(x, y, x < W / 2 ? 18 : -18));
-    return `<svg class="garden" data-season="${sea}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><g class="stitches">${out.join("")}</g></svg>`;
+    return `<svg class="garden${grow ? " grow" : ""}" data-season="${sea}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><g class="stitches">${out.join("")}${stars()}</g></svg>`;
   }
 
   const SEASONS = ["printemps", "ete", "automne", "hiver"];
@@ -204,7 +224,7 @@
     const asked = new URLSearchParams(location.search).get("saison"); // aperçu : ?saison=hiver
     const sea = forceSeason || (SEASONS.includes(asked) ? asked : season());
     const seed = (Math.random() * 4294967296) >>> 0;
-    const html = draw(seed, sea);
+    const html = draw(seed, sea, !old); // le jardin ne pousse qu'à l'ouverture
     if (old) old.remove();
     document.body.insertAdjacentHTML("afterbegin", html);
   }

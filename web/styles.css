@@ -107,7 +107,7 @@ a { color: inherit; text-underline-offset: 3px; }
 /* En-tête */
 .top {
   display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 10px;
-  padding: calc(max(env(safe-area-inset-top, 0px), 12px) + 18px) max(16px, env(safe-area-inset-right)) 4px max(16px, env(safe-area-inset-left));
+  padding: calc(max(env(safe-area-inset-top, 0px), 12px) + 15px) max(16px, env(safe-area-inset-right)) 4px max(16px, env(safe-area-inset-left));
 }
 .mark { width: 28px; height: 28px; fill: var(--rose-thread); }
 .top h1 { margin: 0; font: 400 22px/1 var(--f-name); letter-spacing: -.005em; }
@@ -602,3 +602,74 @@ html, body { overscroll-behavior-y: none; }
 .sk-label { fill: var(--ink-2); font: 600 11px var(--f-ui); }
 .pin-end { width: 22px; height: 22px; border-radius: 50%; background: var(--cloth); border: 3.5px solid var(--rose-thread); box-shadow: 0 0 0 1.5px var(--cloth); }
 .trip-map .maplibregl-ctrl-attrib { font-size: 10px !important; }
+
+/* ================= Motion : tout se coud =================
+   Rare (ouverture, bascule jour/nuit, plein noté) : le budget « plaisir ».
+   Fréquent (onglets, prix, liste) : court et discret. Réduire les animations : fondus seuls. */
+
+/* Ouverture : le logo éclot pétale par pétale, puis le jardin pousse du bas vers le haut. */
+.mark .mk-petal, .mark .mk-core { transform-box: view-box; transform-origin: 128px 118px; }
+.intro .mark .mk-petal { animation: petal-open 520ms var(--ease-out) both; animation-delay: calc(80ms + var(--i) * 45ms); }
+.intro .mark .mk-core { animation: knot-in 360ms var(--ease-out) 460ms both; }
+@keyframes petal-open { from { opacity: 0; transform: rotate(-28deg) scale(.55); } }
+@keyframes knot-in { from { opacity: 0; transform: scale(.4); } }
+.garden .m { transform-box: view-box; }
+.garden.grow .m { animation: bloom 760ms var(--ease-out) both; animation-delay: var(--d); }
+@keyframes bloom { from { opacity: 0; transform: rotate(var(--r)) scale(.8); } }
+/* Étoiles de nuit (point de croix) : seulement en sombre. */
+.garden .stars { display: none; }
+:root[data-theme="dark"] .garden .stars { display: inline; }
+.garden .star { transform-box: fill-box; transform-origin: center; }
+.garden.grow .star { animation: star-in 600ms var(--ease-out) both; animation-delay: var(--d); }
+@keyframes star-in { from { opacity: 0; transform: scale(.5) rotate(-45deg); } }
+
+/* Onglets : un fil passe de l'icône quittée à l'icône choisie. */
+.tabs { position: sticky; }
+.tab-thread { position: absolute; top: 4px; left: 0; height: 0; border-top: 2.5px dashed var(--rose-thread); border-radius: 2px; pointer-events: none;
+  width: 30px; transition: transform 260ms var(--ease-in-out); }
+.view.from-left { animation: view-from-left 220ms var(--ease-out); }
+.view.from-right { animation: view-from-right 220ms var(--ease-out); }
+@keyframes view-from-left { from { opacity: .4; transform: translateX(-14px); } }
+@keyframes view-from-right { from { opacity: .4; transform: translateX(14px); } }
+
+/* Prix qui change : les chiffres se recousent de bas en haut. */
+.ans-price .num.restitch { animation: num-stitch 300ms var(--ease-out); }
+@keyframes num-stitch { from { clip-path: inset(100% 0 0 0); transform: translateY(6px); } to { clip-path: inset(0 0 0 0); } }
+
+/* Tracés qui se cousent. Trait plein : pathLength="1" + .sew. Trait en pointillé (points de couture) :
+   un masque qui se déroule (.sew sur le tracé du masque), pour garder le motif des points. */
+.sew { stroke-dasharray: 1 1; }
+.sew-mask { fill: none; stroke: #fff; stroke-linecap: round; stroke-linejoin: round; }
+.sewing .sew { animation: sew var(--sew-dur, 900ms) var(--ease-in-out) both; animation-delay: var(--sew-delay, 0ms); }
+@keyframes sew { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+.sewing .pop { animation: pop 260ms var(--ease-out) both; animation-delay: var(--pd, 0ms); transform-box: fill-box; transform-origin: center; }
+@keyframes pop { from { opacity: 0; transform: scale(.6); } }
+.sewing .tr-band, .sewing .tr-high, .sewing .tr-low, .sewing .tr-real { animation: fade-late 500ms ease both; animation-delay: 800ms; }
+@keyframes fade-late { from { opacity: 0; } }
+
+.pin.pop-in { animation: pop 260ms var(--ease-out) both; animation-delay: var(--pd, 0ms); }
+
+/* Mode guidon : entrée sobre ; la station suivante glisse depuis la droite. */
+.ride[open] { animation: ride-in 220ms var(--ease-out); }
+@keyframes ride-in { from { opacity: 0; transform: scale(.98); } }
+
+/* Plein noté : une petite fleur se coud dans le message. */
+.toast-flower { width: 26px; height: 26px; flex: none; }
+.toast-flower path { fill: none; stroke: var(--rose-thread); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: 1 1; animation: sew 700ms var(--ease-out) both; animation-delay: calc(var(--i) * 60ms); }
+.toast-flower circle { fill: var(--ochre); animation: knot-in 300ms var(--ease-out) 520ms both; transform-box: fill-box; transform-origin: center; }
+
+/* Bascule jour / nuit : la nuit tombe depuis le coin du ciel (View Transitions, Safari 18+). */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+.theme-flip::view-transition-new(root) { animation: dusk 900ms var(--ease-in-out); }
+@keyframes dusk { from { clip-path: circle(0% at 92% 4%); } to { clip-path: circle(150% at 92% 4%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .intro .mark .mk-petal, .intro .mark .mk-core, .garden.grow .m, .garden.grow .star { animation: fade 400ms ease both; animation-delay: 0ms; }
+  .tab-thread { transition: none; }
+  .view.from-left, .view.from-right { animation: fade 180ms ease; }
+  .ans-price .num.restitch { animation: fade 200ms ease; }
+  .sewing .sew, .toast-flower path { animation: none; stroke-dasharray: none; }
+    .sewing .pop, .pin.pop-in, .toast-flower circle { animation: fade 200ms ease both; animation-delay: 0ms; }
+  .ride[open] { animation: fade 180ms ease; }
+  .theme-flip::view-transition-new(root) { animation: fade 300ms ease; }
+}

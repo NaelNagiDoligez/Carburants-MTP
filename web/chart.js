@@ -36,8 +36,8 @@ export function trendSVG(h, { width = 340, height = 170, label = "", compact = f
     parts.push(`<path class="tr-real" d="M${join} L${P(fc.real, n).join(" L")}"/>`);
     parts.push(`<line class="tr-today" x1="${X(n - 1).toFixed(1)}" x2="${X(n - 1).toFixed(1)}" y1="${T - 6}" y2="${height - B + 4}"/>`);
   }
-  parts.push(`<path class="tr-line" d="M${P(h.median).join(" L")}"/>`);
-  parts.push(`<circle class="tr-dot" cx="${X(n - 1).toFixed(1)}" cy="${Y(last).toFixed(1)}" r="3.6"/>`);
+  parts.push(`<path class="tr-line sew" pathLength="1" d="M${P(h.median).join(" L")}"/>`);
+  parts.push(`<circle class="tr-dot pop" style="--pd:700ms" cx="${X(n - 1).toFixed(1)}" cy="${Y(last).toFixed(1)}" r="3.6"/>`);
   parts.push(`<text class="tr-axis" x="${L}" y="${height - 6}">${dayLabel(days[0])}</text>`);
   if (fc) parts.push(`<text class="tr-axis" x="${X(n - 1).toFixed(1)}" y="${height - 6}" text-anchor="middle">auj.</text>`);
   parts.push(`<text class="tr-axis" x="${X(days.length - 1).toFixed(1)}" y="${height - 6}" text-anchor="end">${dayLabel(days[days.length - 1])}</text>`);

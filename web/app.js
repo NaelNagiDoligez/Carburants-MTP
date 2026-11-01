@@ -303,6 +303,8 @@ function stitchIn(duration) {
 }
 function restitch() {
   stitchIn(600);
+  const num = els.answerBody.querySelector(".ans-price .num");
+  if (num) { num.classList.remove("restitch"); void num.offsetWidth; num.classList.add("restitch"); }
   if (!reduceMotion.matches) {
     els.answerBody.animate([{ opacity: 0.25, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], { duration: 240, easing: EASE_OUT });
   }
@@ -405,14 +407,27 @@ function render() {
 function update() { save(); render(); }
 
 // ---------- Onglets ----------
+const VIEWS = ["rank", "map", "trip", "fav", "log"];
+const tabThread = document.createElement("span");
+tabThread.className = "tab-thread";
+tabThread.setAttribute("aria-hidden", "true");
+document.querySelector(".tabs").append(tabThread);
+// Le fil se place au-dessus de l'icône de l'onglet choisi (transform seulement).
+function placeThread() {
+  const tab = document.querySelector(`.tabs [data-view="${view}"]`);
+  if (!tab) return;
+  tabThread.style.transform = `translateX(${(tab.offsetLeft + (tab.offsetWidth - 30) / 2).toFixed(1)}px)`;
+}
 function showView(next) {
   if (next === view) return;
+  const dir = VIEWS.indexOf(next) > VIEWS.indexOf(view) ? "from-right" : "from-left";
   view = next;
+  placeThread();
   for (const t of document.querySelectorAll(".tabs [role=tab]")) t.setAttribute("aria-selected", String(t.dataset.view === next));
-  for (const id of ["rank", "map", "trip", "fav", "log"]) {
+  for (const id of VIEWS) {
     const el = $(`view-${id}`);
     el.hidden = id !== next;
-    if (id === next) { el.classList.remove("entering"); void el.offsetWidth; el.classList.add("entering"); }
+    if (id === next) { el.classList.remove("entering", "from-left", "from-right"); void el.offsetWidth; el.classList.add(dir); }
   }
   if (next === "fav") renderFavs();
   if (next === "map") renderMap();
@@ -888,12 +903,30 @@ function renderLog() {
 }
 
 // ---------- Compteur d'économies ----------
+// Le total « monte » jusqu'à sa valeur : à la première apparition, puis après chaque plein noté.
+let savingsShown = 0;
+let savingsRaf = 0;
+function countSavings(target) {
+  cancelAnimationFrame(savingsRaf);
+  const from = savingsShown, t0 = performance.now(), dur = 700;
+  const b = () => els.savings.querySelector("b");
+  if (reduceMotion.matches || Math.abs(target - from) < 0.01) { savingsShown = target; if (b()) b().textContent = eur.format(target); return; }
+  const step = (now) => {
+    const k = Math.min(1, (now - t0) / dur);
+    const e = 1 - Math.pow(1 - k, 4); // décélération marquée, comme --ease-out
+    savingsShown = from + (target - from) * e;
+    if (b()) b().textContent = eur.format(savingsShown);
+    if (k < 1) savingsRaf = requestAnimationFrame(step);
+  };
+  savingsRaf = requestAnimationFrame(step);
+}
 function renderSavings() {
   const total = state.log.reduce((sum, e) => sum + e.gain, 0);
   const n = state.log.length;
   els.savings.hidden = !(n && total >= 0.5);
   if (els.savings.hidden) return;
-  els.savings.innerHTML = `<b>${eur.format(total)}</b> économisés avec Plein Sud<small>sur ${n} plein${n > 1 ? "s" : ""} noté${n > 1 ? "s" : ""}, par rapport au prix médian de la zone · voir le carnet</small>`;
+  els.savings.innerHTML = `<b>${eur.format(savingsShown)}</b> économisés avec Plein Sud<small>sur ${n} plein${n > 1 ? "s" : ""} noté${n > 1 ? "s" : ""}, par rapport au prix médian de la zone · voir le carnet</small>`;
+  countSavings(total);
 }
 
 // ---------- Courbe des prix et prévision ----------
@@ -904,6 +937,16 @@ async function loadHistory() {
     if (res.ok) priceHistory = await res.json();
   } catch { /* la courbe est un bonus : sans elle, rien ne change */ }
   renderTrend();
+}
+let trendKey = "";
+let trendObserver = null;
+function sewTrend() {
+  const card = els.trendBody;
+  card.classList.remove("sewing");
+  void card.offsetWidth;
+  card.classList.add("sewing");
+  clearTimeout(sewTrend.t);
+  sewTrend.t = setTimeout(() => card.classList.remove("sewing"), 1600);
 }
 function renderTrend() {
   const h = priceHistory?.fuels?.[state.fuel];
@@ -918,6 +961,19 @@ function renderTrend() {
       <li><i class="lg-real"></i>réaliste : ${fmt3(fc.real.at(-1))} dans 7 jours</li>
       <li><i class="lg-band"></i>entre ${fmt3(fc.low.at(-1))} (optimiste) et ${fmt3(fc.high.at(-1))} (pessimiste)</li></ul>` : ""}
     <p class="hint">Prévision expérimentale, faite sur ${h.days.length} jours de relevés : elle s’affinera avec le temps. <a href="coulisses.html#prevision">Comment elle est calculée</a></p>`;
+  const key = state.fuel;
+  if (key === trendKey) return;
+  const first = !trendKey;
+  trendKey = key;
+  if (first && "IntersectionObserver" in window) {
+    // Première fois : la courbe se coud quand on la voit, pas hors de l'écran.
+    trendObserver = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) { sewTrend(); trendObserver.disconnect(); }
+    }, { threshold: 0.4 });
+    trendObserver.observe(els.trendBody);
+  } else if (!first) {
+    sewTrend();
+  }
 }
 
 // ---------- Thème ----------
@@ -967,7 +1023,12 @@ function closeRide() {
 }
 els.rideClose.addEventListener("click", closeRide);
 els.ride.addEventListener("close", () => { wakeLock?.release?.().catch?.(() => {}); wakeLock = null; });
-els.rideNext.addEventListener("click", () => { rideIdx++; renderRide(); });
+els.rideNext.addEventListener("click", () => {
+  rideIdx++;
+  renderRide();
+  const kf = reduceMotion.matches ? [{ opacity: 0.2 }, { opacity: 1 }] : [{ opacity: 0.2, transform: "translateX(28px)" }, { opacity: 1, transform: "none" }];
+  for (const [i, el] of [els.rideName, els.ridePrice, els.rideMeta].entries()) el.animate(kf, { duration: 220, easing: EASE_OUT, delay: i * 30, fill: "backwards" });
+});
 els.rideGo.addEventListener("click", () => { const r = ranked.slice(0, RIDE_MAX)[rideIdx]; if (r) go(r.station.id); });
 
 // ---------- Trajet : les stations sur la route ----------
@@ -1017,6 +1078,7 @@ async function planTrip(dest) {
   if (seq !== tripSeq) return;
   const coords = thin(r.coords, 600);
   const route = prepareRoute(coords);
+  tripFresh = true;
   trip = { dest, ...r, coords, route, coveredKm: data ? coveredUntilKm(coords, route, data.stations) : route.length };
   renderTrip();
 }
@@ -1024,10 +1086,12 @@ const durText = (min) => (min < 60 ? `${Math.round(min)} min` : `${Math.floor(mi
 function tripStrip(rows, len, range, covered, destName) {
   const x0 = 16, x1 = 324, y = 34;
   const X = (km) => x0 + Math.max(0, Math.min(1, km / len)) * (x1 - x0);
-  const parts = [`<line class="strip-line" x1="${x0}" x2="${x1}" y1="${y}" y2="${y}"/>`];
+  const mid = `strip-sew-${++sewId}`;
+  const parts = [`<mask id="${mid}" maskUnits="userSpaceOnUse"><path class="sew sew-mask" pathLength="1" stroke-width="12" style="--sew-dur:800ms" d="M${x0 - 6} ${y}H${x1 + 8}"/></mask>`,
+    `<g mask="url(#${mid})"><line class="strip-line" x1="${x0}" x2="${x1}" y1="${y}" y2="${y}"/>`];
   if (covered < len - 0.5) parts.push(`<line class="strip-nodata" x1="${X(covered).toFixed(1)}" x2="${x1}" y1="${y}" y2="${y}"/>`);
   if (range != null && range * 0.9 < len) parts.push(`<line class="strip-dry" x1="${X(range * 0.9).toFixed(1)}" x2="${x1}" y1="${y}" y2="${y}"/><text class="strip-note" x="${X(range * 0.9).toFixed(1)}" y="${y - 16}" text-anchor="middle">réserve</text>`);
-  parts.push(`<circle class="strip-start" cx="${x0}" cy="${y}" r="5"/><circle class="strip-end" cx="${x1}" cy="${y}" r="6"/>`);
+  parts.push(`</g><circle class="strip-start" cx="${x0}" cy="${y}" r="5"/><circle class="strip-end pop" style="--pd:760ms" cx="${x1}" cy="${y}" r="6"/>`);
   const shown = rows.slice(0, 5).map((r, i) => ({ r, i, x: X(r.atKm) })).sort((a, b) => a.x - b.x);
   const levels = [0, -19, -38, -57]; // pastilles proches : on les étage au-dessus de la route
   const used = levels.map(() => []);
@@ -1035,7 +1099,7 @@ function tripStrip(rows, len, range, covered, destName) {
     const li = Math.max(0, levels.findIndex((_, k) => used[k].every((x) => Math.abs(x - p.x) >= 19)));
     used[li].push(p.x);
     const cy = y + levels[li];
-    parts.push(`<g class="strip-pin${p.i === 0 ? " is-best" : ""}${p.r.unreachable ? " is-dry" : ""}"><circle cx="${p.x.toFixed(1)}" cy="${cy}" r="9"/><text x="${p.x.toFixed(1)}" y="${cy + 4}" text-anchor="middle">${p.i + 1}</text></g>`);
+    parts.push(`<g class="strip-pin pop${p.i === 0 ? " is-best" : ""}${p.r.unreachable ? " is-dry" : ""}" style="--pd:${Math.round(120 + ((p.x - x0) / (x1 - x0)) * 700)}ms"><circle cx="${p.x.toFixed(1)}" cy="${cy}" r="9"/><text x="${p.x.toFixed(1)}" y="${cy + 4}" text-anchor="middle">${p.i + 1}</text></g>`);
   }
   parts.push(`<text class="strip-label" x="${x0 - 4}" y="${y + 24}">départ</text><text class="strip-label" x="${x1 + 4}" y="${y + 24}" text-anchor="end">${esc(destName)}</text>`);
   return `<svg class="trip-strip" viewBox="0 -34 340 102" role="img" aria-label="Les stations le long de la route, du départ à ${esc(destName)}">${parts.join("")}</svg>`;
@@ -1100,7 +1164,12 @@ function renderTrip() {
     ${rows.length > 1 ? `<h2 class="next-title">Sur la route</h2><ol class="alts trip-list">${rows.slice(0, TRIP_LIST).map((r, i) => tripRowHTML(r, i, best, scale)).join("")}</ol>` : ""}
     <p class="hint">Détour estimé : aller-retour entre la route et la station, à vol d’oiseau x 1,4. Itinéraire : OSRM (données OpenStreetMap), adresses : Base Adresse Nationale.</p>`;
   renderTripMap(rows);
+  for (const el of [els.tripOut, els.tripMap]) el.classList.toggle("sewing", tripFresh);
+  if (tripFresh) setTimeout(() => { for (const el of [els.tripOut, els.tripMap]) el.classList.remove("sewing"); }, 1800);
+  tripFresh = false;
 }
+let sewId = 0;
+let tripFresh = false; // vrai juste après le calcul d'un trajet : la route se coud une fois
 // Aperçu : carte MapLibre (départ, arrivée, stations) ; si le fond de carte ne charge pas, un croquis SVG du tracé.
 let tripMap = null;
 let tripMarkers = [];
@@ -1116,11 +1185,14 @@ function tripSketch(rows) {
   const X = (lon, lat) => ((P(lon, lat)[0] - x0) * k + (W - w * k) / 2).toFixed(1);
   const Y = (lon, lat) => ((P(lon, lat)[1] - y0) * k + (H - h * k) / 2).toFixed(1);
   const line = trip.coords.map((c) => `${X(c[0], c[1])} ${Y(c[0], c[1])}`).join(" L");
+  const mid = `sk-sew-${++sewId}`;
+  const order = rows.slice(0, 5).map((r) => r.atKm / Math.max(0.1, trip.route.length));
   const a = trip.coords[0], b = trip.coords.at(-1);
-  const pins = rows.slice(0, 5).map((r, i) => `<g class="sk-pin${i === 0 ? " is-best" : ""}"><circle cx="${X(r.station.lon, r.station.lat)}" cy="${Y(r.station.lon, r.station.lat)}" r="10"/><text x="${X(r.station.lon, r.station.lat)}" y="${(Number(Y(r.station.lon, r.station.lat)) + 4).toFixed(1)}" text-anchor="middle">${i + 1}</text></g>`).reverse().join("");
+  const pins = rows.slice(0, 5).map((r, i) => `<g class="sk-pin pop${i === 0 ? " is-best" : ""}" style="--pd:${Math.round(150 + order[i] * 900)}ms"><circle cx="${X(r.station.lon, r.station.lat)}" cy="${Y(r.station.lon, r.station.lat)}" r="10"/><text x="${X(r.station.lon, r.station.lat)}" y="${(Number(Y(r.station.lon, r.station.lat)) + 4).toFixed(1)}" text-anchor="middle">${i + 1}</text></g>`).reverse().join("");
   return `<svg class="trip-sketch" viewBox="0 0 ${W} ${H}" role="img" aria-label="Croquis du trajet vers ${esc(trip.dest.short || trip.dest.label)} avec les stations">
-    <path class="sk-route" d="M${line}"/>${pins}
-    <circle class="sk-start" cx="${X(a[0], a[1])}" cy="${Y(a[0], a[1])}" r="6"/><circle class="sk-end" cx="${X(b[0], b[1])}" cy="${Y(b[0], b[1])}" r="7"/>
+    <mask id="${mid}" maskUnits="userSpaceOnUse"><path class="sew sew-mask" pathLength="1" stroke-width="14" style="--sew-dur:1100ms" d="M${line}"/></mask>
+    <path class="sk-route" mask="url(#${mid})" d="M${line}"/>${pins}
+    <circle class="sk-start" cx="${X(a[0], a[1])}" cy="${Y(a[0], a[1])}" r="6"/><circle class="sk-end pop" style="--pd:1050ms" cx="${X(b[0], b[1])}" cy="${Y(b[0], b[1])}" r="7"/>
     <text class="sk-label" x="${Number(X(a[0], a[1])) + 10}" y="${Number(Y(a[0], a[1])) - 8}">départ</text>
     <text class="sk-label" x="${Number(X(b[0], b[1])) - 10}" y="${Number(Y(b[0], b[1])) - 12}" text-anchor="end">${esc(trip.dest.short || trip.dest.label)}</text></svg>`;
 }
@@ -1165,14 +1237,35 @@ async function renderTripMap(rows) {
   const end = document.createElement("div");
   end.className = "pin-end";
   end.setAttribute("aria-label", trip.dest.short || trip.dest.label);
+  const sewing = tripFresh;
   rows.slice(0, 5).map((r, i) => ({ r, i })).reverse().forEach(({ r, i }) => {
     const el = flowerPin(i + 1, i === 0);
     el.addEventListener("click", (e) => { e.stopPropagation(); openStation(r.station.id); });
-    tripMarkers.push(new maplib.Marker({ element: el }).setLngLat([r.station.lon, r.station.lat]).addTo(tripMap));
+    if (sewing) { el.classList.add("pop-in"); el.style.setProperty("--pd", `${Math.round(200 + (r.atKm / Math.max(0.1, trip.route.length)) * 900)}ms`); }
+    const holder = document.createElement("div");
+    holder.append(el);
+    tripMarkers.push(new maplib.Marker({ element: holder }).setLngLat([r.station.lon, r.station.lat]).addTo(tripMap));
   });
   // départ et arrivée en dernier : ils restent au-dessus des pastilles
   tripMarkers.push(new maplib.Marker({ element: start }).setLngLat(a).addTo(tripMap), new maplib.Marker({ element: end }).setLngLat(b).addTo(tripMap));
   if (tripMap.isStyleLoaded()) drawTripRoute(); else tripMap.once("load", drawTripRoute);
+  // La ligne du trajet apparaît en fondu (MapLibre ne sait pas « dérouler » un tracé en pointillé).
+  if (sewing && !reduceMotion.matches) {
+    const reveal = () => {
+      if (!tripMap.getLayer("route-line")) return;
+      for (const id of ["route-line", "route-halo"]) {
+        tripMap.setPaintProperty(id, `line-opacity-transition`, { duration: 0 });
+        tripMap.setPaintProperty(id, "line-opacity", 0);
+      }
+      requestAnimationFrame(() => {
+        tripMap.setPaintProperty("route-line", "line-opacity-transition", { duration: 900 });
+        tripMap.setPaintProperty("route-halo", "line-opacity-transition", { duration: 900 });
+        tripMap.setPaintProperty("route-line", "line-opacity", 1);
+        tripMap.setPaintProperty("route-halo", "line-opacity", 0.9);
+      });
+    };
+    if (tripMap.isStyleLoaded()) reveal(); else tripMap.once("load", reveal);
+  }
   const lons = [...trip.coords.map((c) => c[0]), ...rows.slice(0, 5).map((r) => r.station.lon)];
   const lats = [...trip.coords.map((c) => c[1]), ...rows.slice(0, 5).map((r) => r.station.lat)];
   tripMap.fitBounds([[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]], { padding: 40, duration: 0, maxZoom: 13 });
@@ -1225,12 +1318,13 @@ els.tripForm.addEventListener("submit", async (e) => {
 
 // ---------- Toast ----------
 let toastTimer = 0;
-function toast(text, action) {
+const TOAST_FLOWER = `<svg class="toast-flower" viewBox="0 0 26 26" aria-hidden="true">${[0, 72, 144, 216, 288].map((a, i) => `<path style="--i:${i}" pathLength="1" transform="rotate(${a} 13 13)" d="M13 12C10.5 9.5 10.5 4.5 13 2C15.5 4.5 15.5 9.5 13 12Z"/>`).join("")}<circle cx="13" cy="13" r="2.4"/></svg>`;
+function toast(text, action, { flower = false } = {}) {
   clearTimeout(toastTimer);
   // Un panneau ouvert est dans la couche du dessus : le message doit y être aussi pour rester touchable.
   const host = document.querySelector("dialog[open]") || document.body;
   if (els.toast.parentElement !== host) host.append(els.toast);
-  els.toast.innerHTML = `<span>${esc(text)}</span>${action ? `<button type="button">${esc(action.label)}</button>` : ""}`;
+  els.toast.innerHTML = `${flower ? TOAST_FLOWER : ""}<span>${esc(text)}</span>${action ? `<button type="button">${esc(action.label)}</button>` : ""}`;
   els.toast.hidden = false;
   if (action) els.toast.querySelector("button").onclick = () => { action.run(); hideToast(); };
   requestAnimationFrame(() => els.toast.classList.add("show"));
@@ -1252,6 +1346,11 @@ els.fuels.addEventListener("click", (e) => {
 function openSettingsSheet() { renderSettings(); openSheet(els.settingsSheet); }
 els.start.addEventListener("click", openSettingsSheet);
 for (const t of document.querySelectorAll(".tabs [role=tab]")) t.addEventListener("click", () => showView(t.dataset.view));
+// Position de départ sans glissement, puis le fil suit les changements d'onglet.
+tabThread.style.transition = "none";
+placeThread();
+requestAnimationFrame(() => { tabThread.style.transition = ""; });
+addEventListener("resize", placeThread);
 els.showAll.addEventListener("click", () => { showAll = !showAll; renderRank(); });
 
 document.addEventListener("click", (e) => {
@@ -1475,7 +1574,7 @@ els.logForm.addEventListener("submit", (e) => {
   els.logLitres.value = "";
   save();
   renderLog();
-  toast("Plein ajouté au carnet");
+  toast("Plein ajouté au carnet", null, { flower: true });
 });
 els.fillYes.addEventListener("click", () => {
   const s = fillStation;
@@ -1505,7 +1604,8 @@ els.fillQuick.addEventListener("click", () => {
   if (view === "log") renderLog();
   toast(entry.gain >= 0 ? `Plein noté : ${eur.format(entry.gain)} économisés` : "Plein noté dans ton carnet", {
     label: "Annuler", run: () => { state.log = state.log.filter((x) => x.id !== entry.id); save(); if (view === "log") renderLog(); },
-  });
+  }, { flower: true });
+  renderSavings();
 });
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") {
@@ -1644,6 +1744,7 @@ async function boot() {
 }
 
 boot();
+setTimeout(() => document.documentElement.classList.remove("intro"), 1400);
 
 if ("serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});

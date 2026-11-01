@@ -32,15 +32,26 @@
     return now >= sunrise && now < sunset ? "light" : "dark";
   }
 
-  function apply(m) {
-    const t = resolve(m);
-    const root = document.documentElement;
-    const changed = root.dataset.theme !== t;
-    root.dataset.theme = t;
+  function set(t) {
+    document.documentElement.dataset.theme = t;
     let meta = document.querySelector('meta[name="theme-color"]');
     if (!meta) { meta = document.createElement("meta"); meta.name = "theme-color"; document.head.append(meta); }
     meta.content = t === "dark" ? "#0E1430" : "#F3EDE0";
-    if (changed) document.dispatchEvent(new CustomEvent("themechange", { detail: t }));
+    document.dispatchEvent(new CustomEvent("themechange", { detail: t }));
+  }
+  function apply(m) {
+    const t = resolve(m);
+    const root = document.documentElement;
+    const before = root.dataset.theme;
+    if (before === t) return t;
+    // Première pose : sans animation. Ensuite, la nuit tombe (ou le jour se lève) depuis le coin du ciel.
+    if (before && document.startViewTransition && document.visibilityState === "visible") {
+      root.classList.add("theme-flip");
+      const vt = document.startViewTransition(() => set(t));
+      vt.finished.finally(() => root.classList.remove("theme-flip"));
+    } else {
+      set(t);
+    }
     return t;
   }
 
