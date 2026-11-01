@@ -1,5 +1,7 @@
-import { rankStations, haversineKm, isOutOfStock } from "./rank.js";
+import { rankStations, haversineKm, isOutOfStock, ROAD_FACTOR } from "./rank.js";
 import { matchVehicle, catalogNames } from "./catalog.js";
+import { prepareRoute, stationsAlongRoute, coveredUntilKm, thin } from "./trip.js";
+import { trendSVG, trendWords, fmt3 } from "./chart.js";
 
 // ---------- Constantes ----------
 const PLACES = [
@@ -33,11 +35,11 @@ const DWELL_OUT_M = 90;           // au-delà de 90 m, on considère qu'on est r
 const REORIGIN_M = 300;           // on ne reclasse qu'après 300 m de déplacement
 const DEFAULTS = {
   fuel: "sp95", placeId: "gps", gps: null, profileId: "mt450", vehicles: SEEDS, seeded: true,
-  radius: 15, favs: [], log: [], nav: null, fillSeen: {},
+  radius: 15, favs: [], log: [], nav: null, fillSeen: {}, theme: "auto", trips: [], tripCorr: 2,
 };
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
-const darkScheme = matchMedia("(prefers-color-scheme: dark)");
+const isDark = () => document.documentElement.dataset.theme === "dark";
 const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
 const EASE_IN_OUT = "cubic-bezier(0.77, 0, 0.175, 1)";
 
@@ -64,7 +66,8 @@ function loadState() {
     if (!raw) return structuredClone(DEFAULTS);
     const merged = { ...structuredClone(DEFAULTS), ...raw };
     // État abîmé (édition à la main, ancienne version) : chaque champ retrouve un type sûr.
-    for (const k of ["favs", "log"]) if (!Array.isArray(merged[k])) merged[k] = [];
+    for (const k of ["favs", "log", "trips"]) if (!Array.isArray(merged[k])) merged[k] = [];
+    merged.trips = merged.trips.filter((t) => t && Number.isFinite(t.lat) && Number.isFinite(t.lon) && t.label);
     if (!merged.fillSeen || typeof merged.fillSeen !== "object") merged.fillSeen = {};
     if (!Number.isFinite(Number(merged.radius))) merged.radius = DEFAULTS.radius;
     if (merged.gps && !(Number.isFinite(merged.gps.lat) && Number.isFinite(merged.gps.lon))) merged.gps = null;
@@ -97,6 +100,7 @@ function save() {
 const eur = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
 const dec1 = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1, minimumFractionDigits: 1 });
 const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" });
+const timeFmt = new Intl.DateTimeFormat("fr-FR", { hour: "numeric", minute: "2-digit" });
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const titleCase = (s) => String(s ?? "").toLowerCase()
   .replace(/(^|[\s'’-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase())
@@ -158,6 +162,9 @@ const els = {
   vehForm: $("vehForm"), vehName: $("vehName"), vehLitres: $("vehLitres"), vehConso: $("vehConso"), vehFuel: $("vehFuel"), vehHint: $("vehHint"), vehYear: $("vehYear"), vehMatch: $("vehMatch"), vehModels: $("vehModels"),
   vehSave: $("vehSave"), vehCancel: $("vehCancel"), vehDelete: $("vehDelete"), vehEdit: $("vehEdit"), radius: $("radius"), radiusOut: $("radiusOut"),
   useGps: $("useGps"), useGpsText: $("useGpsText"), gpsHint: $("gpsHint"), toast: $("toast"),
+  savings: $("savings"), trend: $("trend"), trendBody: $("trendBody"), themePref: $("themePref"), themeHint: $("themeHint"),
+  tripForm: $("tripForm"), tripFrom: $("tripFrom"), tripTo: $("tripTo"), tripSugg: $("tripSugg"), tripRecent: $("tripRecent"), tripCorr: $("tripCorr"), tripOut: $("tripOut"),
+  ride: $("ride"), rideRank: $("rideRank"), rideName: $("rideName"), ridePrice: $("ridePrice"), rideMeta: $("rideMeta"), rideGo: $("rideGo"), rideNext: $("rideNext"), rideClose: $("rideClose"),
   fillCard: $("fillCard"), fillText: $("fillText"), fillQuick: $("fillQuick"), fillYes: $("fillYes"), fillNo: $("fillNo"), hapticLabel: $("hapticLabel"),
 };
 
@@ -260,6 +267,7 @@ function renderAnswer() {
     </div>
     <button type="button" class="go" data-go="${esc(s.id)}">${icon("i-go")}Y aller${navLabel() ? `<small>${esc(navLabel())}</small>` : ""}</button>
     <div class="ans-foot"><span>${saving}${age}</span>
+      <button type="button" class="icon-btn" data-ride aria-label="Mode guidon : grand affichage pour la route">${icon("i-ride")}</button>
       <button type="button" class="icon-btn star-btn" data-fav="${esc(s.id)}" aria-pressed="${isFav(s.id)}" aria-label="${isFav(s.id) ? "Retirer des favoris" : "Ajouter aux favoris"}">${icon("i-star")}</button>
     </div>`;
   renderE10Hint();
@@ -341,6 +349,7 @@ function renderRows(list, rows, best, labels = new Map()) {
 
 function renderRank() {
   renderAnswer();
+  renderSavings();
   const best = ranked[0];
   const alts = ranked.slice(1, 1 + ALTS);
   $("nextTitle").hidden = !alts.length;
@@ -388,6 +397,9 @@ function render() {
   if (view === "fav") renderFavs();
   if (view === "map") renderMap();
   if (view === "log") renderLog();
+  if (view === "trip") renderTrip();
+  renderTrend();
+  if (els.ride.open) renderRide();
   firstRender = false;
 }
 function update() { save(); render(); }
@@ -397,7 +409,7 @@ function showView(next) {
   if (next === view) return;
   view = next;
   for (const t of document.querySelectorAll(".tabs [role=tab]")) t.setAttribute("aria-selected", String(t.dataset.view === next));
-  for (const id of ["rank", "map", "fav", "log"]) {
+  for (const id of ["rank", "map", "trip", "fav", "log"]) {
     const el = $(`view-${id}`);
     el.hidden = id !== next;
     if (id === next) { el.classList.remove("entering"); void el.offsetWidth; el.classList.add("entering"); }
@@ -405,6 +417,7 @@ function showView(next) {
   if (next === "fav") renderFavs();
   if (next === "map") renderMap();
   if (next === "log") renderLog();
+  if (next === "trip") renderTrip();
   window.scrollTo({ top: 0 });
 }
 
@@ -425,10 +438,10 @@ function navUrl(app, s) {
 // Liens universels : le téléphone ouvre l'appli si elle est installée, sinon le site.
 // Appelé directement dans le geste de l'utilisateur (sinon le navigateur bloque l'ouverture).
 let navTarget = null;
-function launchNav(app, s) {
+function launchNav(app, s, urlFn = navUrl) {
   navTarget = { id: s.id, at: Date.now() };
   const a = document.createElement("a");
-  a.href = navUrl(app, s);
+  a.href = urlFn(app, s);
   a.target = "_blank";
   a.rel = "noopener";
   document.body.append(a);
@@ -436,11 +449,13 @@ function launchNav(app, s) {
   a.remove();
 }
 let pendingNavStation = null;
-function go(id) {
-  const s = stationById(id);
+let pendingNavUrl = navUrl;
+function go(id, urlFn = navUrl, station = null) {
+  const s = station || stationById(id);
   if (!s) return;
-  if (state.nav) return launchNav(state.nav, s);
+  if (state.nav) return launchNav(state.nav, s, urlFn);
   pendingNavStation = s;
+  pendingNavUrl = urlFn;
   const apps = isIOS ? NAV_APPS : [NAV_APPS[1], NAV_APPS[2], NAV_APPS[0]];
   els.navApps.innerHTML = apps.map((a) => `<button type="button" class="nav-app" data-nav-app="${a.id}">${esc(a.label)}<small>${esc(a.detail)}</small></button>`).join("");
   openSheet(els.navSheet);
@@ -492,7 +507,7 @@ function recolor(style, pal) {
   }
   return s;
 }
-const currentPalette = () => MAP_PALETTES[darkScheme.matches ? "dark" : "light"];
+const currentPalette = () => MAP_PALETTES[isDark() ? "dark" : "light"];
 function flowerPin(n, top) {
   const el = document.createElement("button");
   el.type = "button";
@@ -522,7 +537,7 @@ async function renderMap() {
       attributionControl: { compact: true },
     });
     map.addControl(new maplib.NavigationControl({ showCompass: false }), "bottom-right");
-    darkScheme.addEventListener("change", () => map.setStyle(recolor(baseStyle, currentPalette())));
+    document.addEventListener("themechange", () => map.setStyle(recolor(baseStyle, currentPalette())));
   }
   for (const m of markers) m.remove();
   markers = [];
@@ -656,6 +671,9 @@ function renderSettings() {
   els.vehForm.hidden = vehEditing === null;
   els.vehDelete.hidden = vehEditing === null || vehEditing === "new" || state.vehicles.length <= 1;
   els.navPref.innerHTML = [{ id: "", label: "Me demander" }, ...NAV_APPS].map((a) => `<button type="button" class="choice" data-nav-pref="${a.id}" aria-pressed="${(state.nav || "") === a.id}">${esc(a.label)}</button>`).join("");
+  els.themePref.innerHTML = THEMES.map((t) => `<button type="button" class="choice" data-theme-pref="${t.id}" aria-pressed="${(state.theme || "auto") === t.id}">${esc(t.label)}</button>`).join("");
+  els.themeHint.textContent = themeHint();
+  els.themeHint.hidden = !els.themeHint.textContent;
   els.radius.value = state.radius;
   els.radiusOut.textContent = `${state.radius} km`;
   els.useGps.setAttribute("aria-pressed", String(state.placeId === "gps"));
@@ -869,6 +887,264 @@ function renderLog() {
   if (!els.logStation.options.length) fillLogForm();
 }
 
+// ---------- Compteur d'économies ----------
+function renderSavings() {
+  const total = state.log.reduce((sum, e) => sum + e.gain, 0);
+  const n = state.log.length;
+  els.savings.hidden = !(n && total >= 0.5);
+  if (els.savings.hidden) return;
+  els.savings.innerHTML = `<b>${eur.format(total)}</b> économisés avec Plein Sud<small>sur ${n} plein${n > 1 ? "s" : ""} noté${n > 1 ? "s" : ""}, par rapport au prix médian de la zone · voir le carnet</small>`;
+}
+
+// ---------- Courbe des prix et prévision ----------
+let priceHistory = null;
+async function loadHistory() {
+  try {
+    const res = await fetch("data/history.json", { cache: "no-store" });
+    if (res.ok) priceHistory = await res.json();
+  } catch { /* la courbe est un bonus : sans elle, rien ne change */ }
+  renderTrend();
+}
+function renderTrend() {
+  const h = priceHistory?.fuels?.[state.fuel];
+  els.trend.hidden = !h || h.days.length < 3;
+  if (els.trend.hidden) return;
+  const fc = h.forecast;
+  const last = h.median.at(-1);
+  els.trendBody.innerHTML = `<p class="trend-lead"><b>${fmt3(last)} €/L</b> : prix médian du ${esc(fuelLabel())} aujourd’hui dans la zone${fc ? `<br><span>${trendWords(fc)}</span>` : ""}</p>
+    ${trendSVG(h, { label: fuelLabel() })}
+    ${fc ? `<ul class="trend-legend">
+      <li><i class="lg-line"></i>relevé</li>
+      <li><i class="lg-real"></i>réaliste : ${fmt3(fc.real.at(-1))} dans 7 jours</li>
+      <li><i class="lg-band"></i>entre ${fmt3(fc.low.at(-1))} (optimiste) et ${fmt3(fc.high.at(-1))} (pessimiste)</li></ul>` : ""}
+    <p class="hint">Prévision expérimentale, faite sur ${h.days.length} jours de relevés : elle s’affinera avec le temps. <a href="coulisses.html#prevision">Comment elle est calculée</a></p>`;
+}
+
+// ---------- Thème ----------
+const THEMES = [{ id: "auto", label: "Selon le soleil" }, { id: "light", label: "Clair" }, { id: "dark", label: "Sombre" }, { id: "system", label: "Comme le téléphone" }];
+function themeHint() {
+  const T = window.pleinSudTheme;
+  if (!T || (state.theme || "auto") !== "auto") return "";
+  const now = new Date();
+  const { sunrise, sunset } = T.sunTimes(now);
+  if (now < sunrise) return `Fleurs de nuit jusqu’au lever du soleil, à ${timeFmt.format(sunrise)} à Montpellier.`;
+  if (now < sunset) return `Passe en sombre au coucher du soleil, à ${timeFmt.format(sunset)} aujourd’hui à Montpellier.`;
+  const tomorrow = T.sunTimes(new Date(now.getTime() + 86400000)).sunrise;
+  return `Repasse en clair au lever du soleil, à ${timeFmt.format(tomorrow)} demain.`;
+}
+
+// ---------- Mode guidon : une seule station, en très grand, écran allumé ----------
+const RIDE_MAX = 5;
+let rideIdx = 0;
+let wakeLock = null;
+async function keepAwake() {
+  try { wakeLock = await navigator.wakeLock?.request("screen"); } catch { /* pas grave : l'écran s'éteindra comme d'habitude */ }
+}
+function renderRide() {
+  const list = ranked.slice(0, RIDE_MAX);
+  if (!list.length) { els.rideName.textContent = "Aucune station dans le rayon"; els.ridePrice.textContent = ""; els.rideMeta.textContent = ""; els.rideGo.hidden = true; els.rideNext.hidden = true; return; }
+  rideIdx %= list.length;
+  const r = list[rideIdx];
+  els.rideRank.textContent = `${rideIdx + 1}${rideIdx ? "e" : "re"} sur ${list.length} · ${fuelLabel()}`;
+  els.rideName.textContent = stationName(r.station);
+  els.ridePrice.innerHTML = `${priceHTML(r.price)}<span>€/L</span>`;
+  els.ridePrice.setAttribute("aria-label", priceSpoken(r.price));
+  els.rideMeta.innerHTML = `<span>${esc(stationPlace(r.station))}</span>${kmText(r.distanceKm)} km · ${eur.format(r.total)} plein + détour${r.unreachable ? " · hors d’autonomie" : ""}`;
+  els.rideGo.hidden = false;
+  els.rideNext.hidden = list.length < 2;
+}
+function openRide() {
+  if (!data) return;
+  rideIdx = 0;
+  renderRide();
+  if (!els.ride.open) els.ride.showModal();
+  keepAwake();
+}
+function closeRide() {
+  if (els.ride.open) els.ride.close();
+  wakeLock?.release?.().catch?.(() => {});
+  wakeLock = null;
+}
+els.rideClose.addEventListener("click", closeRide);
+els.ride.addEventListener("close", () => { wakeLock?.release?.().catch?.(() => {}); wakeLock = null; });
+els.rideNext.addEventListener("click", () => { rideIdx++; renderRide(); });
+els.rideGo.addEventListener("click", () => { const r = ranked.slice(0, RIDE_MAX)[rideIdx]; if (r) go(r.station.id); });
+
+// ---------- Trajet : les stations sur la route ----------
+// Adresse -> position : Base Adresse Nationale (api-adresse.data.gouv.fr). Itinéraire : serveur public OSRM.
+const CORRIDORS = [1, 2, 5];
+const TRIP_LIST = 8;
+let trip = null;
+let tripSeq = 0;
+let suggestions = [];
+let suggTimer = 0;
+async function geocode(q) {
+  const o = origin();
+  const res = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=5&lat=${o.lat}&lon=${o.lon}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const j = await res.json();
+  return (j.features || []).map((f) => ({
+    label: f.properties.label, short: f.properties.city || f.properties.name, detail: f.properties.context,
+    lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0],
+  }));
+}
+async function fetchRoute(a, b) {
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 9000);
+    const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${a.lon},${a.lat};${b.lon},${b.lat}?overview=full&geometries=geojson`, { signal: ctrl.signal });
+    clearTimeout(timer);
+    const r = (await res.json()).routes?.[0];
+    if (!r) throw new Error("pas d'itinéraire");
+    return { coords: r.geometry.coordinates, distanceKm: r.distance / 1000, durationMin: r.duration / 60, approx: false };
+  } catch {
+    // Serveur d'itinéraire injoignable : ligne droite, distances x 1,3, et on le dit.
+    const n = 40;
+    const coords = Array.from({ length: n + 1 }, (_, i) => [a.lon + ((b.lon - a.lon) * i) / n, a.lat + ((b.lat - a.lat) * i) / n]);
+    return { coords, distanceKm: haversineKm(a, b) * ROAD_FACTOR, durationMin: null, approx: true };
+  }
+}
+async function planTrip(dest) {
+  if (!dest) return;
+  const seq = ++tripSeq;
+  state.trips = [dest, ...state.trips.filter((t) => t.label !== dest.label)].slice(0, 4);
+  save();
+  els.tripTo.value = dest.label;
+  els.tripSugg.hidden = true;
+  els.tripTo.blur();
+  els.tripOut.innerHTML = `<p class="trip-wait">On trace la route vers ${esc(dest.short || dest.label)}…</p>`;
+  const r = await fetchRoute(origin(), dest);
+  if (seq !== tripSeq) return;
+  const coords = thin(r.coords, 600);
+  const route = prepareRoute(coords);
+  trip = { dest, ...r, coords, route, coveredKm: data ? coveredUntilKm(coords, route, data.stations) : route.length };
+  renderTrip();
+}
+const durText = (min) => (min < 60 ? `${Math.round(min)} min` : `${Math.floor(min / 60)} h ${String(Math.round(min % 60)).padStart(2, "0")}`);
+function tripStrip(rows, len, range, covered, destName) {
+  const x0 = 16, x1 = 324, y = 34;
+  const X = (km) => x0 + Math.max(0, Math.min(1, km / len)) * (x1 - x0);
+  const parts = [`<line class="strip-line" x1="${x0}" x2="${x1}" y1="${y}" y2="${y}"/>`];
+  if (covered < len - 0.5) parts.push(`<line class="strip-nodata" x1="${X(covered).toFixed(1)}" x2="${x1}" y1="${y}" y2="${y}"/>`);
+  if (range != null && range * 0.9 < len) parts.push(`<line class="strip-dry" x1="${X(range * 0.9).toFixed(1)}" x2="${x1}" y1="${y}" y2="${y}"/><text class="strip-note" x="${X(range * 0.9).toFixed(1)}" y="${y - 16}" text-anchor="middle">réserve</text>`);
+  parts.push(`<circle class="strip-start" cx="${x0}" cy="${y}" r="5"/><circle class="strip-end" cx="${x1}" cy="${y}" r="6"/>`);
+  const shown = rows.slice(0, 5).map((r, i) => ({ r, i, x: X(r.atKm) })).sort((a, b) => a.x - b.x);
+  const levels = [0, -19, -38, -57]; // pastilles proches : on les étage au-dessus de la route
+  const used = levels.map(() => []);
+  for (const p of shown) {
+    const li = Math.max(0, levels.findIndex((_, k) => used[k].every((x) => Math.abs(x - p.x) >= 19)));
+    used[li].push(p.x);
+    const cy = y + levels[li];
+    parts.push(`<g class="strip-pin${p.i === 0 ? " is-best" : ""}${p.r.unreachable ? " is-dry" : ""}"><circle cx="${p.x.toFixed(1)}" cy="${cy}" r="9"/><text x="${p.x.toFixed(1)}" y="${cy + 4}" text-anchor="middle">${p.i + 1}</text></g>`);
+  }
+  parts.push(`<text class="strip-label" x="${x0 - 4}" y="${y + 24}">départ</text><text class="strip-label" x="${x1 + 4}" y="${y + 24}" text-anchor="end">${esc(destName)}</text>`);
+  return `<svg class="trip-strip" viewBox="0 -34 340 102" role="img" aria-label="Les stations le long de la route, du départ à ${esc(destName)}">${parts.join("")}</svg>`;
+}
+function tripRowHTML(r, i, best, scale) {
+  const s = r.station;
+  const delta = r.total - best.total;
+  const right = i === 0 ? "le moins cher" : delta < 0.005 ? "même total" : `+${eur.format(delta)}`;
+  return `<li class="trip-row">
+    <button type="button" class="alt-btn" data-open="${esc(s.id)}" aria-label="${i + 1}e, ${esc(stationName(s))}, ${priceSpoken(r.price)}, au kilomètre ${Math.round(r.atKm * scale)}, ${esc(right)}">
+      <span class="rank" aria-hidden="true">${i + 1}</span>
+      <span class="alt-name">${esc(stationName(s))}</span>
+      <span class="alt-price">${priceHTML(r.price)}</span>
+      <span class="alt-meta">${esc(placeShort(s))} · km ${Math.round(r.atKm * scale)}, ${r.detourKm < 0.3 ? "sur la route" : `détour ${kmText(r.detourKm)} km`}${r.unreachable ? ", hors d’autonomie" : ""}</span>
+      <span class="alt-gap">${esc(right)}</span>
+    </button>
+    <button type="button" class="icon-btn trip-go" data-trip-go="${esc(s.id)}" aria-label="Itinéraire par ${esc(stationName(s))}">${icon("i-go")}</button>
+  </li>`;
+}
+function renderTrip() {
+  els.tripFrom.textContent = originLabel();
+  els.tripRecent.innerHTML = state.trips.map((t, i) => `<button type="button" class="choice" data-trip-recent="${i}">${icon("i-flag")}${esc(t.short || t.label)}</button>`).join("");
+  els.tripCorr.innerHTML = CORRIDORS.map((k) => `<button type="button" class="choice" data-trip-corr="${k}" aria-pressed="${state.tripCorr === k}">${k} km</button>`).join("");
+  if (!trip) {
+    els.tripOut.innerHTML = `<p class="trip-intro">Indique ta destination : Plein Sud trace la route et classe les stations qui sont dessus, détour et autonomie compris.</p>`;
+    return;
+  }
+  if (!data) return;
+  const v = vehicle();
+  const range = rangeOf(v);
+  const scale = trip.distanceKm / Math.max(0.1, trip.route.length); // km de route par km du tracé
+  const rows = stationsAlongRoute(data.stations, state.fuel, trip.route, {
+    corridorKm: state.tripCorr, litres: litresToBuy(v), conso: Number(v.conso) || 0, rangeKm: range != null ? range / scale : null,
+  });
+  const destName = trip.dest.short || trip.dest.label;
+  const covered = trip.coveredKm;
+  const notes = [];
+  if (trip.approx) notes.push(`${icon("i-caution")}Le serveur d’itinéraire ne répond pas : tracé à vol d’oiseau, kilomètres approximatifs.`);
+  if (covered < trip.route.length - 0.5) notes.push(`${icon("i-caution")}Prix connus seulement dans l’Hérault et le Gard : rien après le km ${Math.round(covered * scale)}.`);
+  let fuelNote;
+  if (range == null) fuelNote = `<button type="button" class="linkish" data-open-settings>Indique le niveau de ton réservoir</button> pour savoir où t’arrêter au plus tard.`;
+  else if (range * 0.9 >= trip.distanceKm) fuelNote = `Ton réservoir (environ ${range} km) suffit pour le trajet : arrête-toi là où c’est le moins cher.`;
+  else fuelNote = `<b>Fais le plein avant le km ${Math.floor(range * 0.9)}</b> : ton autonomie est d’environ ${range} km.`;
+  const best = rows[0];
+  const nearestOnRoute = rows.length ? rows.reduce((a, b) => (b.detourKm < a.detourKm ? b : a)) : null;
+  const gain = best && nearestOnRoute && nearestOnRoute !== best ? nearestOnRoute.total - best.total : 0;
+  els.tripOut.innerHTML = `
+    <article class="trip-sum">
+      <h3>Vers ${esc(destName)}</h3>
+      <p class="trip-facts">${Math.round(trip.distanceKm)} km${trip.durationMin ? ` · ${durText(trip.durationMin)}` : ""} · ${esc(fuelLabel())} · ${esc(v.short)}</p>
+      <p class="trip-fuel">${fuelNote}</p>
+      ${tripStrip(rows, trip.route.length, range != null ? range / scale : null, covered, destName)}
+      ${notes.map((n) => `<p class="flag">${n}</p>`).join("")}
+      ${best ? `<div class="trip-best">
+          <p class="trip-best-name">${esc(stationName(best.station))}<small>${esc(placeShort(best.station))}, au km ${Math.round(best.atKm * scale)}, ${best.detourKm < 0.3 ? "sur la route" : `détour ${kmText(best.detourKm)} km`}</small></p>
+          <p class="trip-best-price"><span class="num">${priceHTML(best.price)}</span> €/L · <b>${eur.format(best.total)}</b> plein + détour${gain > 0.05 ? `<br><span class="save">${eur.format(gain)} de moins que la plus proche de la route</span>` : ""}</p>
+        </div>
+        <button type="button" class="go" data-trip-go="${esc(best.station.id)}">${icon("i-go")}Y aller, puis ${esc(destName)}</button>` : `<p class="trip-empty">Aucune station avec un prix récent à moins de ${state.tripCorr} km de la route. Élargis l’écart ou change de carburant.</p>`}
+      <button type="button" class="btn" data-trip-dest>${icon("i-flag")}Aller directement à ${esc(destName)}</button>
+    </article>
+    ${rows.length > 1 ? `<h2 class="next-title">Sur la route</h2><ol class="alts trip-list">${rows.slice(0, TRIP_LIST).map((r, i) => tripRowHTML(r, i, best, scale)).join("")}</ol>` : ""}
+    <p class="hint">Détour estimé : aller-retour entre la route et la station, à vol d’oiseau x 1,4. Itinéraire : OSRM (données OpenStreetMap), adresses : Base Adresse Nationale.</p>`;
+}
+// Google Maps sait faire une étape : station puis destination. Plans et Waze : la station d'abord.
+function tripNavUrl(app, s) {
+  if (app !== "google" || !trip) return navUrl(app, s);
+  const street = streetOf(s);
+  const via = s.snap || !street ? `${s.lat},${s.lon}` : [street, [s.cp, titleCase(s.ville)].filter(Boolean).join(" ")].join(", ");
+  return `https://www.google.com/maps/dir/?api=1&destination=${trip.dest.lat},${trip.dest.lon}&waypoints=${encodeURIComponent(via)}&travelmode=driving`;
+}
+function tripGo(id) {
+  if (!trip) return go(id);
+  const app = state.nav;
+  if (app && app !== "google") toast(`${navLabel()} ne prend pas d’étape : direction la station. Ensuite, « Aller directement à ${trip.dest.short || trip.dest.label} ».`);
+  go(id, tripNavUrl);
+}
+els.tripTo.addEventListener("input", () => {
+  clearTimeout(suggTimer);
+  const q = els.tripTo.value.trim();
+  if (q.length < 3) { els.tripSugg.hidden = true; return; }
+  suggTimer = setTimeout(async () => {
+    try {
+      suggestions = await geocode(q);
+    } catch {
+      suggestions = [];
+      els.tripSugg.innerHTML = `<li class="trip-sugg-msg">Recherche d’adresse indisponible (connexion ?)</li>`;
+      els.tripSugg.hidden = false;
+      return;
+    }
+    if (els.tripTo.value.trim() !== q) return;
+    els.tripSugg.innerHTML = suggestions.length
+      ? suggestions.map((g, i) => `<li role="option"><button type="button" data-trip-sugg="${i}">${esc(g.label)}<small>${esc(g.detail || "")}</small></button></li>`).join("")
+      : `<li class="trip-sugg-msg">Aucun lieu trouvé</li>`;
+    els.tripSugg.hidden = false;
+  }, 280);
+});
+els.tripForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const q = els.tripTo.value.trim();
+  if (q.length < 2) return;
+  try {
+    const found = suggestions.length ? suggestions : await geocode(q);
+    if (found[0]) planTrip(found[0]);
+    else els.tripOut.innerHTML = `<p class="trip-empty">Aucun lieu trouvé pour « ${esc(q)} ».</p>`;
+  } catch {
+    els.tripOut.innerHTML = `<p class="trip-empty">Recherche d’adresse indisponible : vérifie ta connexion.</p>`;
+  }
+});
+
 // ---------- Toast ----------
 let toastTimer = 0;
 function toast(text, action) {
@@ -938,6 +1214,18 @@ document.addEventListener("click", (e) => {
     return;
   }
   if (e.target.closest("[data-open-settings]")) return openSettingsSheet();
+  if (e.target.closest("[data-ride]")) return openRide();
+  const vg = e.target.closest("[data-view-go]");
+  if (vg) return showView(vg.dataset.viewGo);
+  const tg = e.target.closest("[data-trip-go]");
+  if (tg) return tripGo(tg.dataset.tripGo);
+  if (e.target.closest("[data-trip-dest]")) return trip && go("dest", navUrl, { id: "dest", lat: trip.dest.lat, lon: trip.dest.lon, snap: 1 });
+  const tr = e.target.closest("[data-trip-recent]");
+  if (tr) return planTrip(state.trips[Number(tr.dataset.tripRecent)]);
+  const ts = e.target.closest("[data-trip-sugg]");
+  if (ts) return planTrip(suggestions[Number(ts.dataset.tripSugg)]);
+  const tc = e.target.closest("[data-trip-corr]");
+  if (tc) { state.tripCorr = Number(tc.dataset.tripCorr); save(); return renderTrip(); }
   if (e.target.closest("[data-widen]")) { state.radius = Math.min(state.radius + 10, 40); return update(); }
   const del = e.target.closest("[data-del]");
   if (del) {
@@ -960,7 +1248,8 @@ els.navSheet.addEventListener("click", (e) => {
   if (!b || !pendingNavStation) return;
   if (els.navRemember.checked) { state.nav = b.dataset.navApp; save(); renderAnswer(); }
   closeSheet(els.navSheet);
-  launchNav(b.dataset.navApp, pendingNavStation);
+  if (pendingNavUrl === tripNavUrl && b.dataset.navApp !== "google" && trip) toast(`Pas d’étape possible ici : direction la station. Ensuite, « Aller directement à ${trip.dest.short || trip.dest.label} ».`);
+  launchNav(b.dataset.navApp, pendingNavStation, pendingNavUrl);
 });
 els.settingsSheet.addEventListener("click", (e) => {
   const place = e.target.closest("[data-place]");
@@ -975,6 +1264,8 @@ els.settingsSheet.addEventListener("click", (e) => {
     return update();
   }
   if (e.target.closest("[data-veh-add]")) return openVehForm("new");
+  const th = e.target.closest("[data-theme-pref]");
+  if (th) { state.theme = th.dataset.themePref; save(); window.pleinSudTheme?.apply(state.theme); return renderSettings(); }
   const nav = e.target.closest("[data-nav-pref]");
   if (nav) { state.nav = nav.dataset.navPref || null; renderSettings(); return update(); }
 });
@@ -1140,6 +1431,7 @@ els.fillQuick.addEventListener("click", () => {
 });
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") {
+    if (els.ride.open) keepAwake();
     if (state.gps) startWatch();
     if (loadedAt && Date.now() - loadedAt > 30 * 60 * 1000) refreshData({ quiet: true }); // retour après 30 min : prix rechargés en silence
     checkReturnFromNav();
@@ -1175,6 +1467,7 @@ async function refreshData({ quiet = false } = {}) {
     if (view === "log") renderLog();
     if (view === "map") renderMap();
     if (!before) stitchIn(800);
+    loadHistory();
     const when = ago(new Date(data.generated_at));
     if (!quiet) toast(dataOffline ? `Hors ligne : prix du dernier relevé (${when})`
       : data.generated_at === before ? `Déjà à jour : prix relevés ${when}` : `Prix mis à jour : relevés ${when}`);
@@ -1251,12 +1544,19 @@ async function boot() {
   render();
   renderFresh();
   stitchIn(1100);
+  loadHistory();
   // Démonstration du pop-up de plein : ouvrir le site avec #demo-plein
   if (location.hash === "#demo-plein" && ranked[0]) setTimeout(() => showFillCard(ranked[0].station), 1500);
   // Raccourcis (écran d'accueil Android, favori) : #go lance l'itinéraire vers la n°1, #plein ouvre le carnet.
   const hash = location.hash;
-  if (hash === "#go" || hash === "#plein") history.replaceState(null, "", location.pathname + location.search);
+  if (["#go", "#plein", "#guidon", "#trajet"].includes(hash)) history.replaceState(null, "", location.pathname + location.search);
   if (hash === "#plein") showView("log");
+  if (hash === "#trajet") showView("trip");
+  if (hash === "#guidon") {
+    for (let i = 0; i < 25 && locating; i++) await new Promise((r) => setTimeout(r, 150));
+    render();
+    openRide();
+  }
   if (hash === "#go") {
     for (let i = 0; i < 25 && locating; i++) await new Promise((r) => setTimeout(r, 150)); // on attend la position (4 s au plus)
     const first = ranked.find((r) => !r.unreachable) || ranked[0];

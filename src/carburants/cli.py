@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import analysis, config, export, extract, load, osm, quality, transform
+from . import analysis, config, export, extract, history, load, osm, quality, transform
 
 
 def run(from_file: Path | None, data_dir: Path) -> int:
@@ -66,6 +66,16 @@ def export_cmd(data_dir: Path, out: Path) -> int:
     print(f"[export] {sum(1 for s in payload['stations'] if s.get('snap'))}/{len(payload['stations'])} stations placées via OpenStreetMap")
     path = export.write_payload(payload, out)
     print(f"[export] {len(payload['stations'])} stations -> {path} ({path.stat().st_size // 1024} Ko)")
+    # Historique + prévision, et l'état du dernier passage, pour la courbe et « En coulisses ».
+    hist = history.build_history(events, now=pd.Timestamp.now(tz="UTC"))
+    hist["osm_snapped"] = sum(1 for s in payload["stations"] if s.get("snap"))
+    hist["exported_stations"] = len(payload["stations"])
+    last_run = Path(data_dir) / "_last_run.json"
+    if last_run.exists():
+        hist["last_run"] = json.loads(last_run.read_text())
+    hpath = export.write_payload(hist, Path(out).with_name("history.json"))
+    spans = ", ".join(f"{k}: {len(v['days'])} j" for k, v in hist["fuels"].items())
+    print(f"[export] historique ({spans}) -> {hpath}")
     return 0
 
 

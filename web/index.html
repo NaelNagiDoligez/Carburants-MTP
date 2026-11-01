@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Plein Sud</title>
   <meta name="description" content="Où faire le plein autour de Montpellier, détour compris. Prix officiels relevés toutes les 6 heures.">
-  <meta name="theme-color" content="#F3EDE0" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0E1430" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#F3EDE0">
+  <script src="theme.js"></script>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -33,6 +33,9 @@
       <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
       <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
       <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+      <symbol id="i-route" viewBox="0 0 24 24"><circle cx="5.5" cy="18.5" r="2"/><circle cx="18.5" cy="5.5" r="2"/><path d="M7.5 18.5H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h7.5"/></symbol>
+      <symbol id="i-ride" viewBox="0 0 24 24"><path d="M3 9.5c2.5 0 3.5 1.5 5 1.5h8c1.5 0 2.5-1.5 5-1.5M8 11l-1.5 7M16 11l1.5 7M10.5 11v-2h3v2"/></symbol>
+      <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5.5 21V4m0 .5h11l-2 4 2 4h-11"/></symbol>
     </defs>
   </svg>
 
@@ -56,10 +59,15 @@
           <div class="answer-body" id="answerBody"></div>
         </article>
         <button type="button" class="e10hint" id="e10Hint" hidden></button>
+        <button type="button" class="savings" id="savings" data-view-go="log" hidden></button>
         <h2 class="next-title" id="nextTitle">Ensuite</h2>
         <ol class="alts" id="alts" aria-labelledby="nextTitle"></ol>
         <button class="more" id="showAll" type="button" aria-expanded="false" aria-controls="allList"><span id="showAllText">Voir toutes les stations</span><svg class="ic" aria-hidden="true"><use href="#i-chevron"/></svg></button>
         <ol class="alts all" id="allList" hidden aria-label="Toutes les stations"></ol>
+        <section class="trend" id="trend" aria-labelledby="trendTitle" hidden>
+          <h2 class="next-title" id="trendTitle">Prix de la zone</h2>
+          <div class="trend-card" id="trendBody"></div>
+        </section>
         <details class="how">
           <summary>Comment le classement est calculé</summary>
           <p>Coût total = le plein + le carburant brûlé pour l’aller-retour depuis ton point de départ, avec ton véhicule. La distance est à vol d’oiseau multipliée par 1,3 pour approcher la route. Les prix de plus de 14 jours et les ruptures signalées sont écartés. Positions et noms des stations : © contributeurs OpenStreetMap.</p>
@@ -69,6 +77,19 @@
       <section class="view" id="view-map" aria-labelledby="tab-map" hidden>
         <div class="map" id="map" role="region" aria-label="Carte des stations"></div>
         <p class="map-note" id="mapNote">Les numéros reprennent le classement. Touche une pastille pour ouvrir la station.</p>
+      </section>
+
+      <section class="view" id="view-trip" aria-labelledby="tab-trip" hidden>
+        <h2 class="view-title">Trajet</h2>
+        <form class="trip-form" id="tripForm" autocomplete="off" role="search">
+          <p class="trip-from">Départ : <button type="button" class="linkish" data-open-settings id="tripFrom">ta position</button></p>
+          <label class="field" for="tripTo">Où vas-tu ?
+            <input id="tripTo" type="search" enterkeyhint="search" placeholder="Millau, Nîmes, une adresse…" aria-controls="tripSugg" aria-autocomplete="list"></label>
+          <ul class="trip-sugg" id="tripSugg" role="listbox" aria-label="Suggestions" hidden></ul>
+          <div class="choices trip-recent" id="tripRecent"></div>
+          <div class="trip-corr"><span>Écart max de la route</span><div class="choices" id="tripCorr"></div></div>
+        </form>
+        <div class="trip-out" id="tripOut" aria-live="polite"></div>
       </section>
 
       <section class="view" id="view-fav" aria-labelledby="tab-fav" hidden>
@@ -105,6 +126,7 @@
     <nav class="tabs" role="tablist" aria-label="Sections">
       <button role="tab" id="tab-rank" aria-controls="view-rank" aria-selected="true" data-view="rank"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg><span>Stations</span></button>
       <button role="tab" id="tab-map" aria-controls="view-map" aria-selected="false" data-view="map"><svg class="ic" aria-hidden="true"><use href="#i-map"/></svg><span>Carte</span></button>
+      <button role="tab" id="tab-trip" aria-controls="view-trip" aria-selected="false" data-view="trip"><svg class="ic" aria-hidden="true"><use href="#i-route"/></svg><span>Trajet</span></button>
       <button role="tab" id="tab-fav" aria-controls="view-fav" aria-selected="false" data-view="fav"><svg class="ic" aria-hidden="true"><use href="#i-star"/></svg><span>Favoris</span></button>
       <button role="tab" id="tab-log" aria-controls="view-log" aria-selected="false" data-view="log"><svg class="ic" aria-hidden="true"><use href="#i-log"/></svg><span>Carnet</span></button>
     </nav>
@@ -192,8 +214,26 @@
         <legend>Appli d’itinéraire</legend>
         <div class="choices" id="navPref"></div>
       </fieldset>
+      <fieldset>
+        <legend>Thème</legend>
+        <div class="choices" id="themePref"></div>
+        <p class="hint" id="themeHint"></p>
+      </fieldset>
+      <a class="coulisses-link" href="coulisses.html">En coulisses : d’où viennent les prix, comment l’appli les calcule</a>
       <button class="btn btn-main" type="submit">Voir les stations</button>
     </form>
+  </dialog>
+
+  <dialog class="ride" id="ride" aria-labelledby="rideName">
+    <div class="ride-top">
+      <p class="ride-rank" id="rideRank"></p>
+      <button class="icon-btn" type="button" id="rideClose" aria-label="Quitter le mode guidon"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <p class="ride-name" id="rideName"></p>
+    <p class="ride-price" id="ridePrice"></p>
+    <p class="ride-meta" id="rideMeta"></p>
+    <button class="ride-go" type="button" id="rideGo"><svg class="ic" aria-hidden="true"><use href="#i-go"/></svg>Y aller</button>
+    <button class="ride-next" type="button" id="rideNext">Station suivante</button>
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>

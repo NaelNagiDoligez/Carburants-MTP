@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>En coulisses · Plein Sud</title>
+  <meta name="description" content="Comment Plein Sud collecte, contrôle et calcule les prix des carburants autour de Montpellier.">
+  <meta name="theme-color" content="#F3EDE0">
+  <script src="theme.js"></script>
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .page { max-width: 720px; margin: 0 auto; padding: calc(max(env(safe-area-inset-top, 0px), 12px) + 24px) max(18px, env(safe-area-inset-right)) 48px max(18px, env(safe-area-inset-left)); }
+    .back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-weight: 700; color: var(--ink); }
+    h1 { font: 400 clamp(34px, 9vw, 52px)/1.04 var(--f-name); margin: 10px 0 8px; }
+    .lede { font-size: 18px; color: var(--ink-2); max-width: 56ch; margin: 0 0 28px; }
+    h2 { font: 400 24px/1.15 var(--f-name); margin: 36px 0 12px; }
+    p, li { max-width: 65ch; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+    .stats li { padding: 14px 16px; border-radius: 16px; background: var(--cloth); border: 1.5px solid var(--edge); }
+    .stats b { display: block; font-weight: 800; font-stretch: 72%; font-size: 34px; line-height: 1; }
+    .stats span { font-size: 14px; color: var(--ink-2); }
+    .flow { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; counter-reset: step; }
+    .flow li { position: relative; padding: 0 0 18px 46px; counter-increment: step; }
+    .flow li::before { content: counter(step); position: absolute; left: 0; top: -2px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+      border: 1.5px dashed var(--rose-thread); color: var(--rose); font-weight: 800; font-stretch: 80%; background: var(--ground); }
+    .flow li::after { content: ""; position: absolute; left: 15px; top: 30px; bottom: 0; border-left: 1.5px dashed var(--stitch); }
+    .flow li:last-child::after { display: none; }
+    .flow b { display: block; font-size: 17px; }
+    .flow span { color: var(--ink-2); font-size: 15px; }
+    code { font-size: .92em; background: var(--cloth); border: 1px solid var(--seam); padding: 1px 5px; border-radius: 6px; }
+    .charts { display: grid; gap: 12px; }
+    .formula { padding: 14px 16px; border-radius: 16px; background: var(--cloth); outline: 1.5px dashed var(--stitch); outline-offset: -6px; font-size: 16px; }
+    .sources li { margin-bottom: 6px; }
+    .muted { color: var(--ink-2); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <a class="back" href="./">← Retour à l’appli</a>
+    <h1>En coulisses</h1>
+    <p class="lede">Plein Sud est un petit projet de data engineering : les prix officiels des carburants sont collectés, contrôlés, historisés puis servis à une appli statique. Voici comment.</p>
+
+    <h2>Les chiffres du jour</h2>
+    <ul class="stats" id="stats"><li><b>…</b><span>chargement</span></li></ul>
+
+    <h2>Le chemin d’un prix</h2>
+    <ol class="flow">
+      <li><b>Flux officiel</b><span>Prix déclarés par les stations (data.economie.gouv.fr, licence ouverte), filtrés sur l’Hérault et le Gard.</span></li>
+      <li><b>Collecte toutes les 6 heures</b><span>Un workflow GitHub Actions télécharge le flux, en Python (requests, pandas).</span></li>
+      <li><b>Contrôles qualité</b><span>Prix hors de 0,50 à 4 €/L, dates dans le futur, volume anormal : une erreur bloque l’écriture et déclenche une alerte.</span></li>
+      <li><b>Historique en Parquet</b><span>Un fichier par mois, mise à jour idempotente : relancer la collecte ne crée pas de doublon. Seuls les changements de prix sont gardés.</span></li>
+      <li><b>Positions OpenStreetMap</b><span>Une fois par semaine, chaque station est recalée sur sa vraie position et reçoit son enseigne (rapprochement au plus proche, 400 m au plus).</span></li>
+      <li><b>Export</b><span><code>latest.json</code> (dernier prix de chaque station) et <code>history.json</code> (médiane quotidienne et prévision), publiés avec le site sur GitHub Pages.</span></li>
+      <li><b>L’appli</b><span>HTML, CSS et JavaScript sans framework : le classement se calcule sur le téléphone, avec ta position et ton véhicule. Rien n’est envoyé à un serveur.</span></li>
+    </ol>
+
+    <h2>Le classement</h2>
+    <p class="formula">Coût total = prix × litres à mettre + 2 × distance × conso / 100 × prix</p>
+    <p>La distance est à vol d’oiseau multipliée par 1,3 pour approcher la route. Les litres à mettre dépendent du niveau du réservoir s’il a été indiqué (sinon un plein complet). Les prix de plus de 14 jours et les ruptures signalées sont écartés, ceux de plus de 48 heures passent après les autres. Sur un trajet, le détour est l’aller-retour entre la route et la station, à vol d’oiseau × 1,4.</p>
+
+    <h2 id="prevision">Les courbes et la prévision</h2>
+    <p>Pour chaque jour, le prix « en vigueur » d’une station est son dernier prix connu ce jour-là ; la courbe suit la médiane de ces prix (au moins 8 stations). Les jours d’avant le début de la collecte ne sont pas reconstruits : on n’y connaîtrait que les prix qui n’ont plus bougé, ce qui biaiserait la médiane.</p>
+    <p>La prévision à 7 jours reste simple et lisible. <b>Réaliste</b> : la tendance des 14 derniers jours, amortie de moitié. <b>Optimiste et pessimiste</b> : le réaliste moins ou plus la variation quotidienne habituelle, élargie avec la racine du nombre de jours (environ 8 cas sur 10 si les prix varient comme avant). Avec peu d’historique, la bande est large : c’est voulu.</p>
+    <div class="charts" id="charts"><p class="muted">Chargement des courbes…</p></div>
+
+    <h2>Limites connues</h2>
+    <ul>
+      <li>Les prix sont déclarés par les stations : certaines tardent à les mettre à jour.</li>
+      <li>La distance « route » est estimée, sauf dans l’onglet Trajet qui utilise un vrai itinéraire.</li>
+      <li>Quelques stations n’ont pas d’équivalent proche sur OpenStreetMap : l’itinéraire vise alors leur adresse.</li>
+      <li>La prévision n’intègre ni le cours du pétrole ni les taxes : c’est une extrapolation des prix observés.</li>
+    </ul>
+
+    <h2>Sources et licences</h2>
+    <ul class="sources">
+      <li>Prix : ministère de l’Économie, <a href="https://data.economie.gouv.fr/explore/dataset/prix-des-carburants-en-france-flux-instantane-v2/">flux instantané v2</a>, licence ouverte Etalab.</li>
+      <li>Positions et enseignes, fond de carte, itinéraires : © contributeurs <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> (ODbL), tuiles OpenFreeMap, calcul d’itinéraire OSRM.</li>
+      <li>Adresses : Base Adresse Nationale (api-adresse.data.gouv.fr).</li>
+    </ul>
+    <p class="muted" id="gen"></p>
+  </main>
+  <script type="module">
+    import { trendSVG, trendWords, fmt3 } from "./chart.js";
+    const NAMES = { sp95: "SP95-E5", e10: "SP95-E10", sp98: "SP98", gazole: "Gazole", e85: "E85", gplc: "GPLc" };
+    const ORDER = ["sp95", "e10", "sp98", "gazole", "e85", "gplc"];
+    const nf = new Intl.NumberFormat("fr-FR");
+    const df = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", hour: "numeric", minute: "2-digit" });
+    const get = (u) => fetch(u, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    const [h, latest] = await Promise.all([get("data/history.json"), get("data/latest.json")]);
+    const stats = [];
+    if (latest) stats.push([nf.format(latest.stations.length), "stations avec un prix récent"]);
+    if (h) {
+      stats.push([nf.format(h.events), "changements de prix stockés"]);
+      if (h.collecting_since) stats.push([new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" }).format(new Date(h.collecting_since)), "début de la collecte"]);
+      if (h.exported_stations) stats.push([`${Math.round((100 * h.osm_snapped) / h.exported_stations)} %`, "stations recalées sur OpenStreetMap"]);
+    }
+    if (latest) stats.push([new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date(latest.generated_at)).replace(" à ", ", "), "dernier export"]);
+    document.getElementById("stats").innerHTML = stats.length
+      ? stats.map(([b, s]) => `<li><b>${b}</b><span>${s}</span></li>`).join("")
+      : `<li><b>–</b><span>données indisponibles</span></li>`;
+    const charts = document.getElementById("charts");
+    if (!h) charts.innerHTML = `<p class="muted">L’historique n’est pas disponible pour l’instant.</p>`;
+    else {
+      charts.innerHTML = ORDER.filter((f) => h.fuels[f]?.days.length >= 3).map((f) => {
+        const x = h.fuels[f];
+        const fc = x.forecast;
+        return `<div class="trend-card"><p class="trend-lead"><b>${NAMES[f]}</b> · médiane ${fmt3(x.median.at(-1))} €/L, ${x.n.at(-1)} stations${fc ? `<br><span>${trendWords(fc)}</span>` : ""}</p>
+          ${trendSVG(x, { label: NAMES[f], compact: true })}
+          ${fc ? `<p class="muted">Dans 7 jours : réaliste ${fmt3(fc.real.at(-1))}, entre ${fmt3(fc.low.at(-1))} et ${fmt3(fc.high.at(-1))}. Variation quotidienne habituelle : ${(fc.daily_sigma * 100).toFixed(1).replace(".", ",")} c, sur ${fc.points} jours.</p>` : ""}</div>`;
+      }).join("") || `<p class="muted">Pas encore assez de jours de relevés.</p>`;
+      document.getElementById("gen").textContent = `Historique calculé le ${df.format(new Date(h.generated_at))}.`;
+    }
+  </script>
+</body>
+</html>

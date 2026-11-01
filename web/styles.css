@@ -39,8 +39,16 @@
   --shade-1: rgba(14, 10, 8, .45);
   --shade-2: rgba(14, 10, 8, .5);
   --shade-3: rgba(14, 10, 8, .55);
-  /* Fond brodé d'automne : rouille, prune, olive, ocre. */
+  /* Fond brodé, une palette par saison (les fleurs changent aussi, voir garden.js). */
+  /* Printemps : amandier, tulipes, vert tendre. */
+  --sp-rose: #D07A92; --sp-lav: #7F79C4; --sp-lav-fill: #E2DDF4; --sp-coral: #E08A6C; --sp-sage: #6F9A5E; --sp-sky: #92BBD2;
+  /* Été : coquelicot, lavande de Provence, tournesol, olivier. */
+  --su-rose: #C9506A; --su-lav: #6E5FB8; --su-lav-fill: #DCD6F2; --su-coral: #D7472F; --su-sage: #7C8A55; --su-sky: #7FAFC9;
+  /* Automne : rouille, prune, olive, ocre. */
   --au-rose: #B4532F; --au-lav: #7C4A6D; --au-lav-fill: #E7D3D6; --au-coral: #C98429; --au-sage: #7D7C42; --au-sky: #B8A98A;
+  /* Hiver : houx, givre, bleu froid. */
+  --wi-rose: #B23A48; --wi-lav: #5D6FA8; --wi-lav-fill: #DCE3F0; --wi-coral: #B46A5A; --wi-sage: #4F6F5B; --wi-sky: #7E9EC4;
+  --umber: #7A5236;
 
   --f-ui: "Archivo", "Arial Narrow", system-ui, sans-serif;
   --f-name: "Young Serif", Georgia, serif;
@@ -49,8 +57,7 @@
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
+:root[data-theme="dark"] {
     --ground: #0E1430;
     --cloth: #151D40;
     --ink: #EFE8D8;
@@ -73,10 +80,14 @@
     --warn-bg: #3D2433;
     --warn-ink: #F3B9A6;
     --scrim: rgba(4, 6, 18, .6);
+    --sp-rose: #F0AFC2; --sp-lav: #B6B2F0; --sp-lav-fill: #33386E; --sp-coral: #F0AE92; --sp-sage: #B5D3A6; --sp-sky: #BCD6E8;
+    --su-rose: #EE9CB0; --su-lav: #B3A6F0; --su-lav-fill: #3A3172; --su-coral: #F09276; --su-sage: #C8CF9E; --su-sky: #A9CDE2;
     --au-rose: #E8A07A; --au-lav: #D3A5C8; --au-lav-fill: #4A2F5E; --au-coral: #E3B068; --au-sage: #C9C79A; --au-sky: #B9B2C6;
+    --wi-rose: #EA8C98; --wi-lav: #A9B7E8; --wi-lav-fill: #2B3768; --wi-coral: #E0A898; --wi-sage: #A9C7B5; --wi-sky: #D2E0F2;
+    --umber: #C9A27E;
     color-scheme: dark;
   }
-}
+
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; background: var(--ground); }
@@ -268,7 +279,7 @@ a { color: inherit; text-underline-offset: 3px; }
 
 /* Onglets */
 .tabs {
-  position: sticky; bottom: 0; z-index: 5; display: grid; grid-template-columns: repeat(4, 1fr);
+  position: sticky; bottom: 0; z-index: 5; display: grid; grid-template-columns: repeat(5, 1fr);
   background: var(--cloth); border-top: 1.5px dashed var(--stitch);
   padding: 6px max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
 }
@@ -379,10 +390,10 @@ legend { font-size: 13px; font-weight: 700; color: var(--ink-2); padding: 0; mar
 .plain { border: 0; background: none; padding: 0; margin: 0; text-align: left; cursor: pointer; color: inherit; font: inherit; }
 .ans-head.plain { display: grid; gap: 4px; }
 
-@media (prefers-color-scheme: dark) {
-  .satin-line { stroke: var(--ochre); opacity: .5; }
-  .satin-line-rose { stroke: var(--ochre); opacity: .45; }
-}
+:root[data-theme="dark"] .satin-line { stroke: var(--ochre); opacity: .5; }
+
+:root[data-theme="dark"] .satin-line-rose { stroke: var(--ochre); opacity: .45; }
+
 
 /* Fond brodé : généré par garden.js à chaque ouverture, aux couleurs de la saison. */
 .garden { position: fixed; top: 0; bottom: 0; left: 50%; width: 100%; max-width: 560px; transform: translateX(-50%); z-index: 0; pointer-events: none; opacity: .95; }
@@ -393,8 +404,16 @@ legend { font-size: 13px; font-weight: 700; color: var(--ink-2); padding: 0; mar
 .garden .satin-rose { fill: url(#satin-rose); }
 .shell { position: relative; z-index: 1; }
 .next-title { display: table; background: var(--ground); padding: 1px 12px 3px; margin-left: -8px; border-radius: 12px; }
-/* Automne : les valeurs vivent dans les jetons --au-* de :root. */
+/* Saisons : les valeurs vivent dans les jetons --sp-* / --su-* / --au-* / --wi-* de :root. */
+.garden[data-season="printemps"] { --rose-thread: var(--sp-rose); --lav: var(--sp-lav); --lav-fill: var(--sp-lav-fill); --coral: var(--sp-coral); --sage: var(--sp-sage); --sky: var(--sp-sky); }
+.garden[data-season="ete"] { --rose-thread: var(--su-rose); --lav: var(--su-lav); --lav-fill: var(--su-lav-fill); --coral: var(--su-coral); --sage: var(--su-sage); --sky: var(--su-sky); }
 .garden[data-season="automne"] { --rose-thread: var(--au-rose); --lav: var(--au-lav); --lav-fill: var(--au-lav-fill); --coral: var(--au-coral); --sage: var(--au-sage); --sky: var(--au-sky); }
+.garden[data-season="hiver"] { --rose-thread: var(--wi-rose); --lav: var(--wi-lav); --lav-fill: var(--wi-lav-fill); --coral: var(--wi-coral); --sage: var(--wi-sage); --sky: var(--wi-sky); }
+.garden .t-umber { stroke: var(--umber); } .garden .t-umber.knot-fill { fill: var(--umber); }
+.garden .t-ink.knot-fill { fill: var(--ink); opacity: .8; }
+.garden .t-sky.knot-fill { fill: var(--sky); }
+.garden .berry { fill: var(--rose-thread); stroke: none; }
+.garden .olive { fill: var(--lav-fill); stroke-width: 1.2; }
 
 /* États désactivés, titres équilibrés. */
 button:disabled, input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
@@ -458,9 +477,8 @@ html, body { overscroll-behavior-y: none; }
 .map-note { background: var(--ground); width: fit-content; padding: 2px 8px; border-radius: 8px; }
 
 /* Carte en sombre : boutons de zoom visibles. */
-@media (prefers-color-scheme: dark) {
-  .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1) hue-rotate(180deg); }
-}
+:root[data-theme="dark"] .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1) hue-rotate(180deg); }
+
 
 /* Niveau du réservoir, alerte E10, autonomie. */
 .level { display: grid; gap: 10px; margin-top: 12px; }
@@ -472,3 +490,101 @@ html, body { overscroll-behavior-y: none; }
 .flag.range.low { background: var(--warn-bg); color: var(--warn-ink); }
 .log-conso { margin: 10px 0 0; padding: 10px 12px; border-radius: 14px; background: var(--lav-fill); font-size: 15px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; justify-content: space-between; }
 .log-conso .btn { min-height: 40px; padding: 6px 12px; }
+
+/* Compteur d'économies : sous la réponse, en fil vert. */
+.savings { display: block; width: 100%; margin: 12px 0 0; padding: 12px 14px; border-radius: 16px; border: 1.5px dashed var(--good); background: var(--cloth); color: var(--ink); text-align: left; cursor: pointer; font-size: 15px; line-height: 1.35; }
+.savings b { color: var(--good); font-weight: 800; font-stretch: 78%; font-size: 22px; margin-right: 4px; }
+.savings small { display: block; color: var(--ink-2); font-size: 13px; margin-top: 2px; }
+
+/* Courbe des prix : fil plein pour le relevé, pointillé pour la prévision, points lancés pour la bande. */
+.trend-card { padding: 14px 14px 12px; border-radius: 18px; background: var(--cloth); border: 1.5px solid var(--edge); display: grid; gap: 10px; }
+.trend-lead { margin: 0; font-size: 15px; color: var(--ink-2); }
+.trend-lead b { color: var(--ink); font-weight: 800; font-stretch: 78%; font-size: 22px; }
+.trend-lead span { color: var(--ink); font-weight: 600; }
+.trend-svg { width: 100%; height: auto; display: block; overflow: visible; }
+.tr-grid { stroke: var(--seam); stroke-width: 1; stroke-dasharray: 2 3; }
+.tr-axis { fill: var(--ink-2); font: 600 10.5px var(--f-ui); font-variant-numeric: tabular-nums; }
+.tr-line { fill: none; stroke: var(--rose-thread); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.tr-dot { fill: var(--rose-thread); stroke: var(--cloth); stroke-width: 2; }
+.tr-real { fill: none; stroke: var(--rose-thread); stroke-width: 2.2; stroke-dasharray: 5 4; stroke-linecap: round; }
+.tr-band { fill: var(--lav-fill); opacity: .7; }
+.tr-high, .tr-low { fill: none; stroke: var(--lav); stroke-width: 1.2; stroke-dasharray: 1.5 3; stroke-linecap: round; }
+.tr-today { stroke: var(--edge); stroke-width: 1; stroke-dasharray: 2 2; }
+.trend-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
+.trend-legend li { display: flex; align-items: center; gap: 8px; }
+.trend-legend i { flex: none; width: 22px; height: 0; border-top: 2.4px solid var(--rose-thread); }
+.trend-legend .lg-real { border-top-style: dashed; }
+.trend-legend .lg-band { height: 10px; border: 1.2px dotted var(--lav); background: var(--lav-fill); border-radius: 3px; }
+.trend .hint a { color: var(--ink); }
+
+/* Thème et coulisses dans les réglages. */
+.coulisses-link { display: block; padding: 12px 4px; font-weight: 700; color: var(--ink); text-underline-offset: 4px; }
+.linkish { border: 0; background: none; padding: 0; color: var(--ink); font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+
+/* Trajet */
+.trip-form { display: grid; gap: 12px; padding: 14px; border-radius: 18px; background: var(--cloth); border: 1.5px solid var(--edge); }
+.trip-from { margin: 0; font-size: 15px; color: var(--ink-2); }
+.trip-form input[type=search] { -webkit-appearance: none; appearance: none; }
+.trip-sugg { list-style: none; margin: -6px 0 0; padding: 6px; border-radius: 16px; background: var(--cloth); border: 1.5px solid var(--edge); display: grid; gap: 2px; }
+.trip-sugg button { width: 100%; min-height: 48px; padding: 8px 10px; border: 0; border-radius: 10px; background: transparent; text-align: left; cursor: pointer; font-weight: 600; }
+.trip-sugg button:active, .trip-sugg button:hover { background: var(--lav-fill); }
+.trip-sugg small { display: block; font-weight: 400; font-size: 12px; color: var(--ink-2); }
+.trip-sugg-msg { padding: 10px; font-size: 14px; color: var(--ink-2); }
+.trip-recent:empty { display: none; }
+.trip-recent .choice { min-height: 40px; padding: 6px 12px; font-weight: 600; }
+.trip-recent .ic { width: 18px; height: 18px; color: var(--rose-thread); }
+.trip-corr { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.trip-corr .choice { min-height: 40px; padding: 6px 12px; }
+.trip-out { margin-top: 16px; }
+.trip-intro, .trip-wait, .trip-empty { margin: 0; padding: 16px 18px; border-radius: 18px; background: var(--cloth); border: 1.5px dashed var(--stitch); color: var(--ink-2); }
+.trip-sum { display: grid; gap: 12px; padding: 18px; border-radius: 22px; background: var(--cloth); outline: 1.5px dashed var(--stitch); outline-offset: -7px; box-shadow: 0 10px 28px -20px var(--shade-1); }
+.trip-sum h3 { margin: 0; font: 400 24px/1.1 var(--f-name); }
+.trip-sum p { margin: 0; }
+.trip-facts { color: var(--ink-2); font-size: 15px; }
+.trip-fuel { font-size: 15px; }
+.trip-sum .flag { white-space: normal; }
+.trip-strip { width: 100%; height: auto; overflow: visible; }
+.strip-line { stroke: var(--sage); stroke-width: 2.4; stroke-dasharray: 5 3; stroke-linecap: round; }
+.strip-nodata { stroke: var(--seam); stroke-width: 3; }
+.strip-dry { stroke: var(--warn-ink); stroke-width: 2.4; stroke-dasharray: 2 3; }
+.strip-note { fill: var(--warn-ink); font: 700 10px var(--f-ui); }
+.strip-start { fill: var(--accent); }
+.strip-end { fill: var(--cloth); stroke: var(--rose-thread); stroke-width: 2.4; }
+.strip-pin circle { fill: var(--cloth); stroke: var(--rose-thread); stroke-width: 1.8; stroke-dasharray: 3 2; }
+.strip-pin text { fill: var(--ink); font: 800 11px var(--f-ui); }
+.strip-pin.is-best circle { fill: var(--rose-thread); stroke-dasharray: none; }
+.strip-pin.is-best text { fill: var(--cloth); }
+.strip-pin.is-dry circle { stroke: var(--warn-ink); }
+.strip-label { fill: var(--ink-2); font: 600 11px var(--f-ui); }
+.trip-best { display: grid; gap: 6px; padding: 12px 0 2px; border-top: 1.5px dashed var(--seam); }
+.trip-best-name { font: 400 21px/1.15 var(--f-name); }
+.trip-best-name small { display: block; font: 400 14px/1.35 var(--f-ui); color: var(--ink-2); margin-top: 2px; }
+.trip-best-price { font-size: 15px; color: var(--ink-2); }
+.trip-best-price .num { color: var(--ink); font-weight: 800; font-stretch: 70%; font-size: 34px; line-height: 1; }
+.trip-best-price b { color: var(--ink); }
+.trip-best-price .save { color: var(--good); font-weight: 700; }
+.trip-sum .btn { width: 100%; }
+.trip-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: stretch; }
+.trip-go { height: auto; min-height: 48px; }
+.trip-out > .hint { margin-top: 14px; }
+
+/* Mode guidon : plein écran, très gros, lisible au soleil et avec des gants. */
+.ride { border: 0; margin: 0; padding: max(18px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+  width: 100%; height: 100%; max-width: none; max-height: none; background: var(--ground); color: var(--ink);
+  display: none; flex-direction: column; gap: 14px; }
+.ride[open] { display: flex; }
+.ride::backdrop { background: var(--ground); }
+.ride-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ride-rank { margin: 0; font-size: 17px; font-weight: 700; color: var(--ink-2); }
+.ride-name { margin: 0; font: 400 clamp(30px, 9vw, 44px)/1.08 var(--f-name); text-wrap: balance; }
+.ride-price { margin: 0; display: flex; align-items: flex-start; gap: 8px; font-weight: 800; font-stretch: 66%; font-size: clamp(110px, 36vw, 170px); line-height: .85; letter-spacing: -.02em; }
+.ride-price sup { font-size: .42em; }
+.ride-price span { font-size: 22px; font-stretch: 90%; font-weight: 700; color: var(--ink-2); margin-top: 10px; letter-spacing: 0; }
+.ride-meta { margin: 0; font-size: 22px; font-weight: 700; }
+.ride-meta span { display: block; font-size: 18px; font-weight: 500; color: var(--ink-2); margin-bottom: 6px; }
+.ride-go { margin-top: auto; display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 96px; border-radius: 26px; border: 0; cursor: pointer;
+  background: var(--accent); color: var(--accent-ink); font-weight: 800; font-stretch: 90%; font-size: 32px; outline: 2px dashed var(--accent-stitch); outline-offset: -8px; }
+.ride-go .ic { width: 34px; height: 34px; }
+.ride-next { min-height: 72px; border-radius: 22px; border: 2px solid var(--edge); background: var(--cloth); color: var(--ink); font-weight: 800; font-size: 22px; cursor: pointer; }
+.ride .icon-btn { width: 56px; height: 56px; }
+.ans-foot > span { flex: 1; min-width: 0; }

@@ -73,3 +73,16 @@ Les coordonnées du flux officiel tombent parfois au milieu de la route. Une foi
 récupère les stations `amenity=fuel` d'OpenStreetMap (cache `data/osm_fuel.json`) et l'export recale chaque station sur le
 point OSM le plus proche (≤ 150 m), avec son enseigne. Sans cache, l'itinéraire utilise l'adresse.
 Données © contributeurs OpenStreetMap, licence ODbL.
+
+## En coulisses
+
+La page [`web/coulisses.html`](web/coulisses.html) (lien « En coulisses » en bas des réglages de l'appli) montre le
+chemin d'un prix, les chiffres du jour, les courbes par carburant et la méthode de prévision. L'export écrit
+`web/data/history.json` à côté de `latest.json` : médiane quotidienne du prix en vigueur depuis le début de la
+collecte, et 7 jours de scénarios (réaliste = tendance des 14 derniers jours amortie, optimiste/pessimiste =
+± variation quotidienne habituelle × √jours). Code : `src/carburants/history.py`.
+
+## Trajet
+
+L'onglet Trajet géocode la destination (Base Adresse Nationale), demande l'itinéraire au serveur public OSRM
+et classe les stations à moins de 1, 2 ou 5 km de la route (`web/trip.js`, testé dans `web/tests/trip.test.mjs`).
