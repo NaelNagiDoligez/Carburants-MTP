@@ -925,6 +925,7 @@ function countSavings(target) {
 function renderSavings() {
   const total = state.log.reduce((sum, e) => sum + e.gain, 0);
   const n = state.log.length;
+  syncSavings();
   els.savings.hidden = !(n && total >= 0.5);
   if (els.savings.hidden) return;
   els.savings.innerHTML = `<b>${eur.format(savingsShown)}</b> économisés avec Plein Sud<small>sur ${n} plein${n > 1 ? "s" : ""} noté${n > 1 ? "s" : ""}, par rapport au prix médian de la zone · voir le carnet</small>`;
@@ -1735,11 +1736,29 @@ async function loadReports() {
   if (!fr.hasProfile()) return;
   try { friendReports = await fr.reports(80); } catch { /* hors ligne : on garde l'ancien */ }
 }
+// Un prix signalé n'est « confirmé » qu'à partir de deux personnes (toi + amis) qui relèvent le même prix.
+function groupReports(rows) {
+  const groups = new Map();
+  for (const r of rows) {
+    const k = `${r.station_id}|${r.fuel}|${Number(r.price).toFixed(3)}`;
+    const g = groups.get(k) || { station_id: r.station_id, fuel: r.fuel, price: Number(r.price), who: [], mine: false, n: 0, at: r.created_at };
+    const name = r.mine ? "toi" : r.pseudo;
+    if (!g.who.includes(name)) g.who.push(name);
+    g.mine ||= r.mine;
+    g.n = Math.max(g.n, r.confirmations);
+    if (r.created_at > g.at) g.at = r.created_at;
+    groups.set(k, g);
+  }
+  return [...groups.values()].sort((x, y) => (y.n >= 2) - (x.n >= 2) || (y.at > x.at ? 1 : -1));
+}
+const whoText = (g) => g.who.join(", ");
 function reportBlock(s) {
   const f = state.fuel;
   if (!s.prices[f]) return "";
-  const mine = friendReports.filter((r) => r.station_id === s.id && r.fuel === f).slice(0, 3);
-  const seen = mine.map((r) => `<li><b>${esc(r.mine ? "Toi" : r.pseudo)}</b> ${r.kind === "correct" ? "a relevé" : "a confirmé"} ${priceHTML(Number(r.price))} <small>${ago(new Date(r.created_at))}</small></li>`).join("");
+  const groups = groupReports(friendReports.filter((r) => r.station_id === s.id && r.fuel === f)).slice(0, 3);
+  const seen = groups.map((g) => g.n >= 2
+    ? `<li class="rep-ok"><b>${priceHTML(g.price)}</b> confirmé par ${esc(whoText(g))} <small>${ago(new Date(g.at))}</small></li>`
+    : `<li class="rep-wait"><span>${priceHTML(g.price)} signalé par ${esc(whoText(g))}, <i>pas encore confirmé</i></span>${g.mine ? "" : `<button type="button" class="btn" data-rep-also="${g.price}" data-rep-st="${esc(s.id)}">Moi aussi</button>`}</li>`).join("");
   return `<section class="st-report" aria-label="Signaler le prix sur place">
     ${seen ? `<ul class="rep-list">${seen}</ul>` : ""}
     <p class="rep-title">Sur place, ${esc(REPORT_NAMES[f] || f)} ?</p>
@@ -1747,6 +1766,7 @@ function reportBlock(s) {
       <button type="button" class="btn" data-rep="confirm" data-rep-st="${esc(s.id)}">${icon("i-flag")}C’est bien ${s.prices[f][0].toFixed(3).replace(".", ",")} €</button>
       <button type="button" class="btn" data-rep="other" data-rep-st="${esc(s.id)}">Prix différent</button>
     </div>
+    <p class="hint">Un prix signalé s’affiche comme confirmé quand deux personnes relèvent le même.</p>
     <form class="rep-form" hidden data-rep-form="${esc(s.id)}"><input type="text" inputmode="decimal" autocomplete="off" placeholder="1,789" aria-label="Prix relevé en euros par litre"><button class="btn btn-main" type="submit">Envoyer</button></form>
   </section>`;
 }
@@ -1760,6 +1780,8 @@ async function sendReport(stationId, price, kind) {
   } catch (e) { toast(`Pas envoyé : ${e.message}`); }
 }
 els.stationSheet.addEventListener("click", (e) => {
+  const also = e.target.closest("[data-rep-also]");
+  if (also) return sendReport(also.dataset.repSt, Number(also.dataset.repAlso), "confirm");
   const b = e.target.closest("[data-rep]");
   if (!b) return;
   const s = stationById(b.dataset.repSt);
@@ -1778,6 +1800,24 @@ els.stationSheet.addEventListener("submit", (e) => {
   sendReport(form.dataset.repForm, Math.round(v * 1000) / 1000, "correct");
 });
 
+const monthKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+let savingsSyncT = 0;
+let savingsSent = "";
+// Publie mon total du mois ; appelé après chaque changement du carnet (retardé) et à l'ouverture de la fenêtre Amis.
+async function syncSavings(now = false) {
+  if (!fr.hasProfile()) return;
+  clearTimeout(savingsSyncT);
+  const run = async () => {
+    const mk = monthKey();
+    const mine = state.log.filter((e) => monthKey(new Date(e.date)) === mk);
+    const euros = mine.reduce((s, e) => s + e.gain, 0);
+    const sig = `${mk}|${euros.toFixed(2)}|${mine.length}`;
+    if (sig === savingsSent || !mine.length) return;
+    try { await fr.pushSavings(mk, euros, Math.min(mine.length, 200)); savingsSent = sig; } catch { /* réessayé au prochain changement */ }
+  };
+  if (now) return run();
+  savingsSyncT = setTimeout(run, 2500);
+}
 const friendsBody = $("friendsBody");
 async function openFriends() {
   openSheet($("friendsSheet"));
@@ -1792,15 +1832,17 @@ async function renderFriends() {
   }
   friendsBody.innerHTML = `<p class="trip-wait">Chargement…</p>`;
   try {
-    const [me, list] = await Promise.all([friendsInfo ? friendsInfo : fr.profile(), fr.friends(), loadReports()]);
+    await syncSavings(true);
+    const [me, list, rank] = await Promise.all([friendsInfo ? friendsInfo : fr.profile(), fr.friends(), fr.savings(monthKey()), loadReports()]);
     friendsInfo = me;
     const incoming = list.filter((f) => f.status === "pending" && f.incoming);
     const waiting = list.filter((f) => f.status === "pending" && !f.incoming);
     const ok = list.filter((f) => f.status === "accepted");
-    const feed = friendReports.slice(0, 12).map((r) => {
-      const s = stationById(r.station_id);
-      return `<li><b>${esc(r.mine ? "Toi" : r.pseudo)}</b> · ${esc(s ? stationName(s) : "station hors zone")} · ${esc(REPORT_NAMES[r.fuel] || r.fuel)} ${priceHTML(Number(r.price))} <small>${ago(new Date(r.created_at))}</small></li>`;
+    const feed = groupReports(friendReports).slice(0, 10).map((g) => {
+      const s = stationById(g.station_id);
+      return `<li class="${g.n >= 2 ? "rep-ok" : "rep-wait"}"><span><b>${esc(s ? stationName(s) : "station hors zone")}</b> · ${esc(REPORT_NAMES[g.fuel] || g.fuel)} ${priceHTML(g.price)}<br><small>${g.n >= 2 ? "confirmé par" : "signalé par"} ${esc(whoText(g))}, ${ago(new Date(g.at))}</small></span></li>`;
     }).join("");
+    const board = rank.map((r, i) => `<li${r.mine ? ' class="me"' : ""}><span class="rk">${i + 1}</span><span class="nm">${esc(r.mine ? `${r.pseudo} (toi)` : r.pseudo)}</span><span class="eu">${r.euros >= 0 ? "+" : "−"}${eur.format(Math.abs(Number(r.euros)))}</span><small>${r.fills} plein${r.fills > 1 ? "s" : ""}</small></li>`).join("");
     friendsBody.innerHTML = `
       <p class="fr-me">Tu es <b>${esc(me.pseudo)}</b>. Ton code d’invitation :</p>
       <div class="fr-code"><output>${esc(me.code)}</output>${navigator.share ? `<button class="icon-btn" type="button" data-fr-share aria-label="Partager mon code">${icon("i-share")}</button>` : ""}</div>
@@ -1809,6 +1851,8 @@ async function renderFriends() {
       ${incoming.length ? `<h3 class="fr-h">Demandes reçues</h3><ul class="fr-list">${incoming.map((f) => `<li><span>${esc(f.pseudo)}</span><button class="btn btn-main" type="button" data-fr-yes="${f.user_id}">Accepter</button><button class="btn btn-text" type="button" data-fr-no="${f.user_id}">Refuser</button></li>`).join("")}</ul>` : ""}
       <h3 class="fr-h">Amis</h3>
       ${ok.length || waiting.length ? `<ul class="fr-list">${ok.map((f) => `<li><span>${esc(f.pseudo)}</span><button class="btn btn-text" type="button" data-fr-del="${f.user_id}">Retirer</button></li>`).join("")}${waiting.map((f) => `<li><span>${esc(f.pseudo)} <small>en attente</small></span><button class="btn btn-text" type="button" data-fr-del="${f.user_id}">Annuler</button></li>`).join("")}</ul>` : `<p class="muted">Pas encore d’ami. Envoie ton code, ou entre le sien ci-dessus.</p>`}
+      <h3 class="fr-h">Classement du mois</h3>
+      ${board ? `<ol class="fr-board">${board}</ol><p class="hint">Seuls le total économisé ce mois-ci et le nombre de pleins sont partagés, jamais les stations ni les lieux.</p>` : `<p class="muted">Note un plein dans le carnet pour entrer au classement.</p>`}
       <h3 class="fr-h">Derniers prix signalés</h3>
       ${feed ? `<ul class="rep-list">${feed}</ul>` : `<p class="muted">Rien pour l’instant. Sur la fiche d’une station, « C’est bien … » confirme le prix pour tes amis.</p>`}`;
     friendsMsg = "";

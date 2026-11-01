@@ -697,3 +697,15 @@ html, body { overscroll-behavior-y: none; }
 .fr-list li { display: flex; align-items: center; gap: 8px; min-height: 48px; }
 .fr-list li span { flex: 1; font-weight: 700; }
 .muted { color: var(--ink-2); font-size: 14px; }
+.rep-list li { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.rep-ok b { color: var(--sage); }
+.rep-wait { color: var(--ink-2); }
+.rep-wait i { font-style: normal; opacity: .85; }
+.rep-wait .btn { min-height: 36px; padding: 4px 12px; }
+.fr-board { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.fr-board li { display: grid; grid-template-columns: 28px 1fr auto; align-items: baseline; column-gap: 8px; padding: 8px 12px; border-radius: 12px; }
+.fr-board li.me { background: var(--cloth); outline: 1.5px dashed var(--stitch); outline-offset: -4px; }
+.fr-board .rk { font: 400 20px/1 var(--f-name); color: var(--rose); }
+.fr-board .nm { font-weight: 700; }
+.fr-board .eu { font-weight: 800; font-stretch: 80%; font-size: 20px; }
+.fr-board small { grid-column: 2 / 4; color: var(--ink-2); }

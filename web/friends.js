@@ -76,3 +76,7 @@ export const friends = () => rpc("friends_list");
 export const reports = (limit = 60) => rpc("friends_reports", { p_limit: limit });
 export const report = (r) => api("/rest/v1/price_reports", { method: "POST", body: r });
 export function forget() { sess = null; store(); }
+export const savings = (month) => rpc("friends_savings", { p_month: month });
+/** Publie mon total du mois (seulement l'euro économisé et le nombre de pleins). */
+export const pushSavings = (month, euros, fills) =>
+  api("/rest/v1/savings?on_conflict=user_id,month", { method: "POST", body: { month, euros: Math.round(euros * 100) / 100, fills }, prefer: "resolution=merge-duplicates" });
