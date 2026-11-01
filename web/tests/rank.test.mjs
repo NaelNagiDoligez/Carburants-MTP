@@ -57,3 +57,20 @@ test("rupture : reconnaît les noms du flux, sans faux positif", () => {
   assert.equal(isOutOfStock(s, "e10"), false);
   assert.equal(isOutOfStock({}, "e10"), false);
 });
+
+test("un prix de plus de 48 h ne passe pas devant un prix récent", () => {
+  const now = new Date("2026-11-01T12:00:00Z");
+  const mk = (id, price, hoursAgo, lat) => ({ id, lat, lon: 3.88, prices: { e10: [price, new Date(now - hoursAgo * 3600000).toISOString()] } });
+  const out = rankStations([mk("vieux", 1.5, 100, 43.61), mk("frais", 1.8, 2, 43.62)], "e10", { lat: 43.6, lon: 3.88 }, { litres: 10, conso: 5, radiusKm: 30, now });
+  assert.deepEqual(out.map((r) => r.station.id), ["frais", "vieux"]);
+  assert.equal(out[1].stale, true);
+});
+
+test("l'autonomie écarte les stations trop loin et les classe en dernier", () => {
+  const now = new Date("2026-11-01T12:00:00Z");
+  const iso = now.toISOString();
+  const near = { id: "proche", lat: 43.62, lon: 3.88, prices: { e10: [1.9, iso] } };
+  const far = { id: "loin", lat: 43.75, lon: 3.88, prices: { e10: [1.5, iso] } }; // ~19 km à vol d'oiseau x 1,3
+  const out = rankStations([far, near], "e10", { lat: 43.6, lon: 3.88 }, { litres: 10, conso: 5, radiusKm: 40, now, rangeKm: 15 });
+  assert.deepEqual(out.map((r) => [r.station.id, r.unreachable]), [["proche", false], ["loin", true]]);
+});

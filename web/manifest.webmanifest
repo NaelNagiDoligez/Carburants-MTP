@@ -8,6 +8,10 @@
   "display": "standalone",
   "background_color": "#F3EDE0",
   "theme_color": "#F3EDE0",
+  "shortcuts": [
+    { "name": "Itinéraire vers la meilleure station", "short_name": "Y aller", "url": "./#go" },
+    { "name": "Noter un plein", "short_name": "Noter un plein", "url": "./#plein" }
+  ],
   "icons": [
     { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },

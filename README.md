@@ -66,3 +66,10 @@ Zone suivie : départements 34 et 30, filtrés en local après téléchargement 
 Le schéma du flux (noms de colonnes `sp95_prix`, `sp95_maj`, `dep_code`...) a été écrit
 d'après la documentation, sans pouvoir être testé sur le vrai flux. Si les colonnes diffèrent,
 `transform.py` s'arrête avec la liste des colonnes disponibles : il suffit d'ajuster `config.py`.
+
+## Positions des stations (OpenStreetMap)
+
+Les coordonnées du flux officiel tombent parfois au milieu de la route. Une fois par semaine, `python -m carburants osm`
+récupère les stations `amenity=fuel` d'OpenStreetMap (cache `data/osm_fuel.json`) et l'export recale chaque station sur le
+point OSM le plus proche (≤ 150 m), avec son enseigne. Sans cache, l'itinéraire utilise l'adresse.
+Données © contributeurs OpenStreetMap, licence ODbL.

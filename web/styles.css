@@ -96,7 +96,7 @@ a { color: inherit; text-underline-offset: 3px; }
 /* En-tête */
 .top {
   display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 10px;
-  padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 4px max(16px, env(safe-area-inset-left));
+  padding: calc(env(safe-area-inset-top, 0px) + 14px) max(16px, env(safe-area-inset-right)) 4px max(16px, env(safe-area-inset-left));
 }
 .mark { width: 28px; height: 28px; fill: var(--rose-thread); }
 .top h1 { margin: 0; font: 400 22px/1 var(--f-name); letter-spacing: -.005em; }
@@ -461,3 +461,14 @@ html, body { overscroll-behavior-y: none; }
 @media (prefers-color-scheme: dark) {
   .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1) hue-rotate(180deg); }
 }
+
+/* Niveau du réservoir, alerte E10, autonomie. */
+.level { display: grid; gap: 10px; margin-top: 12px; }
+.level-out { margin-left: 6px; color: var(--ink); font-weight: 700; }
+.level input[type=range] { width: 100%; }
+.e10hint { display: block; width: 100%; margin: 12px 0 0; padding: 12px 14px; border-radius: 16px; border: 1.5px dashed var(--edge); background: var(--ground); text-align: left; cursor: pointer; font-size: 15px; line-height: 1.35; color: var(--ink); }
+.e10hint small { display: block; color: var(--ink-2); font-size: 13px; margin-top: 2px; }
+.flag.range { background: var(--lav-fill); color: var(--ink); }
+.flag.range.low { background: var(--warn-bg); color: var(--warn-ink); }
+.log-conso { margin: 10px 0 0; padding: 10px 12px; border-radius: 14px; background: var(--lav-fill); font-size: 15px; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; justify-content: space-between; }
+.log-conso .btn { min-height: 40px; padding: 6px 12px; }

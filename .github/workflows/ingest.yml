@@ -25,6 +25,9 @@ jobs:
       - run: pip install -e .
       - name: Snapshot
         run: python -m carburants run
+      - name: Positions OpenStreetMap (une fois par semaine)
+        continue-on-error: true
+        run: python -m carburants osm
       - name: Commit des nouvelles données
         run: |
           git config user.name "carburants-bot"

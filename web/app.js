@@ -116,7 +116,11 @@ function prettyAddress(raw) {
     return lw.replace(/(^|[-'’])(\p{L})/gu, (m, a, b) => a + b.toUpperCase());
   }).join(" ").replace(/\b([dl])['’]\s?/gi, (m, c) => `${c.toLowerCase()}’`);
 }
-const stationName = (s) => (!s.adresse || /^(cs|bp)\s*\d+$/i.test(s.adresse.trim()) ? titleCase(s.ville) : prettyAddress(s.adresse));
+const streetOf = (s) => (!s.adresse || /^(cs|bp)\s*\d+$/i.test(s.adresse.trim()) ? "" : prettyAddress(s.adresse));
+// L'enseigne (OpenStreetMap) quand on la connaît, sinon l'adresse : c'est ce que le conducteur reconnaît.
+const stationName = (s) => (s.nom ? (s.nom === s.nom.toUpperCase() ? titleCase(s.nom) : s.nom) : streetOf(s) || titleCase(s.ville));
+const stationPlace = (s) => (s.nom ? [streetOf(s), titleCase(s.ville)].filter(Boolean).join(", ") : titleCase(s.ville));
+const placeShort = (s) => (s.nom ? streetOf(s) || titleCase(s.ville) : titleCase(s.ville));
 // Les pompes affichent 3 décimales, la dernière en petit : 2,11⁹.
 function priceHTML(p) {
   const s = p.toFixed(3).replace(".", ",");
@@ -144,7 +148,7 @@ const icon = (id, cls = "ic") => `<svg class="${cls}" aria-hidden="true"><use hr
 // ---------- Éléments ----------
 const $ = (id) => document.getElementById(id);
 const els = {
-  start: $("start"), startText: $("startText"), fuels: $("fuels"), fresh: $("fresh"), fillScrim: $("fillScrim"),
+  start: $("start"), startText: $("startText"), fuels: $("fuels"), fresh: $("fresh"), fillScrim: $("fillScrim"), e10Hint: $("e10Hint"), level: $("level"), levelOut: $("levelOut"), levelFull: $("levelFull"), levelUnknown: $("levelUnknown"), logKm: $("logKm"),
   answer: $("answer"), answerBody: $("answerBody"), alts: $("alts"), showAll: $("showAll"), showAllText: $("showAllText"),
   allList: $("allList"), favList: $("favList"), map: $("map"), mapNote: $("mapNote"),
   logTotal: $("logTotal"), logForm: $("logForm"), logStation: $("logStation"), logLitres: $("logLitres"),
@@ -166,10 +170,20 @@ function originLabel() {
   if (state.placeId === "gps") return state.gps ? "ta position" : "la Comédie";
   return (PLACES.find((p) => p.id === state.placeId) || PLACES[0]).short;
 }
+const LEVEL_TTL = 48 * 3600000; // un niveau noté il y a plus de 48 h n'est plus utilisé
 function vehicle() {
   const v = state.vehicles.find((x) => x.id === state.profileId) || state.vehicles[0] || SEEDS[0];
-  return { ...v, short: v.short || v.label };
+  const known = Number.isFinite(v.level) && Date.now() - (v.levelAt || 0) < LEVEL_TTL;
+  return { ...v, short: v.short || v.label, level: known ? v.level : null };
 }
+const rawVehicle = () => state.vehicles.find((x) => x.id === state.profileId) || state.vehicles[0];
+// Litres à mettre : ce qui manque pour remplir le réservoir (au moins 3 L) ; plein assumé si le niveau est inconnu.
+function litresToBuy(v = vehicle()) {
+  const tank = Number(v.litres) || 1;
+  if (v.level == null || v.level >= 0.9) return tank;
+  return Math.max(3, Math.round(tank * (1 - v.level) * 10) / 10);
+}
+const rangeOf = (v = vehicle()) => (v.level == null ? null : Math.round(((v.level * Number(v.litres)) / Math.max(0.1, Number(v.conso))) * 100));
 const stationById = (id) => data?.stations.find((s) => s.id === id);
 const isFav = (id) => state.favs.includes(id);
 const fuelLabel = () => data.fuels[state.fuel]?.label ?? state.fuel;
@@ -177,7 +191,7 @@ const fuelLabel = () => data.fuels[state.fuel]?.label ?? state.fuel;
 function computeRanking() {
   const v = vehicle();
   const usable = data.stations.filter((s) => !isOutOfStock(s, state.fuel));
-  ranked = rankStations(usable, state.fuel, origin(), { litres: Number(v.litres) || 1, conso: Number(v.conso) || 0, radiusKm: state.radius });
+  ranked = rankStations(usable, state.fuel, origin(), { litres: litresToBuy(v), conso: Number(v.conso) || 0, radiusKm: state.radius, rangeKm: rangeOf(v) });
   ranked.forEach((r, i) => { r.rank = i + 1; });
 }
 
@@ -229,11 +243,15 @@ function renderAnswer() {
   const stale = hoursOld(r.updatedAt) > STALE_HOURS;
   const saving = r.gain > 0.05 ? `<span class="save">${eur.format(r.gain)} de moins que la plus proche</span>`
     : `<span>${r.isNearest ? "C'est aussi la plus proche" : "Même total que la plus proche"}</span>`;
-  const age = stale ? `<br><span class="flag">${icon("i-caution")}prix ${ago(r.updatedAt)}</span>` : "";
+  const v = vehicle();
+  const range = rangeOf(v);
+  const age = (stale ? `<br><span class="flag">${icon("i-caution")}prix ${ago(r.updatedAt)}</span>` : "")
+    + (r.unreachable ? `<br><span class="flag range low">${icon("i-caution")}hors d’autonomie : environ ${range} km</span>`
+      : range != null ? `<br><button type="button" class="flag range${range < 60 ? " low" : ""}" data-open-settings>Autonomie environ ${range} km</button>` : "");
   els.answerBody.innerHTML = `
     <button type="button" class="ans-head plain" data-open="${esc(s.id)}" aria-label="Détails de la station ${esc(stationName(s))}">
       <span class="ans-name">${esc(stationName(s))}</span>
-      <span class="ans-ville">${esc(titleCase(s.ville))}</span>
+      <span class="ans-ville">${esc(stationPlace(s))}</span>
     </button>
     <p class="ans-price" aria-label="${priceSpoken(r.price)}"><span class="num">${priceHTML(r.price)}</span><span class="unit">€/L</span></p>
     <div class="ans-facts">
@@ -244,9 +262,26 @@ function renderAnswer() {
     <div class="ans-foot"><span>${saving}${age}</span>
       <button type="button" class="icon-btn star-btn" data-fav="${esc(s.id)}" aria-pressed="${isFav(s.id)}" aria-label="${isFav(s.id) ? "Retirer des favoris" : "Ajouter aux favoris"}">${icon("i-star")}</button>
     </div>`;
+  renderE10Hint();
   const key = `${s.id}|${state.fuel}`;
   if (!firstRender && key !== lastLeadKey) restitch();
   lastLeadKey = key;
+}
+
+// Le SP95-E5 est rare : quand l'E10 est nettement moins cher, on le signale (sans rien imposer).
+function renderE10Hint() {
+  const hint = els.e10Hint;
+  hint.hidden = true;
+  if (state.fuel !== "sp95" || !data.fuels.e10) return;
+  const v = vehicle();
+  const usable = data.stations.filter((s) => !isOutOfStock(s, "e10"));
+  const e10 = rankStations(usable, "e10", origin(), { litres: litresToBuy(v), conso: Number(v.conso) || 0, radiusKm: state.radius, rangeKm: rangeOf(v) })[0];
+  if (!e10 || e10.unreachable) return;
+  const best = ranked[0];
+  if (best && !best.unreachable && best.total - e10.total < 0.3) return;
+  const diff = best && !best.unreachable ? ` : ${eur.format(best.total - e10.total)} de moins` : "";
+  hint.innerHTML = `En E10, ${commaNum(e10.price, 3)} €/L à ${kmText(e10.distanceKm)} km${diff}<small>Voir en E10, si ton véhicule l’accepte</small>`;
+  hint.hidden = false;
 }
 
 // Signature : le bouquet se brode du bas vers le haut (à l'ouverture, puis plus vite quand la réponse change).
@@ -274,7 +309,7 @@ function altHTML(r, best, label) {
       <span class="rank" aria-hidden="true">${r.rank ?? "–"}</span>
       <span class="alt-name">${esc(stationName(s))}</span>
       <span class="alt-price">${priceHTML(r.price)}</span>
-      <span class="alt-meta">${kmText(r.distanceKm)} km, ${esc(titleCase(s.ville))}${stale}</span>
+      <span class="alt-meta">${kmText(r.distanceKm)} km, ${esc(placeShort(s))}${stale}</span>
       <span class="alt-gap">${esc(right)}</span>
     </button>`;
 }
@@ -330,7 +365,7 @@ function renderFavs() {
   }
   const v = vehicle();
   const favStations = state.favs.map(stationById).filter(Boolean);
-  const rows = rankStations(favStations, state.fuel, origin(), { litres: Number(v.litres) || 1, conso: Number(v.conso) || 0, radiusKm: 500 });
+  const rows = rankStations(favStations, state.fuel, origin(), { litres: litresToBuy(v), conso: Number(v.conso) || 0, radiusKm: 500 });
   const labels = new Map();
   for (const r of rows) {
     const pos = ranked.findIndex((x) => x.station.id === r.station.id);
@@ -374,11 +409,18 @@ function showView(next) {
 }
 
 // ---------- Itinéraire : Plans, Google Maps ou Waze ----------
+// Les coordonnées du flux officiel tombent souvent au milieu de la route. Quand la station a été
+// retrouvée sur OpenStreetMap (s.snap), on vise sa vraie position ; sinon on envoie l'adresse, que les
+// applis savent poser sur le bon bâtiment, plutôt qu'un point GPS approximatif.
 function navUrl(app, s) {
   const ll = `${s.lat},${s.lon}`;
-  if (app === "apple") return `https://maps.apple.com/?daddr=${ll}&dirflg=d`;
-  if (app === "waze") return `https://waze.com/ul?ll=${ll}&navigate=yes`;
-  return `https://www.google.com/maps/dir/?api=1&destination=${ll}&travelmode=driving`;
+  const street = streetOf(s);
+  const addr = [street, [s.cp, titleCase(s.ville)].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  const byAddress = !s.snap && street;
+  const dest = byAddress ? addr : ll;
+  if (app === "apple") return `https://maps.apple.com/?daddr=${encodeURIComponent(dest)}&dirflg=d`;
+  if (app === "waze") return byAddress ? `https://waze.com/ul?q=${encodeURIComponent(addr)}&ll=${ll}&navigate=yes` : `https://waze.com/ul?ll=${ll}&navigate=yes`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}&travelmode=driving`;
 }
 // Liens universels : le téléphone ouvre l'appli si elle est installée, sinon le site.
 // Appelé directement dans le geste de l'utilisateur (sinon le navigateur bloque l'ouverture).
@@ -520,6 +562,7 @@ function openStation(id) {
     return `<li><span class="fuel-name${f === state.fuel ? " cur" : ""}">${esc(data.fuels[f]?.label ?? f)}</span><span class="num">${priceHTML(p)}</span><small>prix ${ago(new Date(t))}${out}</small></li>`;
   }).join("");
   const facts = [
+    s.snap ? ["Position", "relevée sur OpenStreetMap, l’itinéraire vise la station"] : ["Position", "approximative : l’itinéraire vise l’adresse"],
     s.automate_24_24 ? ["Automate 24 h/24", esc(s.automate_24_24)] : null,
     s.horaires ? ["Horaires", esc(s.horaires)] : null,
     s.services ? ["Services", esc(s.services)] : null,
@@ -528,7 +571,7 @@ function openStation(id) {
     <div class="grabber" aria-hidden="true"></div>
     <div class="sheet-head">
       <div><h2 id="stTitle">${esc(stationName(s))}</h2>
-        <p>${esc(titleCase(s.ville))}${r ? `, ${kmText(r.distanceKm)} km, ${r.rank}${r.rank === 1 ? "re" : "e"} au classement` : ", hors rayon"}</p></div>
+        <p>${esc(stationPlace(s))}${r ? `, ${kmText(r.distanceKm)} km, ${r.rank}${r.rank === 1 ? "re" : "e"} au classement` : ", hors rayon"}</p></div>
       <button class="icon-btn" type="button" data-close aria-label="Fermer">${icon("i-close")}</button>
     </div>
     ${r ? `<p class="st-sum"><b>${eur.format(r.total)}</b> le plein de ${esc(fuelLabel())}, détour compris</p>` : ""}
@@ -579,11 +622,35 @@ function enableDragToClose(dlg) {
   dlg.addEventListener("pointercancel", end);
 }
 
+function renderLevel() {
+  const v = vehicle();
+  const raw = rawVehicle();
+  const known = v.level != null;
+  els.level.value = known ? Math.round(v.level * 100) : 50;
+  if (known) {
+    const litres = Math.round(v.level * Number(v.litres) * 10) / 10;
+    els.levelOut.textContent = `${Math.round(v.level * 100)} % (environ ${commaNum(litres, 1)} L), autonomie ${rangeOf(v)} km`;
+  } else {
+    els.levelOut.textContent = Number.isFinite(raw?.level) ? `noté ${ago(new Date(raw.levelAt || 0))}, plus utilisé` : "inconnu";
+  }
+}
+function setLevel(frac) {
+  const v = rawVehicle();
+  if (!v) return;
+  if (frac == null) { delete v.level; delete v.levelAt; } else { v.level = frac; v.levelAt = Date.now(); }
+  renderSettings();
+  update();
+}
+els.level.addEventListener("input", () => setLevel(Number(els.level.value) / 100));
+els.levelFull.addEventListener("click", () => setLevel(1));
+els.levelUnknown.addEventListener("click", () => setLevel(null));
+
 function renderSettings() {
   els.places.innerHTML = PLACES.map((p) => `<button type="button" class="choice" data-place="${p.id}" aria-pressed="${state.placeId === p.id}">${esc(p.label)}</button>`).join("");
   const current = vehicle().id;
   els.profiles.innerHTML = state.vehicles.map((v) => `<button type="button" class="choice" data-profile="${v.id}" aria-pressed="${current === v.id}">${esc(v.label)}<small>${v.year ? `${v.year}, ` : ""}${litresText(v.litres)} L, ${commaNum(Number(v.conso), 1)} L/100</small></button>`).join("")
     + `<button type="button" class="choice choice-add" data-veh-add><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Ajouter un véhicule</button>`;
+  renderLevel();
   els.vehEdit.hidden = !state.vehicles.length || vehEditing !== null;
   els.vehEdit.textContent = `Modifier « ${vehicle().label} »`;
   els.vehForm.hidden = vehEditing === null;
@@ -714,7 +781,7 @@ let fillStation = null;
 function showFillCard(s) {
   fillStation = s;
   const p = s.prices[state.fuel]?.[0];
-  const litres = Number(vehicle().litres);
+  const litres = litresToBuy();
   els.fillText.textContent = `Tu es à ${stationName(s)}. On note ce plein dans ton carnet ?`;
   els.fillQuick.textContent = p ? `Noter ${String(litres).replace(".", ",")} L à ${commaNum(p, 3)} €/L` : "Noter ce plein";
   els.fillQuick.hidden = !p;
@@ -733,14 +800,14 @@ function hideFillCard() {
 function fillLogForm(preselectId) {
   const favs = state.favs.map(stationById).filter((s) => s && s.prices[state.fuel]);
   const near = ranked.slice(0, 20).map((r) => r.station).filter((s) => !state.favs.includes(s.id));
-  const opt = (s) => `<option value="${esc(s.id)}">${esc(stationName(s))}, ${esc(titleCase(s.ville))}</option>`;
+  const opt = (s) => `<option value="${esc(s.id)}">${esc(stationName(s))}, ${esc(placeShort(s) === stationName(s) ? titleCase(s.ville) : placeShort(s))}</option>`;
   els.logStation.innerHTML =
     (favs.length ? `<optgroup label="Favoris">${favs.map(opt).join("")}</optgroup>` : "") +
     (near.length ? `<optgroup label="Autour ${esc(deName(originLabel()))}">${near.map(opt).join("")}</optgroup>` : "");
   const pre = preselectId && stationById(preselectId);
   if (pre && ![...els.logStation.options].some((o) => o.value === pre.id)) els.logStation.insertAdjacentHTML("afterbegin", opt(pre));
   if (pre) els.logStation.value = pre.id;
-  els.logLitres.value = String(vehicle().litres).replace(".", ",");
+  els.logLitres.value = String(litresToBuy()).replace(".", ",");
   syncLogPrice();
 }
 function syncLogPrice() {
@@ -761,12 +828,39 @@ function previewLog() {
     ? `Économie estimée : ${eur.format(gain)} par rapport au prix médian de la zone (${commaNum(median, 3)} €).`
     : `${eur.format(-gain)} de plus que le prix médian de la zone (${commaNum(median, 3)} €).`;
 }
+// Un plein noté : le réservoir est de nouveau plein (le niveau sert ensuite à calculer litres et autonomie).
+function markTankFull() {
+  const v = rawVehicle();
+  if (v) { v.level = 1; v.levelAt = Date.now(); }
+}
+// Conso réelle : litres mis à chaque plein / kilomètres parcourus depuis le plein précédent (pleins à ras bord).
+function realConsumption(vehicleId) {
+  const rows = state.log.filter((e) => e.vehicleId === vehicleId && Number(e.km) > 0).sort((a, b) => a.km - b.km);
+  const legs = [];
+  for (let i = 1; i < rows.length; i++) {
+    const km = rows[i].km - rows[i - 1].km;
+    if (km >= 50 && km <= 1500) legs.push({ litres: rows[i].litres, km });
+  }
+  const last = legs.slice(-5);
+  if (!last.length) return null;
+  const litres = last.reduce((s, l) => s + l.litres, 0);
+  const km = last.reduce((s, l) => s + l.km, 0);
+  return { conso: (litres / km) * 100, n: last.length };
+}
 function renderLog() {
   const entries = state.log;
   const total = entries.reduce((sum, e) => sum + e.gain, 0);
   els.logTotal.innerHTML = entries.length
     ? `<p><b>${eur.format(total)}</b> ${total >= 0 ? "économisés" : "dépensés en plus"} sur ${entries.length} plein${entries.length > 1 ? "s" : ""} depuis le ${dayFmt(new Date(entries[entries.length - 1].date))}, par rapport au prix médian de la zone le jour du plein.</p>`
     : `<p>Note tes pleins pour voir ce que Plein Sud te fait économiser par rapport au prix médian de la zone.</p>`;
+  const real = realConsumption(rawVehicle()?.id);
+  if (real) {
+    const sheet = Number(rawVehicle().conso);
+    els.logTotal.insertAdjacentHTML("beforeend", `<div class="log-conso"><span>Conso réelle : <b>${commaNum(real.conso, 1)} L/100 km</b> sur ${real.n} plein${real.n > 1 ? "s" : ""} (ta fiche : ${commaNum(sheet, 1)})</span>
+      ${Math.abs(real.conso - sheet) >= 0.2 ? `<button type="button" class="btn" data-use-conso="${real.conso.toFixed(1)}">Utiliser ${commaNum(real.conso, 1)}</button>` : ""}</div>`);
+  } else if (entries.length) {
+    els.logTotal.insertAdjacentHTML("beforeend", `<p class="hint">Ajoute le kilométrage à deux pleins pour voir ta consommation réelle.</p>`);
+  }
   els.logList.innerHTML = entries.map((e) => `<li class="log-item">
       <p>${esc(e.ville)}, ${esc(e.fuelLabel)}<small>${dayFmt(new Date(e.date))}, ${String(e.litres).replace(".", ",")} L à ${commaNum(e.price, 3)} €</small></p>
       <span class="log-gain${e.gain < 0 ? " neg" : ""}" aria-label="${eur.format(Math.abs(e.gain))} ${e.gain >= 0 ? "économisés" : "de plus que le prix médian"}">${e.gain >= 0 ? "+" : "−"}${eur.format(Math.abs(e.gain))}</span>
@@ -801,7 +895,8 @@ els.fuels.addEventListener("click", (e) => {
   els.logStation.innerHTML = "";
   update();
 });
-els.start.addEventListener("click", () => { renderSettings(); openSheet(els.settingsSheet); });
+function openSettingsSheet() { renderSettings(); openSheet(els.settingsSheet); }
+els.start.addEventListener("click", openSettingsSheet);
 for (const t of document.querySelectorAll(".tabs [role=tab]")) t.addEventListener("click", () => showView(t.dataset.view));
 els.showAll.addEventListener("click", () => { showAll = !showAll; renderRank(); });
 
@@ -842,6 +937,7 @@ document.addEventListener("click", (e) => {
     fillLogForm(logHere.dataset.logHere);
     return;
   }
+  if (e.target.closest("[data-open-settings]")) return openSettingsSheet();
   if (e.target.closest("[data-widen]")) { state.radius = Math.min(state.radius + 10, 40); return update(); }
   const del = e.target.closest("[data-del]");
   if (del) {
@@ -977,6 +1073,12 @@ els.logStation.addEventListener("change", syncLogPrice);
 els.logLitres.addEventListener("input", previewLog);
 els.logPrice.addEventListener("input", previewLog);
 let lastLogAt = 0;
+els.logTotal.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-use-conso]");
+  if (!b) return;
+  const v = rawVehicle();
+  if (v) { v.conso = Number(b.dataset.useConso); update(); renderLog(); toast(`Conso de « ${v.label} » mise à ${commaNum(v.conso, 1)} L/100 km`); }
+});
 els.logForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const s = stationById(els.logStation.value);
@@ -988,10 +1090,18 @@ els.logForm.addEventListener("submit", (e) => {
     els.logPreview.textContent = "Vérifie les valeurs : entre 1 et 200 litres, et un prix au litre entre 0,30 et 5 €.";
     return;
   }
+  const kmText0 = els.logKm.value.trim();
+  const km = kmText0 ? parseNum(kmText0) : null;
+  if (km !== null && !(Number.isInteger(km) && km >= 0 && km < 2000000)) {
+    els.logPreview.textContent = "Le kilométrage doit être un nombre entier, par exemple 12340 (ou laisse vide).";
+    return;
+  }
   state.log.unshift({
-    id: `${Date.now()}`, date: new Date().toISOString(), stationId: s.id, ville: stationName(s),
-    fuel: state.fuel, fuelLabel: fuelLabel(), litres, price, median, gain: Math.round((median - price) * litres * 100) / 100,
+    id: `${Date.now()}`, date: new Date().toISOString(), stationId: s.id, ville: stationName(s), vehicleId: rawVehicle()?.id,
+    fuel: state.fuel, fuelLabel: fuelLabel(), litres, price, median, gain: Math.round((median - price) * litres * 100) / 100, km,
   });
+  markTankFull();
+  els.logKm.value = "";
   lastLogAt = Date.now();
   els.logLitres.value = "";
   save();
@@ -1006,6 +1116,7 @@ els.fillYes.addEventListener("click", () => {
   els.logLitres.focus();
 });
 els.fillNo.addEventListener("click", hideFillCard);
+els.e10Hint.addEventListener("click", () => { state.fuel = "e10"; update(); });
 els.fillScrim.addEventListener("click", hideFillCard);
 // Un seul geste : le plein est noté avec les litres du véhicule et le prix affiché par la station.
 els.fillQuick.addEventListener("click", () => {
@@ -1015,10 +1126,11 @@ els.fillQuick.addEventListener("click", () => {
   if (!s || !p || !median) return;
   const litres = Number(vehicle().litres);
   const entry = {
-    id: `${Date.now()}`, date: new Date().toISOString(), stationId: s.id, ville: stationName(s),
-    fuel: state.fuel, fuelLabel: fuelLabel(), litres, price: p, median, gain: Math.round((median - p) * litres * 100) / 100,
+    id: `${Date.now()}`, date: new Date().toISOString(), stationId: s.id, ville: stationName(s), vehicleId: rawVehicle()?.id,
+    fuel: state.fuel, fuelLabel: fuelLabel(), litres, price: p, median, gain: Math.round((median - p) * litres * 100) / 100, km: null,
   };
   state.log.unshift(entry);
+  markTankFull();
   save();
   hideFillCard();
   if (view === "log") renderLog();
@@ -1141,6 +1253,16 @@ async function boot() {
   stitchIn(1100);
   // Démonstration du pop-up de plein : ouvrir le site avec #demo-plein
   if (location.hash === "#demo-plein" && ranked[0]) setTimeout(() => showFillCard(ranked[0].station), 1500);
+  // Raccourcis (écran d'accueil Android, favori) : #go lance l'itinéraire vers la n°1, #plein ouvre le carnet.
+  const hash = location.hash;
+  if (hash === "#go" || hash === "#plein") history.replaceState(null, "", location.pathname + location.search);
+  if (hash === "#plein") showView("log");
+  if (hash === "#go") {
+    for (let i = 0; i < 25 && locating; i++) await new Promise((r) => setTimeout(r, 150)); // on attend la position (4 s au plus)
+    const first = ranked.find((r) => !r.unreachable) || ranked[0];
+    if (first && state.nav) { navTarget = { id: first.station.id, at: Date.now() }; location.href = navUrl(state.nav, first.station); }
+    else if (first) go(first.station.id);
+  }
 }
 
 boot();

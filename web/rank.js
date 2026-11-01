@@ -21,7 +21,7 @@ export function haversineKm(a, b) {
  * @returns {Array} triées par total croissant, avec `gain` = économie vs la station la plus proche
  */
 export function rankStations(stations, fuel, origin, opts) {
-  const { litres, conso, radiusKm, now = new Date(), maxAgeDays = 14, demoteHours = 48 } = opts;
+  const { litres, conso, radiusKm, now = new Date(), maxAgeDays = 14, demoteHours = 48, rangeKm = null } = opts;
   const maxAgeMs = maxAgeDays * 86400000;
   const out = [];
   for (const s of stations) {
@@ -35,9 +35,11 @@ export function rankStations(stations, fuel, origin, opts) {
     const plein = price * litres;
     const detour = ((2 * distanceKm * conso) / 100) * price;
     const stale = now - updatedAt > demoteHours * 3600000; // prix ancien : jamais devant un prix récent
-    out.push({ station: s, price, updatedAt, distanceKm, plein, detour, total: plein + detour, stale });
+    // Hors d'autonomie : plus loin que ce que le réservoir permet d'atteindre (marge de 10 %).
+    const unreachable = rangeKm != null && distanceKm > rangeKm * 0.9;
+    out.push({ station: s, price, updatedAt, distanceKm, plein, detour, total: plein + detour, stale, unreachable });
   }
-  out.sort((a, b) => a.stale - b.stale || a.total - b.total || a.distanceKm - b.distanceKm);
+  out.sort((a, b) => a.unreachable - b.unreachable || a.stale - b.stale || a.total - b.total || a.distanceKm - b.distanceKm);
   if (out.length) {
     const nearest = out.reduce((m, r) => (r.distanceKm < m.distanceKm ? r : m), out[0]);
     for (const r of out) {

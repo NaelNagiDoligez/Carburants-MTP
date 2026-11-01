@@ -22,6 +22,7 @@ from pathlib import Path
 import pandas as pd
 
 from . import analysis, config
+from . import osm as osm_mod
 
 FUEL_LABELS = {
     "e10": "SP95-E10",
@@ -46,6 +47,7 @@ def build_payload(
     stations: pd.DataFrame,
     now: pd.Timestamp,
     max_age_days: float = 14.0,
+    osm_stations: list[dict] | None = None,
 ) -> dict:
     last = analysis.latest_prices(events)
     age = (now - last["price_updated_at"]).dt.total_seconds() / 86400
@@ -53,6 +55,14 @@ def build_payload(
 
     st = stations.dropna(subset=["latitude", "longitude"]).set_index("station_id")
     last = last[last["station_id"].isin(st.index)]
+
+    snapped = {}
+    if osm_stations:
+        snapped = osm_mod.snap(
+            [{"id": str(sid), "lat": float(st.loc[sid, "latitude"]), "lon": float(st.loc[sid, "longitude"])}
+             for sid in last["station_id"].unique()],
+            osm_stations,
+        )
 
     out_stations = []
     for sid, group in last.groupby("station_id"):
@@ -70,6 +80,12 @@ def build_payload(
             "lon": round(float(row["longitude"]), 5),
             "prices": prices,
         }
+        snap = snapped.get(str(sid))
+        if snap:  # position réelle de la station (OSM) à la place du point du flux
+            item["lat"], item["lon"] = round(snap["lat"], 5), round(snap["lon"], 5)
+            item["snap"] = 1
+            if snap["nom"]:
+                item["nom"] = snap["nom"]
         for key in config.OPTIONAL_STATION_COLUMNS.values():
             if key in row.index and _clean(row[key]):
                 item[key] = _clean(row[key])
