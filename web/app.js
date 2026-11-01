@@ -163,7 +163,7 @@ const els = {
   vehSave: $("vehSave"), vehCancel: $("vehCancel"), vehDelete: $("vehDelete"), vehEdit: $("vehEdit"), radius: $("radius"), radiusOut: $("radiusOut"),
   useGps: $("useGps"), useGpsText: $("useGpsText"), gpsHint: $("gpsHint"), toast: $("toast"),
   savings: $("savings"), trend: $("trend"), trendBody: $("trendBody"), themePref: $("themePref"), themeHint: $("themeHint"),
-  tripForm: $("tripForm"), tripFrom: $("tripFrom"), tripTo: $("tripTo"), tripSugg: $("tripSugg"), tripRecent: $("tripRecent"), tripCorr: $("tripCorr"), tripOut: $("tripOut"),
+  tripForm: $("tripForm"), tripFrom: $("tripFrom"), tripTo: $("tripTo"), tripSugg: $("tripSugg"), tripRecent: $("tripRecent"), tripCorr: $("tripCorr"), tripOut: $("tripOut"), tripMap: $("tripMap"),
   ride: $("ride"), rideRank: $("rideRank"), rideName: $("rideName"), ridePrice: $("ridePrice"), rideMeta: $("rideMeta"), rideGo: $("rideGo"), rideNext: $("rideNext"), rideClose: $("rideClose"),
   fillCard: $("fillCard"), fillText: $("fillText"), fillQuick: $("fillQuick"), fillYes: $("fillYes"), fillNo: $("fillNo"), hapticLabel: $("hapticLabel"),
 };
@@ -1060,6 +1060,7 @@ function renderTrip() {
   els.tripRecent.innerHTML = state.trips.map((t, i) => `<button type="button" class="choice" data-trip-recent="${i}">${icon("i-flag")}${esc(t.short || t.label)}</button>`).join("");
   els.tripCorr.innerHTML = CORRIDORS.map((k) => `<button type="button" class="choice" data-trip-corr="${k}" aria-pressed="${state.tripCorr === k}">${k} km</button>`).join("");
   if (!trip) {
+    els.tripMap.hidden = true;
     els.tripOut.innerHTML = `<p class="trip-intro">Indique ta destination : Plein Sud trace la route et classe les stations qui sont dessus, détour et autonomie compris.</p>`;
     return;
   }
@@ -1098,6 +1099,83 @@ function renderTrip() {
     </article>
     ${rows.length > 1 ? `<h2 class="next-title">Sur la route</h2><ol class="alts trip-list">${rows.slice(0, TRIP_LIST).map((r, i) => tripRowHTML(r, i, best, scale)).join("")}</ol>` : ""}
     <p class="hint">Détour estimé : aller-retour entre la route et la station, à vol d’oiseau x 1,4. Itinéraire : OSRM (données OpenStreetMap), adresses : Base Adresse Nationale.</p>`;
+  renderTripMap(rows);
+}
+// Aperçu : carte MapLibre (départ, arrivée, stations) ; si le fond de carte ne charge pas, un croquis SVG du tracé.
+let tripMap = null;
+let tripMarkers = [];
+function tripSketch(rows) {
+  const W = 340, H = 220, pad = 30;
+  const lat0 = trip.coords.reduce((s, c) => s + c[1], 0) / trip.coords.length;
+  const kx = Math.cos((lat0 * Math.PI) / 180);
+  const P = (lon, lat) => [lon * kx, -lat];
+  const all = [...trip.coords.map((c) => P(c[0], c[1])), ...rows.slice(0, 5).map((r) => P(r.station.lon, r.station.lat))];
+  const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]);
+  const x0 = Math.min(...xs), y0 = Math.min(...ys), w = Math.max(...xs) - x0 || 1e-6, h = Math.max(...ys) - y0 || 1e-6;
+  const k = Math.min((W - 2 * pad) / w, (H - 2 * pad) / h);
+  const X = (lon, lat) => ((P(lon, lat)[0] - x0) * k + (W - w * k) / 2).toFixed(1);
+  const Y = (lon, lat) => ((P(lon, lat)[1] - y0) * k + (H - h * k) / 2).toFixed(1);
+  const line = trip.coords.map((c) => `${X(c[0], c[1])} ${Y(c[0], c[1])}`).join(" L");
+  const a = trip.coords[0], b = trip.coords.at(-1);
+  const pins = rows.slice(0, 5).map((r, i) => `<g class="sk-pin${i === 0 ? " is-best" : ""}"><circle cx="${X(r.station.lon, r.station.lat)}" cy="${Y(r.station.lon, r.station.lat)}" r="10"/><text x="${X(r.station.lon, r.station.lat)}" y="${(Number(Y(r.station.lon, r.station.lat)) + 4).toFixed(1)}" text-anchor="middle">${i + 1}</text></g>`).reverse().join("");
+  return `<svg class="trip-sketch" viewBox="0 0 ${W} ${H}" role="img" aria-label="Croquis du trajet vers ${esc(trip.dest.short || trip.dest.label)} avec les stations">
+    <path class="sk-route" d="M${line}"/>${pins}
+    <circle class="sk-start" cx="${X(a[0], a[1])}" cy="${Y(a[0], a[1])}" r="6"/><circle class="sk-end" cx="${X(b[0], b[1])}" cy="${Y(b[0], b[1])}" r="7"/>
+    <text class="sk-label" x="${Number(X(a[0], a[1])) + 10}" y="${Number(Y(a[0], a[1])) - 8}">départ</text>
+    <text class="sk-label" x="${Number(X(b[0], b[1])) - 10}" y="${Number(Y(b[0], b[1])) - 12}" text-anchor="end">${esc(trip.dest.short || trip.dest.label)}</text></svg>`;
+}
+function drawTripRoute() {
+  if (!tripMap || !trip) return;
+  const gj = { type: "Feature", geometry: { type: "LineString", coordinates: trip.coords } };
+  const src = tripMap.getSource("route");
+  if (src) return src.setData(gj);
+  const thread = getComputedStyle(document.documentElement).getPropertyValue("--rose-thread").trim() || "#C2617F";
+  const cloth = getComputedStyle(document.documentElement).getPropertyValue("--cloth").trim() || "#FBF7EE";
+  tripMap.addSource("route", { type: "geojson", data: gj });
+  tripMap.addLayer({ id: "route-halo", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": cloth, "line-width": 7, "line-opacity": 0.9 } });
+  tripMap.addLayer({ id: "route-line", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": thread, "line-width": 3.2, "line-dasharray": [2, 1.6] } });
+}
+async function renderTripMap(rows) {
+  const box = els.tripMap;
+  box.hidden = false;
+  try {
+    maplib = maplib || (await loadMapLib());
+    if (!baseStyle) baseStyle = await (await fetch(MAP_STYLE_URL)).json();
+  } catch {
+    if (tripMap) { tripMap.remove(); tripMap = null; }
+    box.innerHTML = tripSketch(rows);
+    return;
+  }
+  if (!tripMap) {
+    box.innerHTML = "";
+    tripMap = new maplib.Map({
+      container: box, style: recolor(baseStyle, currentPalette()), center: [trip.dest.lon, trip.dest.lat], zoom: 8, attributionControl: { compact: true },
+      cooperativeGestures: true,
+      locale: { "CooperativeGesturesHandler.MobileHelpText": "Deux doigts pour déplacer la carte", "CooperativeGesturesHandler.WindowsHelpText": "Ctrl + molette pour zoomer", "CooperativeGesturesHandler.MacHelpText": "⌘ + molette pour zoomer" },
+    });
+    tripMap.on("style.load", drawTripRoute);
+    document.addEventListener("themechange", () => tripMap?.setStyle(recolor(baseStyle, currentPalette())));
+  }
+  tripMap.resize();
+  for (const m of tripMarkers) m.remove();
+  tripMarkers = [];
+  const a = trip.coords[0], b = trip.coords.at(-1);
+  const start = document.createElement("div");
+  start.className = "me-dot";
+  const end = document.createElement("div");
+  end.className = "pin-end";
+  end.setAttribute("aria-label", trip.dest.short || trip.dest.label);
+  rows.slice(0, 5).map((r, i) => ({ r, i })).reverse().forEach(({ r, i }) => {
+    const el = flowerPin(i + 1, i === 0);
+    el.addEventListener("click", (e) => { e.stopPropagation(); openStation(r.station.id); });
+    tripMarkers.push(new maplib.Marker({ element: el }).setLngLat([r.station.lon, r.station.lat]).addTo(tripMap));
+  });
+  // départ et arrivée en dernier : ils restent au-dessus des pastilles
+  tripMarkers.push(new maplib.Marker({ element: start }).setLngLat(a).addTo(tripMap), new maplib.Marker({ element: end }).setLngLat(b).addTo(tripMap));
+  if (tripMap.isStyleLoaded()) drawTripRoute(); else tripMap.once("load", drawTripRoute);
+  const lons = [...trip.coords.map((c) => c[0]), ...rows.slice(0, 5).map((r) => r.station.lon)];
+  const lats = [...trip.coords.map((c) => c[1]), ...rows.slice(0, 5).map((r) => r.station.lat)];
+  tripMap.fitBounds([[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]], { padding: 40, duration: 0, maxZoom: 13 });
 }
 // Google Maps sait faire une étape : station puis destination. Plans et Waze : la station d'abord.
 function tripNavUrl(app, s) {
@@ -1501,9 +1579,9 @@ function setPull(px, settle = false) {
   ptrEl.classList.toggle("is-armed", armed);
   if (!ptrEl.classList.contains("is-loading")) ptrText.textContent = armed ? "Relâche pour actualiser" : "Tire pour actualiser";
 }
-const ptrBlocked = () => refreshing || view === "map" || window.scrollY > 0 || document.querySelector("dialog[open]");
+const ptrBlocked = () => refreshing || view === "map" || document.activeElement?.closest?.(".trip-map") || window.scrollY > 0 || document.querySelector("dialog[open]");
 document.addEventListener("touchstart", (e) => {
-  ptrStart = !ptrBlocked() && e.touches.length === 1 ? e.touches[0].clientY : null;
+  ptrStart = !ptrBlocked() && !e.target.closest?.(".trip-map") && e.touches.length === 1 ? e.touches[0].clientY : null;
 }, { passive: true });
 document.addEventListener("touchmove", (e) => {
   if (ptrStart === null) return;
