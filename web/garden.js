@@ -95,12 +95,12 @@
     function motif(x, y, edge) {
       const rot = u(-35, 35) + edge;
       switch (pick()) {
-        case "daisy": daisy(x, y, u(9, 14), u(0, 45), rand() < 0.66 ? "t-rose" : "t-lav", sea === "automne" ? 14 : 8); break;
-        case "five": five(x, y, u(6.5, 9.5), u(0, 72)); break;
-        case "tulip": tulip(x, y, u(7, 10), rot); break;
-        case "lav": lavender(x, y, u(34, 56), rot); break;
-        case "sprig": sprig(x, y, u(34, 64), rot, Math.floor(u(4, 8)), u(-0.25, 0.25)); break;
-        case "wisp": wisp(x, y, u(10, 17), u(1.2, 1.7), u(0, 360), rand() < 0.5 ? "t-sky w1 stitch" : "t-lav w1 stitch"); break;
+        case "daisy": daisy(x, y, u(12, 18), u(0, 45), rand() < 0.66 ? "t-rose" : "t-lav", sea === "automne" ? 14 : 8); break;
+        case "five": five(x, y, u(8.5, 12.5), u(0, 72)); break;
+        case "tulip": tulip(x, y, u(9, 13), rot); break;
+        case "lav": lavender(x, y, u(44, 70), rot); break;
+        case "sprig": sprig(x, y, u(44, 80), rot, Math.floor(u(4, 8)), u(-0.25, 0.25)); break;
+        case "wisp": wisp(x, y, u(13, 22), u(1.2, 1.7), u(0, 360), rand() < 0.5 ? "t-sky w1 stitch" : "t-lav w1 stitch"); break;
         default: seeds(x, y);
       }
     }
@@ -108,9 +108,9 @@
     // Semis le long des bords et du bas : le centre reste calme.
     const accept = (x, y) => Math.max(Math.max(0, 1 - Math.min(x, W - x) / 62), Math.max(0, 1 - (H - y) / 130) * 0.9) ** 1.1;
     const pts = [];
-    for (let i = 0; i < 4000 && pts.length < 58; i++) {
-      const x = u(-8, W + 8), y = u(-8, H + 8), p = accept(x, y);
-      if (p <= 0 || rand() > p || pts.some(([px, py]) => (x - px) ** 2 + (y - py) ** 2 < 34 * 34)) continue;
+    for (let i = 0; i < 4000 && pts.length < 30; i++) {
+      const x = u(-8, W + 8), y = u(-8, H + 8), p = y < 130 ? 0 : accept(x, y); // rien sous le logo et l'en-tête
+      if (p <= 0 || rand() > p || pts.some(([px, py]) => (x - px) ** 2 + (y - py) ** 2 < 48 * 48)) continue;
       pts.push([x, y]);
     }
     pts.forEach(([x, y]) => motif(x, y, x < W / 2 ? 18 : -18));

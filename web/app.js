@@ -51,6 +51,7 @@ let lastLeadKey = "";
 let locating = false;
 let showAll = false;
 let watchId = null;
+let gpsStale = false; // vrai si la position utilisée est l'ancienne, faute de GPS
 let vehEditing = null; // null = formulaire fermé, "new" = ajout, sinon l'id édité
 let dwell = null;
 
@@ -62,7 +63,14 @@ function loadState() {
     const raw = JSON.parse(localStorage.getItem(STORE_KEY) || "null") || JSON.parse(localStorage.getItem("plein-sud:v2") || "null");
     if (!raw) return structuredClone(DEFAULTS);
     const merged = { ...structuredClone(DEFAULTS), ...raw };
+    // État abîmé (édition à la main, ancienne version) : chaque champ retrouve un type sûr.
+    for (const k of ["favs", "log"]) if (!Array.isArray(merged[k])) merged[k] = [];
+    if (!merged.fillSeen || typeof merged.fillSeen !== "object") merged.fillSeen = {};
+    if (!Number.isFinite(Number(merged.radius))) merged.radius = DEFAULTS.radius;
+    if (merged.gps && !(Number.isFinite(merged.gps.lat) && Number.isFinite(merged.gps.lon))) merged.gps = null;
     if (!Array.isArray(merged.vehicles)) merged.vehicles = [];
+    merged.vehicles = merged.vehicles.filter((v) => v && typeof v === "object" && v.id && Number(v.litres) > 0);
+    merged.log = merged.log.filter((e) => e && typeof e === "object" && e.id && Number.isFinite(e.gain));
     if (merged.profileId === "custom") { // ancien profil « Personnalisé » -> un vrai véhicule
       const c = raw.custom || {};
       const id = newVehicleId();
@@ -75,6 +83,7 @@ function loadState() {
       merged.vehicles = [...structuredClone(SEEDS).filter((v) => !have.has(v.id)), ...merged.vehicles];
       merged.seeded = true;
     }
+    if (!merged.vehicles.length) merged.vehicles = structuredClone(SEEDS);
     return merged;
   } catch {
     return structuredClone(DEFAULTS);
@@ -122,14 +131,20 @@ function ago(date) {
   return h < 48 ? `il y a ${h} h` : `il y a ${Math.round(h / 24)} j`;
 }
 const hoursOld = (date) => (Date.now() - date.getTime()) / 3600000;
-const parseNum = (v) => Number(String(v ?? "").trim().replace(/\s/g, "").replace(",", "."));
+const parseNum = (v) => {
+  const s = String(v ?? "").trim().replace(/\s/g, "").replace(",", ".");
+  return /^\d+(\.\d+)?$/.test(s) ? Number(s) : NaN; // refuse « 1e2 », « 0x10 »…
+};
+// « de Odysseum » -> « d'Odysseum »
+const deName = (name) => (/^[aeiouyhéèêâîôû]/i.test(name) ? `d’${name}` : `de ${name}`);
+const dayFmt = (d) => dateFmt.format(d).replace(/^1 /, "1er ");
 const commaNum = (n, digits) => n.toFixed(digits).replace(".", ",");
 const icon = (id, cls = "ic") => `<svg class="${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
 
 // ---------- Éléments ----------
 const $ = (id) => document.getElementById(id);
 const els = {
-  start: $("start"), startText: $("startText"), fuels: $("fuels"),
+  start: $("start"), startText: $("startText"), fuels: $("fuels"), fresh: $("fresh"), fillScrim: $("fillScrim"),
   answer: $("answer"), answerBody: $("answerBody"), alts: $("alts"), showAll: $("showAll"), showAllText: $("showAllText"),
   allList: $("allList"), favList: $("favList"), map: $("map"), mapNote: $("mapNote"),
   logTotal: $("logTotal"), logForm: $("logForm"), logStation: $("logStation"), logLitres: $("logLitres"),
@@ -171,7 +186,9 @@ function renderStart() {
   const v = vehicle();
   els.start.classList.toggle("locating", locating);
   const where = state.placeId === "gps" ? (state.gps ? "Ta position" : "Comédie") : (PLACES.find((p) => p.id === state.placeId) || PLACES[0]).short;
-  els.startText.textContent = locating ? "Position…" : state.placeId === "gps" && state.gps ? `${v.short}, ${state.radius} km` : `${where}, ${v.short}`;
+  els.startText.textContent = locating ? "Position…"
+    : state.placeId === "gps" && state.gps ? (gpsStale ? `Ancienne position, ${v.short}` : `${v.short}, ${state.radius} km`)
+    : `${where}, ${v.short}`;
 }
 function renderFuels() {
   const fuels = FUEL_ORDER.filter((f) => data.fuels[f]);
@@ -180,6 +197,13 @@ function renderFuels() {
       aria-checked="${f === state.fuel}"><b>${esc(data.fuels[f].label)}</b></button>`).join("");
 }
 function renderFresh() {
+  const age = hoursOld(new Date(data.generated_at));
+  const old = age > 24;
+  els.fresh.hidden = false;
+  els.fresh.classList.toggle("warn", old);
+  els.fresh.innerHTML = old
+    ? `${icon("i-caution")}<span>Prix relevés ${ago(new Date(data.generated_at))} : ils ont pu changer. Tire vers le bas pour actualiser.</span>`
+    : `Prix relevés ${ago(new Date(data.generated_at))}`;
   const how = document.querySelector(".how p");
   if (!how) return;
   let note = how.querySelector(".fresh-note");
@@ -190,9 +214,13 @@ const navLabel = () => NAV_APPS.find((a) => a.id === state.nav)?.label;
 
 function renderAnswer() {
   if (!ranked.length) {
+    const tooOld = hoursOld(new Date(data.generated_at)) > 24 * 14;
+    const why = !Object.keys(data.fuels).length ? "Le relevé ne contient aucun prix pour l’instant. Tire vers le bas pour réessayer."
+      : tooOld ? "Les prix de ce relevé ont plus de 14 jours. Tire vers le bas pour actualiser."
+      : `Pas de ${esc(fuelLabel())} avec un prix récent à moins de ${state.radius} km ${esc(deName(originLabel()))}.`;
     els.answerBody.innerHTML = `<div class="ans-head"><p class="ans-name">Aucune station trouvée</p>
-      <p class="ans-ville">Pas de ${esc(fuelLabel())} avec un prix récent à moins de ${state.radius} km de ${esc(originLabel())}.</p></div>
-      <button type="button" class="go" data-widen>Chercher jusqu'à ${Math.min(state.radius + 10, 40)} km</button>`;
+      <p class="ans-ville">${why}</p></div>
+      ${!tooOld && state.radius < 40 ? `<button type="button" class="go" data-widen>Chercher jusqu’à ${Math.min(state.radius + 10, 40)} km</button>` : ""}`;
     lastLeadKey = "";
     return;
   }
@@ -290,7 +318,7 @@ function renderRank() {
   const rest = ranked.length - 1 - ALTS;
   els.showAll.hidden = rest <= 0;
   els.showAll.setAttribute("aria-expanded", String(showAll));
-  els.showAllText.textContent = showAll ? "Masquer les autres stations" : `Voir les ${rest} autres stations`;
+  els.showAllText.textContent = showAll ? "Masquer les autres stations" : (rest === 1 ? "Voir l’autre station" : `Voir les ${rest} autres stations`);
   els.allList.hidden = !showAll;
   if (showAll && best) renderRows(els.allList, ranked.slice(1 + ALTS, 1 + ALTS + ALL_MAX), best);
 }
@@ -307,7 +335,7 @@ function renderFavs() {
   for (const r of rows) {
     const pos = ranked.findIndex((x) => x.station.id === r.station.id);
     r.rank = pos >= 0 ? pos + 1 : null;
-    labels.set(r.station.id, pos >= 0 ? `${pos + 1}${pos === 0 ? "re" : "e"} au classement` : "hors rayon");
+    if (pos < 0) labels.set(r.station.id, "hors rayon");
   }
   if (!rows.length) {
     els.favList.innerHTML = `<li class="empty"><p>Tes favoris n'ont pas de prix récent en ${esc(fuelLabel())}.</p></li>`;
@@ -579,7 +607,8 @@ function locate({ fromUser = false } = {}) {
   navigator.geolocation.getCurrentPosition(
     (pos) => {
       locating = false;
-      state.gps = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+      state.gps = { lat: pos.coords.latitude, lon: pos.coords.longitude, at: Date.now() };
+      gpsStale = false;
       state.placeId = "gps";
       hint("");
       if (els.settingsSheet.open) renderSettings();
@@ -592,6 +621,11 @@ function locate({ fromUser = false } = {}) {
         ? "Position refusée : classement depuis la Comédie. Tu peux l'autoriser dans les réglages du navigateur."
         : "Position introuvable pour l'instant : classement depuis la Comédie.";
       if (state.placeId === "gps" && !state.gps) toast(msg);
+      else if (state.placeId === "gps" && state.gps) { // on repart de la dernière position connue : on le dit
+        gpsStale = true;
+        const when = state.gps.at ? ` (${ago(new Date(state.gps.at))})` : "";
+        toast(`Position introuvable : classement depuis ta dernière position${when}`);
+      }
       if (fromUser) hint(msg);
       if (els.settingsSheet.open) renderSettings();
       render();
@@ -619,7 +653,8 @@ function onPosition(pos) {
   checkDwell(here);
   if (state.placeId !== "gps") return;
   const moved = state.gps ? haversineKm(state.gps, here) * 1000 : Infinity;
-  if (moved > REORIGIN_M) { state.gps = here; update(); }
+  if (gpsStale) { gpsStale = false; renderStart(); }
+  if (moved > REORIGIN_M) { state.gps = { ...here, at: Date.now() }; update(); }
 }
 function nearestStation(here) {
   let nearest = null;
@@ -684,12 +719,14 @@ function showFillCard(s) {
   els.fillQuick.textContent = p ? `Noter ${String(litres).replace(".", ",")} L à ${commaNum(p, 3)} €/L` : "Noter ce plein";
   els.fillQuick.hidden = !p;
   els.fillCard.hidden = false;
-  requestAnimationFrame(() => requestAnimationFrame(() => els.fillCard.classList.add("show")));
+  els.fillScrim.hidden = false;
+  requestAnimationFrame(() => requestAnimationFrame(() => { els.fillCard.classList.add("show"); els.fillScrim.classList.add("show"); }));
   buzz();
 }
 function hideFillCard() {
   els.fillCard.classList.remove("show");
-  setTimeout(() => { if (!els.fillCard.classList.contains("show")) els.fillCard.hidden = true; }, 340);
+  els.fillScrim.classList.remove("show");
+  setTimeout(() => { if (!els.fillCard.classList.contains("show")) { els.fillCard.hidden = true; els.fillScrim.hidden = true; } }, 340);
 }
 
 // ---------- Carnet d'économies ----------
@@ -699,7 +736,7 @@ function fillLogForm(preselectId) {
   const opt = (s) => `<option value="${esc(s.id)}">${esc(stationName(s))}, ${esc(titleCase(s.ville))}</option>`;
   els.logStation.innerHTML =
     (favs.length ? `<optgroup label="Favoris">${favs.map(opt).join("")}</optgroup>` : "") +
-    (near.length ? `<optgroup label="Autour de ${esc(originLabel())}">${near.map(opt).join("")}</optgroup>` : "");
+    (near.length ? `<optgroup label="Autour ${esc(deName(originLabel()))}">${near.map(opt).join("")}</optgroup>` : "");
   const pre = preselectId && stationById(preselectId);
   if (pre && ![...els.logStation.options].some((o) => o.value === pre.id)) els.logStation.insertAdjacentHTML("afterbegin", opt(pre));
   if (pre) els.logStation.value = pre.id;
@@ -728,11 +765,11 @@ function renderLog() {
   const entries = state.log;
   const total = entries.reduce((sum, e) => sum + e.gain, 0);
   els.logTotal.innerHTML = entries.length
-    ? `<p><b>${eur.format(total)}</b> ${total >= 0 ? "économisés" : "dépensés en plus"} sur ${entries.length} plein${entries.length > 1 ? "s" : ""} depuis le ${dateFmt.format(new Date(entries[entries.length - 1].date))}, par rapport au prix médian de la zone le jour du plein.</p>`
+    ? `<p><b>${eur.format(total)}</b> ${total >= 0 ? "économisés" : "dépensés en plus"} sur ${entries.length} plein${entries.length > 1 ? "s" : ""} depuis le ${dayFmt(new Date(entries[entries.length - 1].date))}, par rapport au prix médian de la zone le jour du plein.</p>`
     : `<p>Note tes pleins pour voir ce que Plein Sud te fait économiser par rapport au prix médian de la zone.</p>`;
   els.logList.innerHTML = entries.map((e) => `<li class="log-item">
-      <p>${esc(e.ville)}, ${esc(e.fuelLabel)}<small>${dateFmt.format(new Date(e.date))}, ${String(e.litres).replace(".", ",")} L à ${commaNum(e.price, 3)} €</small></p>
-      <span class="log-gain${e.gain < 0 ? " neg" : ""}">${e.gain >= 0 ? "−" : "+"}${eur.format(Math.abs(e.gain))}</span>
+      <p>${esc(e.ville)}, ${esc(e.fuelLabel)}<small>${dayFmt(new Date(e.date))}, ${String(e.litres).replace(".", ",")} L à ${commaNum(e.price, 3)} €</small></p>
+      <span class="log-gain${e.gain < 0 ? " neg" : ""}" aria-label="${eur.format(Math.abs(e.gain))} ${e.gain >= 0 ? "économisés" : "de plus que le prix médian"}">${e.gain >= 0 ? "+" : "−"}${eur.format(Math.abs(e.gain))}</span>
       <button type="button" class="log-del" data-del="${esc(e.id)}" aria-label="Supprimer ce plein">${icon("i-close")}</button>
     </li>`).join("");
   if (!els.logStation.options.length) fillLogForm();
@@ -742,11 +779,14 @@ function renderLog() {
 let toastTimer = 0;
 function toast(text, action) {
   clearTimeout(toastTimer);
+  // Un panneau ouvert est dans la couche du dessus : le message doit y être aussi pour rester touchable.
+  const host = document.querySelector("dialog[open]") || document.body;
+  if (els.toast.parentElement !== host) host.append(els.toast);
   els.toast.innerHTML = `<span>${esc(text)}</span>${action ? `<button type="button">${esc(action.label)}</button>` : ""}`;
   els.toast.hidden = false;
   if (action) els.toast.querySelector("button").onclick = () => { action.run(); hideToast(); };
   requestAnimationFrame(() => els.toast.classList.add("show"));
-  toastTimer = setTimeout(hideToast, action ? 5000 : 3500);
+  toastTimer = setTimeout(hideToast, action ? 8000 : 3500);
 }
 function hideToast() {
   els.toast.classList.remove("show");
@@ -888,6 +928,15 @@ els.vehSave.addEventListener("click", saveVehicle);
 els.vehCancel.addEventListener("click", () => { vehEditing = null; renderSettings(); });
 els.vehEdit.addEventListener("click", () => openVehForm(state.profileId));
 els.vehDelete.addEventListener("click", () => {
+  const idx = state.vehicles.findIndex((x) => x.id === vehEditing);
+  const removed = state.vehicles[idx];
+  const prevProfile = state.profileId;
+  toast(`« ${removed.label} » supprimé`, { label: "Annuler", run: () => {
+    state.vehicles.splice(idx, 0, removed);
+    state.profileId = prevProfile;
+    if (els.settingsSheet.open) renderSettings();
+    update();
+  } });
   state.vehicles = state.vehicles.filter((x) => x.id !== vehEditing);
   if (state.profileId === vehEditing) state.profileId = state.vehicles[0].id;
   vehEditing = null;
@@ -927,13 +976,15 @@ els.settingsForm.addEventListener("submit", (e) => { e.preventDefault(); closeSh
 els.logStation.addEventListener("change", syncLogPrice);
 els.logLitres.addEventListener("input", previewLog);
 els.logPrice.addEventListener("input", previewLog);
+let lastLogAt = 0;
 els.logForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const s = stationById(els.logStation.value);
   const median = data.fuels[state.fuel]?.median;
   const litres = parseNum(els.logLitres.value);
   const price = parseNum(els.logPrice.value);
-  if (!s || !median || !(litres > 0 && litres < 200) || !(price > 0.3 && price < 5)) {
+  if (Date.now() - lastLogAt < 1500) return; // double tap
+  if (!s || !median || !(litres >= 1 && litres <= 200) || !(price > 0.3 && price < 5)) {
     els.logPreview.textContent = "Vérifie les valeurs : entre 1 et 200 litres, et un prix au litre entre 0,30 et 5 €.";
     return;
   }
@@ -941,6 +992,8 @@ els.logForm.addEventListener("submit", (e) => {
     id: `${Date.now()}`, date: new Date().toISOString(), stationId: s.id, ville: stationName(s),
     fuel: state.fuel, fuelLabel: fuelLabel(), litres, price, median, gain: Math.round((median - price) * litres * 100) / 100,
   });
+  lastLogAt = Date.now();
+  els.logLitres.value = "";
   save();
   renderLog();
   toast("Plein ajouté au carnet");
@@ -953,6 +1006,7 @@ els.fillYes.addEventListener("click", () => {
   els.logLitres.focus();
 });
 els.fillNo.addEventListener("click", hideFillCard);
+els.fillScrim.addEventListener("click", hideFillCard);
 // Un seul geste : le plein est noté avec les litres du véhicule et le prix affiché par la station.
 els.fillQuick.addEventListener("click", () => {
   const s = fillStation;
@@ -984,9 +1038,11 @@ document.addEventListener("visibilitychange", () => {
 
 // ---------- Données : chargement et « tirer pour actualiser » ----------
 let loadedAt = 0;
+let dataOffline = false; // vrai si le relevé vient du cache faute de réseau
 async function loadData() {
   const res = await fetch("data/latest.json", { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  dataOffline = res.headers.get("x-plein-sud-offline") === "1";
   const next = await res.json();
   for (const [f, name] of Object.entries(FUEL_NAMES)) if (next.fuels[f]) next.fuels[f].label = name;
   data = next;
@@ -995,9 +1051,9 @@ async function loadData() {
 
 let refreshing = false;
 async function refreshData({ quiet = false } = {}) {
-  if (refreshing || !data) return;
+  if (refreshing) return;
   refreshing = true;
-  const before = data.generated_at;
+  const before = data?.generated_at;
   try {
     await loadData();
     renderFuels();
@@ -1006,7 +1062,10 @@ async function refreshData({ quiet = false } = {}) {
     if (view === "fav") renderFavs();
     if (view === "log") renderLog();
     if (view === "map") renderMap();
-    if (!quiet) toast(data.generated_at === before ? `Déjà à jour : prix relevés ${ago(new Date(data.generated_at))}` : `Prix mis à jour : relevés ${ago(new Date(data.generated_at))}`);
+    if (!before) stitchIn(800);
+    const when = ago(new Date(data.generated_at));
+    if (!quiet) toast(dataOffline ? `Hors ligne : prix du dernier relevé (${when})`
+      : data.generated_at === before ? `Déjà à jour : prix relevés ${when}` : `Prix mis à jour : relevés ${when}`);
   } catch {
     if (!quiet) toast("Pas de connexion : les prix n’ont pas changé");
   } finally {
@@ -1045,8 +1104,11 @@ document.addEventListener("touchmove", (e) => {
   if (ptrStart === null) return;
   const dy = e.touches[0].clientY - ptrStart;
   if (window.scrollY > 0) { ptrStart = null; return setPull(0, true); }
+  // On tire vers le bas depuis le haut : c'est notre geste, pas celui du navigateur
+  // (Safari rechargerait toute la page). Ailleurs, le défilement normal reste intact.
+  if (dy > 0 && e.cancelable) e.preventDefault();
   setPull(Math.max(0, Math.min(PTR_MAX, dy * 0.5)));
-}, { passive: true });
+}, { passive: false });
 document.addEventListener("touchend", async () => {
   if (ptrStart === null) return;
   ptrStart = null;

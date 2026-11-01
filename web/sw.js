@@ -1,5 +1,5 @@
 // Service worker : l'interface fonctionne hors ligne, les prix viennent du réseau en priorité.
-const CACHE = "plein-sud-v9";
+const CACHE = "plein-sud-v10";
 const SHELL = ["./", "index.html", "styles.css", "app.js", "garden.js", "catalog.js", "rank.js", "manifest.webmanifest", "icons/icon.svg", "fonts/archivo-wdth.woff2", "fonts/young-serif.woff2"];
 
 self.addEventListener("install", (e) => {
@@ -13,6 +13,13 @@ self.addEventListener("activate", (e) => {
       .then(() => self.clients.claim()),
   );
 });
+
+// Hors ligne : on renvoie la copie en cache, marquée pour que l'appli ne dise pas « à jour ».
+async function markOffline(res) {
+  const headers = new Headers(res.headers);
+  headers.set("x-plein-sud-offline", "1");
+  return new Response(await res.blob(), { status: res.status, statusText: res.statusText, headers });
+}
 
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
@@ -28,7 +35,7 @@ self.addEventListener("fetch", (e) => {
           if (res.ok) cache.put(e.request, res.clone());
           return res;
         })
-        .catch(() => cached);
+        .catch(() => (cached ? markOffline(cached) : undefined));
       return networkFirst ? fromNetwork.then((r) => r || cached) : cached || fromNetwork;
     }),
   );
