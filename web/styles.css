@@ -96,7 +96,7 @@ a { color: inherit; text-underline-offset: 3px; }
 /* En-tête */
 .top {
   display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 10px;
-  padding: calc(env(safe-area-inset-top, 0px) + 14px) max(16px, env(safe-area-inset-right)) 4px max(16px, env(safe-area-inset-left));
+  padding: calc(max(env(safe-area-inset-top, 0px), 12px) + 30px) max(16px, env(safe-area-inset-right)) 4px max(16px, env(safe-area-inset-left));
 }
 .mark { width: 28px; height: 28px; fill: var(--rose-thread); }
 .top h1 { margin: 0; font: 400 22px/1 var(--f-name); letter-spacing: -.005em; }
