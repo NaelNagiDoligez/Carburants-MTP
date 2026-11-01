@@ -1026,8 +1026,8 @@ els.ride.addEventListener("close", () => { wakeLock?.release?.().catch?.(() => {
 els.rideNext.addEventListener("click", () => {
   rideIdx++;
   renderRide();
-  const kf = reduceMotion.matches ? [{ opacity: 0.2 }, { opacity: 1 }] : [{ opacity: 0.2, transform: "translateX(28px)" }, { opacity: 1, transform: "none" }];
-  for (const [i, el] of [els.rideName, els.ridePrice, els.rideMeta].entries()) el.animate(kf, { duration: 220, easing: EASE_OUT, delay: i * 30, fill: "backwards" });
+  const kf = reduceMotion.matches ? [{ opacity: 0.2 }, { opacity: 1 }] : [{ opacity: 0.2, transform: "translateX(44px)" }, { opacity: 1, transform: "none" }];
+  for (const [i, el] of [els.rideName, els.ridePrice, els.rideMeta].entries()) el.animate(kf, { duration: 480, easing: EASE_OUT, delay: i * 90, fill: "backwards" });
 });
 els.rideGo.addEventListener("click", () => { const r = ranked.slice(0, RIDE_MAX)[rideIdx]; if (r) go(r.station.id); });
 
@@ -1039,6 +1039,11 @@ let trip = null;
 let tripSeq = 0;
 let suggestions = [];
 let suggTimer = 0;
+// « 8 Rue de la Loge 34000 Montpellier » -> « 8 Rue de la Loge, Montpellier » (et pas seulement la ville).
+function tripName(t) {
+  const m = /^(.*?)\s*\b\d{5}\s+(.+)$/.exec(t.label || "");
+  return m && m[1] ? `${m[1]}, ${m[2]}` : t.label || t.short;
+}
 async function geocode(q) {
   const o = origin();
   const res = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=5&lat=${o.lat}&lon=${o.lon}`);
@@ -1073,7 +1078,7 @@ async function planTrip(dest) {
   els.tripTo.value = dest.label;
   els.tripSugg.hidden = true;
   els.tripTo.blur();
-  els.tripOut.innerHTML = `<p class="trip-wait">On trace la route vers ${esc(dest.short || dest.label)}…</p>`;
+  els.tripOut.innerHTML = `<p class="trip-wait">On trace la route vers ${esc(tripName(dest))}…</p>`;
   const r = await fetchRoute(origin(), dest);
   if (seq !== tripSeq) return;
   const coords = thin(r.coords, 600);
@@ -1121,7 +1126,7 @@ function tripRowHTML(r, i, best, scale) {
 }
 function renderTrip() {
   els.tripFrom.textContent = originLabel();
-  els.tripRecent.innerHTML = state.trips.map((t, i) => `<button type="button" class="choice" data-trip-recent="${i}">${icon("i-flag")}${esc(t.short || t.label)}</button>`).join("");
+  els.tripRecent.innerHTML = state.trips.map((t, i) => `<button type="button" class="choice" data-trip-recent="${i}">${icon("i-flag")}${esc(tripName(t))}</button>`).join("");
   els.tripCorr.innerHTML = CORRIDORS.map((k) => `<button type="button" class="choice" data-trip-corr="${k}" aria-pressed="${state.tripCorr === k}">${k} km</button>`).join("");
   if (!trip) {
     els.tripMap.hidden = true;
@@ -1135,7 +1140,7 @@ function renderTrip() {
   const rows = stationsAlongRoute(data.stations, state.fuel, trip.route, {
     corridorKm: state.tripCorr, litres: litresToBuy(v), conso: Number(v.conso) || 0, rangeKm: range != null ? range / scale : null,
   });
-  const destName = trip.dest.short || trip.dest.label;
+  const destName = tripName(trip.dest);
   const covered = trip.coveredKm;
   const notes = [];
   if (trip.approx) notes.push(`${icon("i-caution")}Le serveur d’itinéraire ne répond pas : tracé à vol d’oiseau, kilomètres approximatifs.`);
@@ -1189,12 +1194,12 @@ function tripSketch(rows) {
   const order = rows.slice(0, 5).map((r) => r.atKm / Math.max(0.1, trip.route.length));
   const a = trip.coords[0], b = trip.coords.at(-1);
   const pins = rows.slice(0, 5).map((r, i) => `<g class="sk-pin pop${i === 0 ? " is-best" : ""}" style="--pd:${Math.round(150 + order[i] * 900)}ms"><circle cx="${X(r.station.lon, r.station.lat)}" cy="${Y(r.station.lon, r.station.lat)}" r="10"/><text x="${X(r.station.lon, r.station.lat)}" y="${(Number(Y(r.station.lon, r.station.lat)) + 4).toFixed(1)}" text-anchor="middle">${i + 1}</text></g>`).reverse().join("");
-  return `<svg class="trip-sketch" viewBox="0 0 ${W} ${H}" role="img" aria-label="Croquis du trajet vers ${esc(trip.dest.short || trip.dest.label)} avec les stations">
+  return `<svg class="trip-sketch" viewBox="0 0 ${W} ${H}" role="img" aria-label="Croquis du trajet vers ${esc(tripName(trip.dest))} avec les stations">
     <mask id="${mid}" maskUnits="userSpaceOnUse"><path class="sew sew-mask" pathLength="1" stroke-width="14" style="--sew-dur:1100ms" d="M${line}"/></mask>
     <path class="sk-route" mask="url(#${mid})" d="M${line}"/>${pins}
     <circle class="sk-start" cx="${X(a[0], a[1])}" cy="${Y(a[0], a[1])}" r="6"/><circle class="sk-end pop" style="--pd:1050ms" cx="${X(b[0], b[1])}" cy="${Y(b[0], b[1])}" r="7"/>
     <text class="sk-label" x="${Number(X(a[0], a[1])) + 10}" y="${Number(Y(a[0], a[1])) - 8}">départ</text>
-    <text class="sk-label" x="${Number(X(b[0], b[1])) - 10}" y="${Number(Y(b[0], b[1])) - 12}" text-anchor="end">${esc(trip.dest.short || trip.dest.label)}</text></svg>`;
+    <text class="sk-label" x="${Number(X(b[0], b[1])) - 10}" y="${Number(Y(b[0], b[1])) - 12}" text-anchor="end">${esc(tripName(trip.dest))}</text></svg>`;
 }
 function drawTripRoute() {
   if (!tripMap || !trip) return;
@@ -1206,6 +1211,28 @@ function drawTripRoute() {
   tripMap.addSource("route", { type: "geojson", data: gj });
   tripMap.addLayer({ id: "route-halo", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": cloth, "line-width": 7, "line-opacity": 0.9 } });
   tripMap.addLayer({ id: "route-line", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": thread, "line-width": 3.2, "line-dasharray": [2, 1.6] } });
+}
+let sewRouteSeq = 0;
+function sewTripRoute() {
+  const src = tripMap?.getSource("route");
+  if (!src || !trip) return;
+  const { coords, route } = trip, seq = ++sewRouteSeq, t0 = performance.now(), D = 1800;
+  const full = { type: "Feature", geometry: { type: "LineString", coordinates: coords } };
+  const step = (now) => {
+    if (seq !== sewRouteSeq || !tripMap || !trip) return;
+    const p = Math.min(1, (now - t0) / D);
+    if (p >= 1) return src.setData(full);
+    const km = (p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2) * route.length;
+    let i = route.cum.findIndex((c) => c > km);
+    if (i < 0) i = coords.length - 1;
+    if (i < 1) i = 1;
+    const part = coords.slice(0, i);
+    const f = (km - route.cum[i - 1]) / (route.cum[i] - route.cum[i - 1] || 1);
+    part.push([coords[i - 1][0] + (coords[i][0] - coords[i - 1][0]) * f, coords[i - 1][1] + (coords[i][1] - coords[i - 1][1]) * f]);
+    src.setData({ type: "Feature", geometry: { type: "LineString", coordinates: part } });
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
 }
 async function renderTripMap(rows) {
   const box = els.tripMap;
@@ -1236,12 +1263,12 @@ async function renderTripMap(rows) {
   start.className = "me-dot";
   const end = document.createElement("div");
   end.className = "pin-end";
-  end.setAttribute("aria-label", trip.dest.short || trip.dest.label);
+  end.setAttribute("aria-label", tripName(trip.dest));
   const sewing = tripFresh;
   rows.slice(0, 5).map((r, i) => ({ r, i })).reverse().forEach(({ r, i }) => {
     const el = flowerPin(i + 1, i === 0);
     el.addEventListener("click", (e) => { e.stopPropagation(); openStation(r.station.id); });
-    if (sewing) { el.classList.add("pop-in"); el.style.setProperty("--pd", `${Math.round(200 + (r.atKm / Math.max(0.1, trip.route.length)) * 900)}ms`); }
+    if (sewing) { el.classList.add("pop-in"); el.style.setProperty("--pd", `${Math.round(250 + (r.atKm / Math.max(0.1, trip.route.length)) * 1400)}ms`); }
     const holder = document.createElement("div");
     holder.append(el);
     tripMarkers.push(new maplib.Marker({ element: holder }).setLngLat([r.station.lon, r.station.lat]).addTo(tripMap));
@@ -1249,22 +1276,10 @@ async function renderTripMap(rows) {
   // départ et arrivée en dernier : ils restent au-dessus des pastilles
   tripMarkers.push(new maplib.Marker({ element: start }).setLngLat(a).addTo(tripMap), new maplib.Marker({ element: end }).setLngLat(b).addTo(tripMap));
   if (tripMap.isStyleLoaded()) drawTripRoute(); else tripMap.once("load", drawTripRoute);
-  // La ligne du trajet apparaît en fondu (MapLibre ne sait pas « dérouler » un tracé en pointillé).
+  // Le tracé se coud du départ vers l'arrivée : on dévoile la ligne point après point (les pointillés restent en place).
   if (sewing && !reduceMotion.matches) {
-    const reveal = () => {
-      if (!tripMap.getLayer("route-line")) return;
-      for (const id of ["route-line", "route-halo"]) {
-        tripMap.setPaintProperty(id, `line-opacity-transition`, { duration: 0 });
-        tripMap.setPaintProperty(id, "line-opacity", 0);
-      }
-      requestAnimationFrame(() => {
-        tripMap.setPaintProperty("route-line", "line-opacity-transition", { duration: 900 });
-        tripMap.setPaintProperty("route-halo", "line-opacity-transition", { duration: 900 });
-        tripMap.setPaintProperty("route-line", "line-opacity", 1);
-        tripMap.setPaintProperty("route-halo", "line-opacity", 0.9);
-      });
-    };
-    if (tripMap.isStyleLoaded()) reveal(); else tripMap.once("load", reveal);
+    const go = () => sewTripRoute();
+    if (tripMap.isStyleLoaded()) go(); else tripMap.once("load", go);
   }
   const lons = [...trip.coords.map((c) => c[0]), ...rows.slice(0, 5).map((r) => r.station.lon)];
   const lats = [...trip.coords.map((c) => c[1]), ...rows.slice(0, 5).map((r) => r.station.lat)];
@@ -1280,7 +1295,7 @@ function tripNavUrl(app, s) {
 function tripGo(id) {
   if (!trip) return go(id);
   const app = state.nav;
-  if (app && app !== "google") toast(`${navLabel()} ne prend pas d’étape : direction la station. Ensuite, « Aller directement à ${trip.dest.short || trip.dest.label} ».`);
+  if (app && app !== "google") toast(`${navLabel()} ne prend pas d’étape : direction la station. Ensuite, « Aller directement à ${tripName(trip.dest)} ».`);
   go(id, tripNavUrl);
 }
 els.tripTo.addEventListener("input", () => {
@@ -1425,7 +1440,7 @@ els.navSheet.addEventListener("click", (e) => {
   if (!b || !pendingNavStation) return;
   if (els.navRemember.checked) { state.nav = b.dataset.navApp; save(); renderAnswer(); }
   closeSheet(els.navSheet);
-  if (pendingNavUrl === tripNavUrl && b.dataset.navApp !== "google" && trip) toast(`Pas d’étape possible ici : direction la station. Ensuite, « Aller directement à ${trip.dest.short || trip.dest.label} ».`);
+  if (pendingNavUrl === tripNavUrl && b.dataset.navApp !== "google" && trip) toast(`Pas d’étape possible ici : direction la station. Ensuite, « Aller directement à ${tripName(trip.dest)} ».`);
   launchNav(b.dataset.navApp, pendingNavStation, pendingNavUrl);
 });
 els.settingsSheet.addEventListener("click", (e) => {

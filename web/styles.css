@@ -531,7 +531,8 @@ html, body { overscroll-behavior-y: none; }
 .trip-sugg small { display: block; font-weight: 400; font-size: 12px; color: var(--ink-2); }
 .trip-sugg-msg { padding: 10px; font-size: 14px; color: var(--ink-2); }
 .trip-recent:empty { display: none; }
-.trip-recent .choice { min-height: 40px; padding: 6px 12px; font-weight: 600; }
+.trip-recent .choice { min-height: 40px; padding: 6px 12px; font-weight: 600; max-width: 100%; }
+.trip-recent .choice { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .trip-recent .ic { width: 18px; height: 18px; color: var(--rose-thread); }
 .trip-corr { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
 .trip-corr .choice { min-height: 40px; padding: 6px 12px; }
@@ -650,7 +651,7 @@ html, body { overscroll-behavior-y: none; }
 .pin.pop-in { animation: pop 260ms var(--ease-out) both; animation-delay: var(--pd, 0ms); }
 
 /* Mode guidon : entrée sobre ; la station suivante glisse depuis la droite. */
-.ride[open] { animation: ride-in 220ms var(--ease-out); }
+.ride[open] { animation: ride-in 450ms var(--ease-out); }
 @keyframes ride-in { from { opacity: 0; transform: scale(.98); } }
 
 /* Plein noté : une petite fleur se coud dans le message. */
