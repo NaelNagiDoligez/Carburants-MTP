@@ -654,9 +654,13 @@ html, body { overscroll-behavior-y: none; }
 @keyframes ride-in { from { opacity: 0; transform: scale(.98); } }
 
 /* Plein noté : une petite fleur se coud dans le message. */
-.toast-flower { width: 26px; height: 26px; flex: none; }
-.toast-flower path { fill: none; stroke: var(--rose-thread); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: 1 1; animation: sew 700ms var(--ease-out) both; animation-delay: calc(var(--i) * 60ms); }
-.toast-flower circle { fill: var(--ochre); animation: knot-in 300ms var(--ease-out) 520ms both; transform-box: fill-box; transform-origin: center; }
+.toast-flower { width: 26px; height: 30px; flex: none; }
+.toast-flower path { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1 1; }
+/* Se coud dans l'ordre : la tige, puis la fleur pétale après pétale, son cœur, enfin les feuilles. */
+.tf-stem { stroke: var(--sage); stroke-width: 1.6; animation: sew 420ms var(--ease-in-out) both; }
+.tf-petal { stroke: var(--rose-thread); stroke-width: 1.6; animation: sew 380ms var(--ease-out) both; animation-delay: calc(420ms + var(--i) * 70ms); }
+.tf-leaf { stroke: var(--sage); stroke-width: 1.5; animation: sew 380ms var(--ease-out) both; animation-delay: calc(1000ms + var(--i) * 120ms); }
+.toast-flower circle { fill: var(--ochre); animation: knot-in 300ms var(--ease-out) 780ms both; transform-box: fill-box; transform-origin: center; }
 
 /* Bascule jour / nuit : la nuit tombe depuis le coin du ciel (View Transitions, Safari 18+). */
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }

@@ -1318,7 +1318,7 @@ els.tripForm.addEventListener("submit", async (e) => {
 
 // ---------- Toast ----------
 let toastTimer = 0;
-const TOAST_FLOWER = `<svg class="toast-flower" viewBox="0 0 26 26" aria-hidden="true">${[0, 72, 144, 216, 288].map((a, i) => `<path style="--i:${i}" pathLength="1" transform="rotate(${a} 13 13)" d="M13 12C10.5 9.5 10.5 4.5 13 2C15.5 4.5 15.5 9.5 13 12Z"/>`).join("")}<circle cx="13" cy="13" r="2.4"/></svg>`;
+const TOAST_FLOWER = `<svg class="toast-flower" viewBox="0 0 26 30" aria-hidden="true"><path class="tf-stem" pathLength="1" d="M13 29C12.4 24 13.6 18 13 12"/>${[0, 72, 144, 216, 288].map((a, i) => `<path class="tf-petal" style="--i:${i}" pathLength="1" transform="rotate(${a} 13 9)" d="M13 8C10.8 6 10.8 2.4 13 1C15.2 2.4 15.2 6 13 8Z"/>`).join("")}<circle class="tf-core" cx="13" cy="9" r="2.1"/><path class="tf-leaf" style="--i:0" pathLength="1" d="M13 23C9.5 23.4 6.3 21.8 5 18.4C8.6 18 11.8 19.4 13 23Z"/><path class="tf-leaf" style="--i:1" pathLength="1" d="M13.2 20C16.4 20.2 19.4 18.8 20.8 15.6C17.4 15.2 14.4 16.6 13.2 20Z"/></svg>`;
 function toast(text, action, { flower = false } = {}) {
   clearTimeout(toastTimer);
   // Un panneau ouvert est dans la couche du dessus : le message doit y être aussi pour rester touchable.
