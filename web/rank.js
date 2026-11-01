@@ -71,6 +71,7 @@ const OUTAGE_NAMES = {
 
 /** Vrai si le flux signale ce carburant indisponible dans cette station. */
 export function isOutOfStock(station, fuel) {
+  if (station.friendOut?.has(fuel)) return true; // signalé épuisé par toi ou par tes amis (voir app.js)
   if (!station.indisponibles) return false;
   const listed = String(station.indisponibles)
     .toLowerCase()

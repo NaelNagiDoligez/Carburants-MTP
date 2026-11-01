@@ -45,6 +45,10 @@ const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
 const EASE_IN_OUT = "cubic-bezier(0.77, 0, 0.175, 1)";
 
 // ---------- État ----------
+let backupT = 0;
+let backupSig = "";
+let backupAt = 0;
+let restoring = false;
 let state = loadState();
 let data = null;
 let ranked = [];
@@ -94,6 +98,7 @@ function loadState() {
   }
 }
 function save() {
+  backupSoon();
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch { /* stockage indisponible */ }
 }
 
@@ -293,14 +298,48 @@ function renderE10Hint() {
   hint.hidden = false;
 }
 
-// Signature : le bouquet se brode du bas vers le haut (à l'ouverture, puis plus vite quand la réponse change).
+// Signature : le bouquet se coud pièce par pièce, comme une vraie broderie : d'abord les tiges (du pied vers le haut),
+// puis les fleurs pétale après pétale, puis les feuilles, enfin les petites boucles de fil.
+function bouquetRole(el) {
+  const c = el.classList;
+  if (el.tagName !== "path") return "flower";
+  if (c.contains("t-sky") || (c.contains("stitch") && !c.contains("t-sage"))) return "curl";
+  if (c.contains("t-sage")) return c.contains("satin") || (c.contains("w1") && !c.contains("stitch")) ? "leaf" : "stem";
+  if (c.contains("t-lav") && c.contains("w15")) return "stem";
+  return "flower";
+}
+function growBouquet(g, k = 1) {
+  const parts = { stem: [], flower: [], leaf: [], curl: [] };
+  for (const el of g.children) parts[bouquetRole(el)].push(el);
+  const plan = { stem: [0, 650, 130], flower: [600, 380, Math.min(55, 700 / Math.max(1, parts.flower.length))], leaf: [1250, 380, Math.min(70, 450 / Math.max(1, parts.leaf.length))], curl: [1550, 420, 60] };
+  for (const [role, list] of Object.entries(parts)) {
+    const [start0, dur0, gap0] = plan[role];
+    const [start, dur, gap] = [start0 * k, dur0 * k, gap0 * k];
+    list.forEach((el, n) => {
+      const delay = start + n * gap;
+      const o = { duration: dur, delay, easing: EASE_OUT, fill: "backwards" };
+      if (el.tagName === "path" && !el.classList.contains("stitch")) {
+        el.setAttribute("pathLength", "1");
+        el.style.strokeDasharray = "1 1";
+        el.animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], o).finished.then(() => { el.style.strokeDasharray = ""; }).catch(() => {});
+        if (el.classList.contains("satin") || el.classList.contains("satin-rose")) el.animate([{ fillOpacity: 0 }, { fillOpacity: 1 }], { ...o, delay: delay + dur * 0.55, duration: dur * 0.6 });
+      } else if (el.tagName === "path") {
+        el.animate([{ opacity: 0 }, { opacity: 1 }], { ...o, duration: dur * 1.2 });
+      } else {
+        el.style.transformBox = "fill-box";
+        el.style.transformOrigin = "center";
+        el.animate([{ opacity: 0, transform: "scale(.3)" }, { opacity: 1, transform: "none" }], { ...o, duration: 300 });
+      }
+    });
+  }
+}
 function stitchIn(duration) {
   const svg = els.answer.querySelector(".bouquet");
   const g = svg?.querySelector(".stitches");
   if (!g) return;
   svg.classList.remove("pending");
   if (reduceMotion.matches) { g.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: "ease" }); return; }
-  g.animate([{ clipPath: "inset(100% 0 0 0)" }, { clipPath: "inset(0 0 0 0)" }], { duration, easing: EASE_OUT });
+  growBouquet(g, duration >= 800 ? 1 : 0.5);
 }
 function restitch() {
   stitchIn(600);
@@ -1210,16 +1249,21 @@ function drawTripRoute() {
   const src = tripMap.getSource("route");
   if (src) return src.setData(gj);
   const thread = getComputedStyle(document.documentElement).getPropertyValue("--rose-thread").trim() || "#C2617F";
+  if (routeHold) gj.geometry.coordinates = [trip.coords[0], trip.coords[0]]; // la ligne attend que la carte soit prête pour se coudre
   const cloth = getComputedStyle(document.documentElement).getPropertyValue("--cloth").trim() || "#FBF7EE";
   tripMap.addSource("route", { type: "geojson", data: gj });
   tripMap.addLayer({ id: "route-halo", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": cloth, "line-width": 7, "line-opacity": 0.9 } });
   tripMap.addLayer({ id: "route-line", type: "line", source: "route", layout: { "line-cap": "round", "line-join": "round" }, paint: { "line-color": thread, "line-width": 3.2, "line-dasharray": [2, 1.6] } });
 }
 let sewRouteSeq = 0;
+let routeHold = false;
 function sewTripRoute() {
   const src = tripMap?.getSource("route");
   if (!src || !trip) return;
-  const { coords, route } = trip, seq = ++sewRouteSeq, t0 = performance.now(), D = 1800;
+  const { coords, route } = trip, seq = ++sewRouteSeq, D = 2200;
+  routeHold = false;
+  for (const m of tripMarkers) { const pin = m.getElement().firstChild; if (pin?.classList?.contains("pin-hold")) { pin.classList.remove("pin-hold"); pin.classList.add("pop-in"); } }
+  const t0 = performance.now();
   const full = { type: "Feature", geometry: { type: "LineString", coordinates: coords } };
   const step = (now) => {
     if (seq !== sewRouteSeq || !tripMap || !trip) return;
@@ -1271,7 +1315,7 @@ async function renderTripMap(rows) {
   rows.slice(0, 5).map((r, i) => ({ r, i })).reverse().forEach(({ r, i }) => {
     const el = flowerPin(i + 1, i === 0);
     el.addEventListener("click", (e) => { e.stopPropagation(); openStation(r.station.id); });
-    if (sewing) { el.classList.add("pop-in"); el.style.setProperty("--pd", `${Math.round(250 + (r.atKm / Math.max(0.1, trip.route.length)) * 1400)}ms`); }
+    if (sewing) { el.classList.add(reduceMotion.matches ? "pop-in" : "pin-hold"); el.style.setProperty("--pd", `${Math.round(300 + (r.atKm / Math.max(0.1, trip.route.length)) * 1700)}ms`); }
     const holder = document.createElement("div");
     holder.append(el);
     tripMarkers.push(new maplib.Marker({ element: holder }).setLngLat([r.station.lon, r.station.lat]).addTo(tripMap));
@@ -1281,8 +1325,12 @@ async function renderTripMap(rows) {
   if (tripMap.isStyleLoaded()) drawTripRoute(); else tripMap.once("load", drawTripRoute);
   // Le tracé se coud du départ vers l'arrivée : on dévoile la ligne point après point (les pointillés restent en place).
   if (sewing && !reduceMotion.matches) {
-    const go = () => sewTripRoute();
-    if (tripMap.isStyleLoaded()) go(); else tripMap.once("load", go);
+    // On attend que la carte ait fini de dessiner ses tuiles (« idle »), sinon la couture se joue avant qu'on la voie.
+    routeHold = true;
+    let started = false;
+    const go = () => { if (started) return; started = true; setTimeout(sewTripRoute, 250); };
+    tripMap.once("idle", go);
+    setTimeout(go, 4000);
   }
   const lons = [...trip.coords.map((c) => c[0]), ...rows.slice(0, 5).map((r) => r.station.lon)];
   const lats = [...trip.coords.map((c) => c[1]), ...rows.slice(0, 5).map((r) => r.station.lat)];
@@ -1727,78 +1775,85 @@ document.addEventListener("touchcancel", () => { if (ptrStart !== null) { ptrSta
 
 // ---------- Démarrage ----------
 
-// ---------- Amis : prix signalés sur place ----------
-let friendReports = [];
-let friendsInfo = null; // { pseudo, code }
+// ---------- Amis : carburant épuisé ----------
+let stockRows = [];
+let friendsInfo = null;
 let friendsMsg = "";
+let stockSig = "";
 const REPORT_NAMES = { sp95: "SP95-E5", e10: "SP95-E10", sp98: "SP98", gazole: "Gazole", e85: "E85", gplc: "GPLc" };
-async function loadReports() {
+async function loadStock() {
   if (!fr.hasProfile()) return;
-  try { friendReports = await fr.reports(80); } catch { /* hors ligne : on garde l'ancien */ }
+  try { stockRows = await fr.stock(); } catch { return; }
+  applyFriendStock();
 }
-// Un prix signalé n'est « confirmé » qu'à partir de deux personnes (toi + amis) qui relèvent le même prix.
-function groupReports(rows) {
-  const groups = new Map();
-  for (const r of rows) {
-    const k = `${r.station_id}|${r.fuel}|${Number(r.price).toFixed(3)}`;
-    const g = groups.get(k) || { station_id: r.station_id, fuel: r.fuel, price: Number(r.price), who: [], mine: false, n: 0, at: r.created_at };
-    const name = r.mine ? "toi" : r.pseudo;
-    if (!g.who.includes(name)) g.who.push(name);
-    g.mine ||= r.mine;
-    g.n = Math.max(g.n, r.confirmations);
-    if (r.created_at > g.at) g.at = r.created_at;
-    groups.set(k, g);
-  }
-  return [...groups.values()].sort((x, y) => (y.n >= 2) - (x.n >= 2) || (y.at > x.at ? 1 : -1));
+// « Épuisé » est pris en compte dans le classement s'il vient de toi ou d'au moins deux personnes ; un seul ami : à confirmer.
+function stockOf(stationId, fuel) {
+  const rows = stockRows.filter((r) => r.station_id === stationId && r.fuel === fuel);
+  const out = rows.filter((r) => r.is_out);
+  return { out, confirmed: out.length >= 2 || out.some((r) => r.mine), pending: out.length === 1 && !out[0].mine };
 }
-const whoText = (g) => g.who.join(", ");
+function applyFriendStock() {
+  if (!data) return;
+  const hit = new Map();
+  for (const r of stockRows) if (r.is_out && stockOf(r.station_id, r.fuel).confirmed) hit.set(r.station_id, new Set([...(hit.get(r.station_id) || []), r.fuel]));
+  const sig = [...hit].map(([id, set]) => `${id}:${[...set].sort()}`).sort().join("|");
+  for (const s of data.stations) s.friendOut = hit.get(s.id);
+  if (sig !== stockSig) { stockSig = sig; update(); }
+}
+const namesOf = (rows) => rows.map((r) => (r.mine ? "toi" : r.pseudo)).join(", ");
 function reportBlock(s) {
   const f = state.fuel;
   if (!s.prices[f]) return "";
-  const groups = groupReports(friendReports.filter((r) => r.station_id === s.id && r.fuel === f)).slice(0, 3);
-  const seen = groups.map((g) => g.n >= 2
-    ? `<li class="rep-ok"><b>${priceHTML(g.price)}</b> confirmé par ${esc(whoText(g))} <small>${ago(new Date(g.at))}</small></li>`
-    : `<li class="rep-wait"><span>${priceHTML(g.price)} signalé par ${esc(whoText(g))}, <i>pas encore confirmé</i></span>${g.mine ? "" : `<button type="button" class="btn" data-rep-also="${g.price}" data-rep-st="${esc(s.id)}">Moi aussi</button>`}</li>`).join("");
-  return `<section class="st-report" aria-label="Signaler le prix sur place">
-    ${seen ? `<ul class="rep-list">${seen}</ul>` : ""}
-    <p class="rep-title">Sur place, ${esc(REPORT_NAMES[f] || f)} ?</p>
+  const st = stockOf(s.id, f);
+  const mineOut = st.out.some((r) => r.mine);
+  const line = st.confirmed
+    ? `<li class="rep-ok"><span><b>Épuisé</b> selon ${esc(namesOf(st.out))}</span><small>${ago(new Date(st.out[0].created_at))}</small></li>`
+    : st.pending ? `<li class="rep-wait"><span>${esc(namesOf(st.out))} signale que c’est épuisé, <i>pas encore confirmé</i></span></li>` : "";
+  return `<section class="st-report" aria-label="Carburant épuisé ?">
+    ${line ? `<ul class="rep-list">${line}</ul>` : ""}
+    <p class="rep-title">Sur place, plus de ${esc(REPORT_NAMES[f] || f)} ?</p>
     <div class="rep-btns">
-      <button type="button" class="btn" data-rep="confirm" data-rep-st="${esc(s.id)}">${icon("i-flag")}C’est bien ${s.prices[f][0].toFixed(3).replace(".", ",")} €</button>
-      <button type="button" class="btn" data-rep="other" data-rep-st="${esc(s.id)}">Prix différent</button>
+      ${mineOut ? "" : `<button type="button" class="btn" data-stock="1" data-rep-st="${esc(s.id)}">${icon("i-caution")}Épuisé ici</button>`}
+      ${mineOut || st.out.length ? `<button type="button" class="btn" data-stock="0" data-rep-st="${esc(s.id)}">Il y en a</button>` : ""}
     </div>
-    <p class="hint">Un prix signalé s’affiche comme confirmé quand deux personnes relèvent le même.</p>
-    <form class="rep-form" hidden data-rep-form="${esc(s.id)}"><input type="text" inputmode="decimal" autocomplete="off" placeholder="1,789" aria-label="Prix relevé en euros par litre"><button class="btn btn-main" type="submit">Envoyer</button></form>
+    <p class="hint">Tes amis le voient pendant 12 h. Compté dans le classement quand tu le signales, ou quand deux personnes le font.</p>
   </section>`;
 }
-async function sendReport(stationId, price, kind) {
-  if (!fr.hasProfile()) { toast("Crée d’abord ton profil d’ami pour signaler un prix."); return openFriends(); }
+async function sendStock(stationId, isOut) {
+  if (!fr.hasProfile()) { toast("Crée d’abord ton profil d’ami pour prévenir tes amis."); return openFriends(); }
   try {
-    await fr.report({ station_id: stationId, fuel: state.fuel, price, kind });
-    toast(`Merci : ${REPORT_NAMES[state.fuel] || state.fuel} à ${String(price.toFixed(3)).replace(".", ",")} signalé à tes amis.`, null, { flower: true });
-    await loadReports();
+    await fr.stockReport({ station_id: stationId, fuel: state.fuel, is_out: isOut });
+    toast(isOut ? "Merci : tes amis sont prévenus." : "Noté : il y en a de nouveau.", null, { flower: true });
+    await loadStock();
     if (els.stationSheet.open) openStation(stationId);
   } catch (e) { toast(`Pas envoyé : ${e.message}`); }
 }
 els.stationSheet.addEventListener("click", (e) => {
-  const also = e.target.closest("[data-rep-also]");
-  if (also) return sendReport(also.dataset.repSt, Number(also.dataset.repAlso), "confirm");
-  const b = e.target.closest("[data-rep]");
-  if (!b) return;
-  const s = stationById(b.dataset.repSt);
-  if (!s) return;
-  if (b.dataset.rep === "confirm") return sendReport(s.id, s.prices[state.fuel][0], "confirm");
-  const form = els.stationSheet.querySelector("[data-rep-form]");
-  form.hidden = false;
-  form.querySelector("input").focus();
+  const b = e.target.closest("[data-stock]");
+  if (b) sendStock(b.dataset.repSt, b.dataset.stock === "1");
 });
-els.stationSheet.addEventListener("submit", (e) => {
-  const form = e.target.closest("[data-rep-form]");
-  if (!form) return;
-  e.preventDefault();
-  const v = Number(form.querySelector("input").value.replace(",", ".").trim());
-  if (!(v >= 0.5 && v <= 4)) return toast("Prix en euros par litre, par exemple 1,789.");
-  sendReport(form.dataset.repForm, Math.round(v * 1000) / 1000, "correct");
-});
+
+// ---------- Sauvegarde du carnet, des véhicules et des favoris ----------
+const BACKUP_KEYS = ["log", "favs", "vehicles", "profileId", "radius", "fuel", "nav", "trips", "tripCorr", "theme"];
+function backupSoon() {
+  if (!fr.hasProfile() || restoring) return;
+  clearTimeout(backupT);
+  backupT = setTimeout(pushBackup, 4000);
+}
+async function pushBackup() {
+  if (!fr.hasProfile() || restoring) return;
+  const d = Object.fromEntries(BACKUP_KEYS.map((k) => [k, state[k]]));
+  const sig = JSON.stringify(d);
+  if (sig === backupSig) return;
+  try { await fr.pushBackup(d); backupSig = sig; backupAt = Date.now(); } catch { /* réessayé à la prochaine modification */ }
+}
+async function restoreBackup() {
+  const b = await fr.pullBackup();
+  if (!b) return false;
+  for (const k of BACKUP_KEYS) if (b.data[k] !== undefined) state[k] = b.data[k];
+  save();
+  return true;
+}
 
 const monthKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 let savingsSyncT = 0;
@@ -1825,22 +1880,26 @@ async function openFriends() {
 }
 async function renderFriends() {
   if (!fr.hasProfile()) {
-    friendsBody.innerHTML = `<p class="fr-lede">Choisis un pseudo : tes amis te retrouvent avec un code, sans e-mail ni mot de passe. Ils voient seulement tes pleins signalés (station, carburant, prix), jamais ta position.</p>
+    friendsBody.innerHTML = `<p class="fr-lede">Choisis un pseudo : tes amis te retrouvent avec un code, sans e-mail. Ils voient seulement tes signalements « épuisé » et ton total d’économies du mois, jamais ta position. Une clé de récupération te sera donnée pour retrouver ton profil si tu changes de téléphone.</p>
       <form class="fr-form" id="frCreate"><input id="frPseudo" type="text" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ton pseudo" aria-label="Pseudo"><button class="btn btn-main" type="submit">Créer mon profil</button></form>
+      <h3 class="fr-h">Retrouver mon profil</h3>
+      <form class="fr-stack" id="frRecover"><input id="frRecPseudo" type="text" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Pseudo" aria-label="Pseudo"><input id="frRecKey" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Clé de récupération" aria-label="Clé de récupération"><button class="btn" type="submit">Retrouver</button></form>
       <p class="hint" id="frMsg" role="alert"${friendsMsg ? "" : " hidden"}>${esc(friendsMsg)}</p>`;
     return;
   }
   friendsBody.innerHTML = `<p class="trip-wait">Chargement…</p>`;
   try {
     await syncSavings(true);
-    const [me, list, rank] = await Promise.all([friendsInfo ? friendsInfo : fr.profile(), fr.friends(), fr.savings(monthKey()), loadReports()]);
+    const [me, list, rank] = await Promise.all([friendsInfo ? friendsInfo : fr.profile(), fr.friends(), fr.savings(monthKey()), loadStock()]);
     friendsInfo = me;
     const incoming = list.filter((f) => f.status === "pending" && f.incoming);
     const waiting = list.filter((f) => f.status === "pending" && !f.incoming);
     const ok = list.filter((f) => f.status === "accepted");
-    const feed = groupReports(friendReports).slice(0, 10).map((g) => {
-      const s = stationById(g.station_id);
-      return `<li class="${g.n >= 2 ? "rep-ok" : "rep-wait"}"><span><b>${esc(s ? stationName(s) : "station hors zone")}</b> · ${esc(REPORT_NAMES[g.fuel] || g.fuel)} ${priceHTML(g.price)}<br><small>${g.n >= 2 ? "confirmé par" : "signalé par"} ${esc(whoText(g))}, ${ago(new Date(g.at))}</small></span></li>`;
+    const keys = [...new Set(stockRows.filter((r) => r.is_out).map((r) => `${r.station_id}|${r.fuel}`))];
+    const feed = keys.map((k) => {
+      const [id, fuel] = k.split("|");
+      const st = stockOf(id, fuel), s = stationById(id);
+      return `<li class="${st.confirmed ? "rep-ok" : "rep-wait"}"><span><b>${esc(s ? stationName(s) : "station hors zone")}</b> · ${esc(REPORT_NAMES[fuel] || fuel)} épuisé<br><small>${st.confirmed ? "selon" : "à confirmer, signalé par"} ${esc(namesOf(st.out))}, ${ago(new Date(st.out[0].created_at))}</small></span></li>`;
     }).join("");
     const board = rank.map((r, i) => `<li${r.mine ? ' class="me"' : ""}><span class="rk">${i + 1}</span><span class="nm">${esc(r.mine ? `${r.pseudo} (toi)` : r.pseudo)}</span><span class="eu">${r.euros >= 0 ? "+" : "−"}${eur.format(Math.abs(Number(r.euros)))}</span><small>${r.fills} plein${r.fills > 1 ? "s" : ""}</small></li>`).join("");
     friendsBody.innerHTML = `
@@ -1853,8 +1912,12 @@ async function renderFriends() {
       ${ok.length || waiting.length ? `<ul class="fr-list">${ok.map((f) => `<li><span>${esc(f.pseudo)}</span><button class="btn btn-text" type="button" data-fr-del="${f.user_id}">Retirer</button></li>`).join("")}${waiting.map((f) => `<li><span>${esc(f.pseudo)} <small>en attente</small></span><button class="btn btn-text" type="button" data-fr-del="${f.user_id}">Annuler</button></li>`).join("")}</ul>` : `<p class="muted">Pas encore d’ami. Envoie ton code, ou entre le sien ci-dessus.</p>`}
       <h3 class="fr-h">Classement du mois</h3>
       ${board ? `<ol class="fr-board">${board}</ol><p class="hint">Seuls le total économisé ce mois-ci et le nombre de pleins sont partagés, jamais les stations ni les lieux.</p>` : `<p class="muted">Note un plein dans le carnet pour entrer au classement.</p>`}
-      <h3 class="fr-h">Derniers prix signalés</h3>
-      ${feed ? `<ul class="rep-list">${feed}</ul>` : `<p class="muted">Rien pour l’instant. Sur la fiche d’une station, « C’est bien … » confirme le prix pour tes amis.</p>`}`;
+      <h3 class="fr-h">Carburants épuisés (12 h)</h3>
+      ${feed ? `<ul class="rep-list">${feed}</ul>` : `<p class="muted">Rien de signalé. Sur la fiche d’une station, « Épuisé ici » prévient tes amis.</p>`}
+      <h3 class="fr-h">Sauvegarde et clé de récupération</h3>
+      <p class="muted">Ton carnet, tes véhicules et tes favoris sont sauvegardés sur ton profil${backupAt ? ` (dernière fois ${ago(new Date(backupAt))})` : ""}. Si tu changes de téléphone, « Retrouver mon profil » avec ton pseudo et cette clé :</p>
+      <div class="fr-code fr-key"><output>${esc(fr.showKey(fr.recoveryKey()) || "clé inconnue (profil créé avant la mise à jour)")}</output></div>
+      <p class="hint">Garde-la précieusement : elle est la seule façon de récupérer ton profil.</p>`;
     friendsMsg = "";
   } catch (e) {
     friendsBody.innerHTML = `<p class="hint" role="alert">${esc(e.message)}</p><button class="btn" type="button" id="frRetry">Réessayer</button>`;
@@ -1869,7 +1932,18 @@ friendsBody.addEventListener("submit", async (e) => {
   e.preventDefault();
   if (e.target.id === "frCreate") {
     const pseudo = $("frPseudo").value.trim();
-    try { friendsInfo = await fr.signUp(pseudo); friendsMsg = ""; } catch (err) { friendsMsg = err.message; }
+    try { friendsInfo = await fr.signUp(pseudo); friendsMsg = "Profil créé. Note ta clé de récupération tout en bas de cette fenêtre."; backupSoon(); } catch (err) { friendsMsg = err.message; }
+    return renderFriends();
+  }
+  if (e.target.id === "frRecover") {
+    restoring = true;
+    try {
+      await fr.signIn($("frRecPseudo").value, $("frRecKey").value);
+      friendsInfo = null;
+      if (await restoreBackup()) return location.reload();
+      friendsMsg = "Profil retrouvé, mais aucune sauvegarde n’a été trouvée.";
+    } catch (err) { friendsMsg = err.message; }
+    restoring = false;
     return renderFriends();
   }
   if (e.target.id === "frAdd") {
@@ -1922,7 +1996,7 @@ async function boot() {
   }
 }
 
-boot().then(loadReports);
+boot().then(loadStock);
 setTimeout(() => document.documentElement.classList.remove("intro"), 1400);
 
 if ("serviceWorker" in navigator && location.protocol === "https:") {

@@ -648,11 +648,14 @@ html, body { overscroll-behavior-y: none; }
 .sewing .tr-band, .sewing .tr-high, .sewing .tr-low, .sewing .tr-real { animation: fade-late 500ms ease both; animation-delay: 800ms; }
 @keyframes fade-late { from { opacity: 0; } }
 
+.pin.pin-hold { opacity: 0; }
 .pin.pop-in { animation: pop 260ms var(--ease-out) both; animation-delay: var(--pd, 0ms); }
 
 /* Mode guidon : entrée sobre ; la station suivante glisse depuis la droite. */
 .ride[open] { animation: ride-in 450ms var(--ease-out); }
-@keyframes ride-in { from { opacity: 0; transform: scale(.98); } }
+@keyframes ride-in { from { opacity: 0; } }
+/* Calques promus : le très gros texte n'est pas redessiné à chaque image (sinon ça saccade sur iPhone). */
+.ride-name, .ride-price, .ride-meta { will-change: transform, opacity; backface-visibility: hidden; }
 
 /* Plein noté : une petite fleur se coud dans le message. */
 .toast-flower { width: 26px; height: 30px; flex: none; }
@@ -709,3 +712,6 @@ html, body { overscroll-behavior-y: none; }
 .fr-board .nm { font-weight: 700; }
 .fr-board .eu { font-weight: 800; font-stretch: 80%; font-size: 20px; }
 .fr-board small { grid-column: 2 / 4; color: var(--ink-2); }
+.fr-stack { display: grid; gap: 8px; }
+.fr-stack input { min-height: 44px; padding: 8px 12px; border-radius: 12px; border: 1.5px solid var(--edge); background: var(--ground); color: var(--ink); font: inherit; font-size: 16px; }
+.fr-key output { font-size: 17px; letter-spacing: .06em; user-select: all; word-break: break-all; }
