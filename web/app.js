@@ -1,4 +1,5 @@
 import { rankStations, haversineKm, isOutOfStock } from "./rank.js";
+import { matchVehicle, catalogNames } from "./catalog.js";
 
 // ---------- Constantes ----------
 const PLACES = [
@@ -7,10 +8,11 @@ const PLACES = [
   { id: "odysseum", label: "Odysseum", short: "Odysseum", lat: 43.6046, lon: 3.9186 },
   { id: "triolet", label: "Campus Triolet", short: "Triolet", lat: 43.6318, lon: 3.8613 },
 ];
-const PROFILES = [
-  { id: "mt450", label: "CFMoto 450MT", short: "450MT", detail: "14 L, 4,5 L/100", litres: 14, conso: 4.5 },
-  { id: "scooter", label: "Scooter 125", short: "Scooter", detail: "6 L, 2,8 L/100", litres: 6, conso: 2.8 },
-  { id: "car", label: "Voiture", short: "Voiture", detail: "40 L, 6,5 L/100", litres: 40, conso: 6.5 },
+// Véhicules de départ : de simples véhicules comme les autres (modifiables, supprimables).
+const SEEDS = [
+  { id: "mt450", label: "CFMoto 450MT", short: "450MT", litres: 14, conso: 4.5 },
+  { id: "scooter", label: "Scooter 125", short: "Scooter", litres: 6, conso: 2.8 },
+  { id: "car", label: "Voiture", short: "Voiture", litres: 40, conso: 6.5 },
 ];
 const NAV_APPS = [
   { id: "apple", label: "Plans", detail: "l'appli Plans de l'iPhone" },
@@ -30,7 +32,7 @@ const DWELL_IN_M = 50;            // à moins de 50 m d'une station
 const DWELL_OUT_M = 90;           // au-delà de 90 m, on considère qu'on est reparti
 const REORIGIN_M = 300;           // on ne reclasse qu'après 300 m de déplacement
 const DEFAULTS = {
-  fuel: "sp95", placeId: "gps", gps: null, profileId: "mt450", vehicles: [],
+  fuel: "sp95", placeId: "gps", gps: null, profileId: "mt450", vehicles: SEEDS, seeded: true,
   radius: 15, favs: [], log: [], nav: null, fillSeen: {},
 };
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -68,6 +70,11 @@ function loadState() {
       merged.profileId = id;
     }
     delete merged.custom;
+    if (!raw.seeded) { // les véhicules de départ deviennent les tiens, une seule fois
+      const have = new Set(merged.vehicles.map((v) => v.id));
+      merged.vehicles = [...structuredClone(SEEDS).filter((v) => !have.has(v.id)), ...merged.vehicles];
+      merged.seeded = true;
+    }
     return merged;
   } catch {
     return structuredClone(DEFAULTS);
@@ -129,7 +136,7 @@ const els = {
   logPrice: $("logPrice"), logPreview: $("logPreview"), logList: $("logList"),
   stationSheet: $("stationSheet"), stationBody: $("stationBody"), navSheet: $("navSheet"), navApps: $("navApps"), navRemember: $("navRemember"),
   settingsSheet: $("settingsSheet"), settingsForm: $("settingsForm"), places: $("places"), profiles: $("profiles"), navPref: $("navPref"),
-  vehForm: $("vehForm"), vehName: $("vehName"), vehLitres: $("vehLitres"), vehConso: $("vehConso"), vehFuel: $("vehFuel"), vehHint: $("vehHint"),
+  vehForm: $("vehForm"), vehName: $("vehName"), vehLitres: $("vehLitres"), vehConso: $("vehConso"), vehFuel: $("vehFuel"), vehHint: $("vehHint"), vehYear: $("vehYear"), vehMatch: $("vehMatch"), vehModels: $("vehModels"),
   vehSave: $("vehSave"), vehCancel: $("vehCancel"), vehDelete: $("vehDelete"), vehEdit: $("vehEdit"), radius: $("radius"), radiusOut: $("radiusOut"),
   useGps: $("useGps"), useGpsText: $("useGpsText"), gpsHint: $("gpsHint"), toast: $("toast"),
   fillCard: $("fillCard"), fillText: $("fillText"), fillQuick: $("fillQuick"), fillYes: $("fillYes"), fillNo: $("fillNo"), hapticLabel: $("hapticLabel"),
@@ -145,9 +152,8 @@ function originLabel() {
   return (PLACES.find((p) => p.id === state.placeId) || PLACES[0]).short;
 }
 function vehicle() {
-  const own = state.vehicles.find((v) => v.id === state.profileId);
-  if (own) return { ...own, short: own.label };
-  return PROFILES.find((p) => p.id === state.profileId) || PROFILES[0];
+  const v = state.vehicles.find((x) => x.id === state.profileId) || state.vehicles[0] || SEEDS[0];
+  return { ...v, short: v.short || v.label };
 }
 const stationById = (id) => data?.stations.find((s) => s.id === id);
 const isFav = (id) => state.favs.includes(id);
@@ -547,13 +553,13 @@ function enableDragToClose(dlg) {
 
 function renderSettings() {
   els.places.innerHTML = PLACES.map((p) => `<button type="button" class="choice" data-place="${p.id}" aria-pressed="${state.placeId === p.id}">${esc(p.label)}</button>`).join("");
-  const mine = state.vehicles.map((v) => ({ ...v, detail: `${litresText(v.litres)} L, ${commaNum(Number(v.conso), 1)} L/100` }));
-  els.profiles.innerHTML = [...PROFILES, ...mine].map((p) => `<button type="button" class="choice" data-profile="${p.id}" aria-pressed="${state.profileId === p.id}">${esc(p.label)}<small>${esc(p.detail)}</small></button>`).join("")
+  const current = vehicle().id;
+  els.profiles.innerHTML = state.vehicles.map((v) => `<button type="button" class="choice" data-profile="${v.id}" aria-pressed="${current === v.id}">${esc(v.label)}<small>${v.year ? `${v.year}, ` : ""}${litresText(v.litres)} L, ${commaNum(Number(v.conso), 1)} L/100</small></button>`).join("")
     + `<button type="button" class="choice choice-add" data-veh-add><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Ajouter un véhicule</button>`;
-  const isMine = state.vehicles.some((v) => v.id === state.profileId);
-  els.vehEdit.hidden = !isMine || vehEditing !== null;
+  els.vehEdit.hidden = !state.vehicles.length || vehEditing !== null;
+  els.vehEdit.textContent = `Modifier « ${vehicle().label} »`;
   els.vehForm.hidden = vehEditing === null;
-  els.vehDelete.hidden = vehEditing === null || vehEditing === "new";
+  els.vehDelete.hidden = vehEditing === null || vehEditing === "new" || state.vehicles.length <= 1;
   els.navPref.innerHTML = [{ id: "", label: "Me demander" }, ...NAV_APPS].map((a) => `<button type="button" class="choice" data-nav-pref="${a.id}" aria-pressed="${(state.nav || "") === a.id}">${esc(a.label)}</button>`).join("");
   els.radius.value = state.radius;
   els.radiusOut.textContent = `${state.radius} km`;
@@ -842,6 +848,10 @@ function openVehForm(which) {
   vehEditing = which;
   const v = which === "new" ? { label: "", litres: 14, conso: 5, fuel: state.fuel } : state.vehicles.find((x) => x.id === which);
   els.vehName.value = v.label;
+  els.vehYear.value = v.year || "";
+  autoDirty = { litres: false, conso: false };
+  for (const el of [els.vehLitres, els.vehConso]) el.classList.remove("autofilled");
+  els.vehMatch.hidden = true;
   els.vehLitres.value = litresText(v.litres);
   els.vehConso.value = commaNum(Number(v.conso), 1);
   els.vehFuel.innerHTML = FUEL_ORDER.filter((f) => data?.fuels[f]).map((f) => `<option value="${f}"${f === (v.fuel || state.fuel) ? " selected" : ""}>${esc(data.fuels[f].label)}</option>`).join("");
@@ -854,14 +864,18 @@ function saveVehicle() {
   const conso = parseNum(els.vehConso.value);
   if (!(litres > 0 && litres < 200)) return vehError("Le réservoir doit être entre 1 et 199 litres.");
   if (!(conso > 0 && conso < 30)) return vehError("La consommation doit être entre 0,1 et 30 L/100 km.");
+  const yearText = els.vehYear.value.trim();
+  const year = yearText ? Number(yearText) : null;
+  if (year !== null && !(Number.isInteger(year) && year >= 1950 && year <= new Date().getFullYear() + 1)) return vehError("L’année doit être entre 1950 et l’an prochain.");
   const label = els.vehName.value.trim().slice(0, 24) || "Mon véhicule";
   const fuel = els.vehFuel.value;
   if (vehEditing === "new") {
     const id = newVehicleId();
-    state.vehicles.push({ id, label, litres, conso, fuel });
+    state.vehicles.push({ id, label, year, litres, conso, fuel });
     state.profileId = id;
   } else {
-    Object.assign(state.vehicles.find((x) => x.id === vehEditing), { label, litres, conso, fuel });
+    const v = state.vehicles.find((x) => x.id === vehEditing);
+    Object.assign(v, { label, year, litres, conso, fuel, short: label === v.label ? v.short : undefined });
   }
   if (fuel && data?.fuels[fuel]) state.fuel = fuel;
   vehEditing = null;
@@ -869,17 +883,43 @@ function saveVehicle() {
   update();
 }
 function vehError(msg) { els.vehHint.textContent = msg; els.vehHint.hidden = false; }
+els.vehModels.innerHTML = catalogNames().map((n) => `<option value="${esc(n)}"></option>`).join("");
 els.vehSave.addEventListener("click", saveVehicle);
 els.vehCancel.addEventListener("click", () => { vehEditing = null; renderSettings(); });
 els.vehEdit.addEventListener("click", () => openVehForm(state.profileId));
 els.vehDelete.addEventListener("click", () => {
   state.vehicles = state.vehicles.filter((x) => x.id !== vehEditing);
-  if (state.profileId === vehEditing) state.profileId = PROFILES[0].id;
+  if (state.profileId === vehEditing) state.profileId = state.vehicles[0].id;
   vehEditing = null;
   renderSettings();
   update();
 });
-for (const input of [els.vehName, els.vehLitres, els.vehConso]) {
+// Pré-remplissage : le nom et l'année reconnus remplissent réservoir et conso,
+// sauf si tu as déjà tapé ces cases toi-même. Les cases remplies seules sont mises en évidence.
+let autoDirty = { litres: false, conso: false };
+function autofill() {
+  const m = matchVehicle(els.vehName.value, els.vehYear.value);
+  if (!m) { els.vehMatch.hidden = true; return; }
+  const fill = (el, key, value) => {
+    if (autoDirty[key]) return;
+    el.value = key === "litres" ? litresText(value) : commaNum(value, 1);
+    el.classList.remove("autofilled");
+    void el.offsetWidth; // relance l'animation
+    el.classList.add("autofilled");
+  };
+  fill(els.vehLitres, "litres", m.tank);
+  fill(els.vehConso, "conso", m.conso);
+  const years = m.to ? `${m.from}–${m.to}` : `depuis ${m.from}`;
+  const why = m.yearUsed ? `modèle ${years}` : `année non reconnue, génération ${years}`;
+  els.vehMatch.textContent = `Reconnu : ${m.name} (${why}). ${m.source ? `Source : ${m.source}.` : "Valeurs indicatives, vérifie-les."}`;
+  els.vehMatch.hidden = false;
+}
+els.vehName.addEventListener("input", autofill);
+els.vehYear.addEventListener("input", autofill);
+for (const [el, key] of [[els.vehLitres, "litres"], [els.vehConso, "conso"]]) {
+  el.addEventListener("input", () => { autoDirty[key] = true; el.classList.remove("autofilled"); });
+}
+for (const input of [els.vehName, els.vehYear, els.vehLitres, els.vehConso]) {
   input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); saveVehicle(); } });
 }
 els.settingsForm.addEventListener("submit", (e) => { e.preventDefault(); closeSheet(els.settingsSheet); });

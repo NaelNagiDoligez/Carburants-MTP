@@ -405,3 +405,12 @@ h1, h2, h3, .fill-title, .next-title { text-wrap: balance; }
 .veh-form { display: grid; gap: 12px; margin-top: 12px; padding: 14px; border-radius: 16px; outline: 1.5px dashed var(--stitch); outline-offset: -6px; }
 .veh-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .veh-edit { margin-top: 8px; }
+
+/* Modèle reconnu : les cases remplies seules sont teintées et signalées. */
+.veh-id { grid-template-columns: minmax(0, 1fr) 6.5em; }
+.veh-match { margin: -4px 0 0; font-size: 13px; color: var(--ink-2); }
+.field .auto-tag { display: none; margin-left: 4px; padding: 1px 8px; border-radius: 999px; background: var(--lav-fill); color: var(--lav); font-weight: 600; font-size: 12px; }
+.field:has(.autofilled) .auto-tag { display: inline-block; }
+.field input.autofilled { background: var(--lav-fill); border-color: var(--lav); animation: autofill-pulse 900ms var(--ease-out); }
+@keyframes autofill-pulse { from { box-shadow: 0 0 0 6px var(--lav-fill); } to { box-shadow: 0 0 0 0 var(--lav-fill); } }
+@media (prefers-reduced-motion: reduce) { .field input.autofilled { animation: none; } }

@@ -150,10 +150,15 @@
         <div class="choices" id="profiles"></div>
         <button class="btn btn-text veh-edit" type="button" id="vehEdit" hidden>Modifier ce véhicule</button>
         <div class="veh-form" id="vehForm" hidden>
-          <label class="field" for="vehName">Nom du véhicule<input id="vehName" type="text" maxlength="24" autocomplete="off" placeholder="Ma Yamaha, la Clio de Papa…"></label>
+          <div class="field-row veh-id">
+            <label class="field" for="vehName">Modèle ou nom<input id="vehName" type="text" maxlength="24" autocomplete="off" list="vehModels" placeholder="MT-07, Clio…"></label>
+            <label class="field" for="vehYear">Année<input id="vehYear" type="text" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="2021"></label>
+          </div>
+          <datalist id="vehModels"></datalist>
+          <p class="veh-match" id="vehMatch" role="status" hidden></p>
           <div class="field-row">
-            <label class="field" for="vehLitres">Réservoir (litres)<input id="vehLitres" type="text" inputmode="decimal"></label>
-            <label class="field" for="vehConso">Conso (L/100 km)<input id="vehConso" type="text" inputmode="decimal"></label>
+            <label class="field" for="vehLitres"><span>Réservoir (litres) <span class="auto-tag">rempli seul</span></span><input id="vehLitres" type="text" inputmode="decimal"></label>
+            <label class="field" for="vehConso"><span>Conso (L/100 km) <span class="auto-tag">rempli seul</span></span><input id="vehConso" type="text" inputmode="decimal"></label>
           </div>
           <label class="field" for="vehFuel">Carburant<select id="vehFuel"></select></label>
           <p class="hint" id="vehHint" role="alert" hidden></p>
