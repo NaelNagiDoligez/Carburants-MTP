@@ -161,6 +161,18 @@
     </div>
   </dialog>
 
+  <dialog class="sheet-host" id="friendsSheet" aria-labelledby="frTitle">
+    <div class="scrim" data-close></div>
+    <div class="sheet">
+      <div class="grabber" aria-hidden="true"></div>
+      <div class="sheet-head">
+        <h2 id="frTitle">Amis</h2>
+        <button class="icon-btn" type="button" data-close aria-label="Fermer"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
+      </div>
+      <div id="friendsBody"></div>
+    </div>
+  </dialog>
+
   <dialog class="sheet-host" id="settingsSheet" aria-labelledby="setTitle">
     <div class="scrim" data-close></div>
     <form class="sheet" id="settingsForm" method="dialog">
@@ -220,6 +232,7 @@
         <div class="choices" id="themePref"></div>
         <p class="hint" id="themeHint"></p>
       </fieldset>
+      <button class="coulisses-link linkish" type="button" id="openFriends">Amis : se retrouver et partager les prix sur place</button>
       <a class="coulisses-link" href="coulisses.html">En coulisses : d’où viennent les prix, comment l’appli les calcule</a>
       <button class="btn btn-main" type="submit">Voir les stations</button>
     </form>

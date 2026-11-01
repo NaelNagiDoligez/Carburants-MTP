@@ -678,3 +678,22 @@ html, body { overscroll-behavior-y: none; }
   .ride[open] { animation: fade 180ms ease; }
   .theme-flip::view-transition-new(root) { animation: fade 300ms ease; }
 }
+
+/* Amis et prix signalés */
+.st-report { margin: 14px 0; padding: 12px 14px; border-radius: 16px; background: var(--cloth); outline: 1.5px dashed var(--stitch); outline-offset: -6px; }
+.rep-title { margin: 0 0 8px; font-weight: 700; }
+.rep-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.rep-btns .ic { width: 18px; height: 18px; }
+.rep-form, .fr-form { display: flex; gap: 8px; margin-top: 10px; }
+.rep-form[hidden] { display: none; }
+.rep-form input, .fr-form input { flex: 1; min-width: 0; min-height: 44px; padding: 8px 12px; border-radius: 12px; border: 1.5px solid var(--edge); background: var(--ground); color: var(--ink); font: inherit; font-size: 16px; }
+.rep-list { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; font-size: 15px; }
+.rep-list small, .fr-list small { color: var(--ink-2); }
+.fr-lede, .fr-me { color: var(--ink-2); margin: 0 0 12px; }
+.fr-code { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; }
+.fr-code output { font-weight: 800; font-stretch: 80%; font-size: 34px; letter-spacing: .12em; padding: 6px 14px; border-radius: 14px; background: var(--cloth); outline: 1.5px dashed var(--stitch); outline-offset: -5px; user-select: all; }
+.fr-h { font: 400 20px/1.2 var(--f-name); margin: 22px 0 8px; }
+.fr-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.fr-list li { display: flex; align-items: center; gap: 8px; min-height: 48px; }
+.fr-list li span { flex: 1; font-weight: 700; }
+.muted { color: var(--ink-2); font-size: 14px; }

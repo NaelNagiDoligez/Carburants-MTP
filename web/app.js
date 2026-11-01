@@ -1,3 +1,4 @@
+import * as fr from "./friends.js";
 import { rankStations, haversineKm, isOutOfStock, ROAD_FACTOR } from "./rank.js";
 import { matchVehicle, catalogNames } from "./catalog.js";
 import { prepareRoute, stationsAlongRoute, coveredUntilKm, thin } from "./trip.js";
@@ -611,6 +612,7 @@ function openStation(id) {
       ${navigator.share ? `<button type="button" class="icon-btn" data-share="${esc(s.id)}" aria-label="Partager la station">${icon("i-share")}</button>` : ""}
     </div>
     <ul class="st-prices" aria-label="Prix dans cette station">${prices}</ul>
+    ${reportBlock(s)}
     ${facts.length ? `<dl class="st-facts">${facts.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>` : ""}
     <button type="button" class="btn" data-log-here="${esc(s.id)}">${icon("i-log")}Noter un plein ici</button>`;
   openSheet(els.stationSheet);
@@ -1723,6 +1725,124 @@ document.addEventListener("touchend", async () => {
 document.addEventListener("touchcancel", () => { if (ptrStart !== null) { ptrStart = null; setPull(0, true); } });
 
 // ---------- Démarrage ----------
+
+// ---------- Amis : prix signalés sur place ----------
+let friendReports = [];
+let friendsInfo = null; // { pseudo, code }
+let friendsMsg = "";
+const REPORT_NAMES = { sp95: "SP95-E5", e10: "SP95-E10", sp98: "SP98", gazole: "Gazole", e85: "E85", gplc: "GPLc" };
+async function loadReports() {
+  if (!fr.hasProfile()) return;
+  try { friendReports = await fr.reports(80); } catch { /* hors ligne : on garde l'ancien */ }
+}
+function reportBlock(s) {
+  const f = state.fuel;
+  if (!s.prices[f]) return "";
+  const mine = friendReports.filter((r) => r.station_id === s.id && r.fuel === f).slice(0, 3);
+  const seen = mine.map((r) => `<li><b>${esc(r.mine ? "Toi" : r.pseudo)}</b> ${r.kind === "correct" ? "a relevé" : "a confirmé"} ${priceHTML(Number(r.price))} <small>${ago(new Date(r.created_at))}</small></li>`).join("");
+  return `<section class="st-report" aria-label="Signaler le prix sur place">
+    ${seen ? `<ul class="rep-list">${seen}</ul>` : ""}
+    <p class="rep-title">Sur place, ${esc(REPORT_NAMES[f] || f)} ?</p>
+    <div class="rep-btns">
+      <button type="button" class="btn" data-rep="confirm" data-rep-st="${esc(s.id)}">${icon("i-flag")}C’est bien ${s.prices[f][0].toFixed(3).replace(".", ",")} €</button>
+      <button type="button" class="btn" data-rep="other" data-rep-st="${esc(s.id)}">Prix différent</button>
+    </div>
+    <form class="rep-form" hidden data-rep-form="${esc(s.id)}"><input type="text" inputmode="decimal" autocomplete="off" placeholder="1,789" aria-label="Prix relevé en euros par litre"><button class="btn btn-main" type="submit">Envoyer</button></form>
+  </section>`;
+}
+async function sendReport(stationId, price, kind) {
+  if (!fr.hasProfile()) { toast("Crée d’abord ton profil d’ami pour signaler un prix."); return openFriends(); }
+  try {
+    await fr.report({ station_id: stationId, fuel: state.fuel, price, kind });
+    toast(`Merci : ${REPORT_NAMES[state.fuel] || state.fuel} à ${String(price.toFixed(3)).replace(".", ",")} signalé à tes amis.`, null, { flower: true });
+    await loadReports();
+    if (els.stationSheet.open) openStation(stationId);
+  } catch (e) { toast(`Pas envoyé : ${e.message}`); }
+}
+els.stationSheet.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-rep]");
+  if (!b) return;
+  const s = stationById(b.dataset.repSt);
+  if (!s) return;
+  if (b.dataset.rep === "confirm") return sendReport(s.id, s.prices[state.fuel][0], "confirm");
+  const form = els.stationSheet.querySelector("[data-rep-form]");
+  form.hidden = false;
+  form.querySelector("input").focus();
+});
+els.stationSheet.addEventListener("submit", (e) => {
+  const form = e.target.closest("[data-rep-form]");
+  if (!form) return;
+  e.preventDefault();
+  const v = Number(form.querySelector("input").value.replace(",", ".").trim());
+  if (!(v >= 0.5 && v <= 4)) return toast("Prix en euros par litre, par exemple 1,789.");
+  sendReport(form.dataset.repForm, Math.round(v * 1000) / 1000, "correct");
+});
+
+const friendsBody = $("friendsBody");
+async function openFriends() {
+  openSheet($("friendsSheet"));
+  await renderFriends();
+}
+async function renderFriends() {
+  if (!fr.hasProfile()) {
+    friendsBody.innerHTML = `<p class="fr-lede">Choisis un pseudo : tes amis te retrouvent avec un code, sans e-mail ni mot de passe. Ils voient seulement tes pleins signalés (station, carburant, prix), jamais ta position.</p>
+      <form class="fr-form" id="frCreate"><input id="frPseudo" type="text" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ton pseudo" aria-label="Pseudo"><button class="btn btn-main" type="submit">Créer mon profil</button></form>
+      <p class="hint" id="frMsg" role="alert"${friendsMsg ? "" : " hidden"}>${esc(friendsMsg)}</p>`;
+    return;
+  }
+  friendsBody.innerHTML = `<p class="trip-wait">Chargement…</p>`;
+  try {
+    const [me, list] = await Promise.all([friendsInfo ? friendsInfo : fr.profile(), fr.friends(), loadReports()]);
+    friendsInfo = me;
+    const incoming = list.filter((f) => f.status === "pending" && f.incoming);
+    const waiting = list.filter((f) => f.status === "pending" && !f.incoming);
+    const ok = list.filter((f) => f.status === "accepted");
+    const feed = friendReports.slice(0, 12).map((r) => {
+      const s = stationById(r.station_id);
+      return `<li><b>${esc(r.mine ? "Toi" : r.pseudo)}</b> · ${esc(s ? stationName(s) : "station hors zone")} · ${esc(REPORT_NAMES[r.fuel] || r.fuel)} ${priceHTML(Number(r.price))} <small>${ago(new Date(r.created_at))}</small></li>`;
+    }).join("");
+    friendsBody.innerHTML = `
+      <p class="fr-me">Tu es <b>${esc(me.pseudo)}</b>. Ton code d’invitation :</p>
+      <div class="fr-code"><output>${esc(me.code)}</output>${navigator.share ? `<button class="icon-btn" type="button" data-fr-share aria-label="Partager mon code">${icon("i-share")}</button>` : ""}</div>
+      <form class="fr-form" id="frAdd"><input id="frCode" type="text" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Code d’un ami" aria-label="Code d’un ami"><button class="btn btn-main" type="submit">Ajouter</button></form>
+      <p class="hint" id="frMsg" role="alert"${friendsMsg ? "" : " hidden"}>${esc(friendsMsg)}</p>
+      ${incoming.length ? `<h3 class="fr-h">Demandes reçues</h3><ul class="fr-list">${incoming.map((f) => `<li><span>${esc(f.pseudo)}</span><button class="btn btn-main" type="button" data-fr-yes="${f.user_id}">Accepter</button><button class="btn btn-text" type="button" data-fr-no="${f.user_id}">Refuser</button></li>`).join("")}</ul>` : ""}
+      <h3 class="fr-h">Amis</h3>
+      ${ok.length || waiting.length ? `<ul class="fr-list">${ok.map((f) => `<li><span>${esc(f.pseudo)}</span><button class="btn btn-text" type="button" data-fr-del="${f.user_id}">Retirer</button></li>`).join("")}${waiting.map((f) => `<li><span>${esc(f.pseudo)} <small>en attente</small></span><button class="btn btn-text" type="button" data-fr-del="${f.user_id}">Annuler</button></li>`).join("")}</ul>` : `<p class="muted">Pas encore d’ami. Envoie ton code, ou entre le sien ci-dessus.</p>`}
+      <h3 class="fr-h">Derniers prix signalés</h3>
+      ${feed ? `<ul class="rep-list">${feed}</ul>` : `<p class="muted">Rien pour l’instant. Sur la fiche d’une station, « C’est bien … » confirme le prix pour tes amis.</p>`}`;
+    friendsMsg = "";
+  } catch (e) {
+    friendsBody.innerHTML = `<p class="hint" role="alert">${esc(e.message)}</p><button class="btn" type="button" id="frRetry">Réessayer</button>`;
+  }
+}
+async function frAct(fn) {
+  friendsMsg = "";
+  try { await fn(); } catch (e) { friendsMsg = e.message; }
+  renderFriends();
+}
+friendsBody.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (e.target.id === "frCreate") {
+    const pseudo = $("frPseudo").value.trim();
+    try { friendsInfo = await fr.signUp(pseudo); friendsMsg = ""; } catch (err) { friendsMsg = err.message; }
+    return renderFriends();
+  }
+  if (e.target.id === "frAdd") {
+    const code = $("frCode").value;
+    return frAct(async () => { const p = await fr.addFriend(code); friendsMsg = `Demande envoyée à ${p}.`; });
+  }
+});
+friendsBody.addEventListener("click", (e) => {
+  const t = (a) => e.target.closest(`[${a}]`);
+  if (t("data-fr-yes")) return frAct(() => fr.respond(t("data-fr-yes").dataset.frYes, true));
+  if (t("data-fr-no")) return frAct(() => fr.respond(t("data-fr-no").dataset.frNo, false));
+  if (t("data-fr-del")) return frAct(() => fr.removeFriend(t("data-fr-del").dataset.frDel));
+  if (t("data-fr-share")) return navigator.share({ title: "Plein Sud", text: `Mon code Plein Sud : ${friendsInfo.code}` }).catch(() => {});
+  if (e.target.closest("#frRetry")) return renderFriends();
+});
+$("openFriends").addEventListener("click", () => { closeSheet(els.settingsSheet); openFriends(); });
+
 async function boot() {
   els.answerBody.innerHTML = `<div class="ans-head"><p class="ans-name">Plein Sud</p><p class="ans-ville">On cherche le meilleur plein autour de toi…</p></div>`;
   renderStart();
@@ -1758,7 +1878,7 @@ async function boot() {
   }
 }
 
-boot();
+boot().then(loadReports);
 setTimeout(() => document.documentElement.classList.remove("intro"), 1400);
 
 if ("serviceWorker" in navigator && location.protocol === "https:") {
