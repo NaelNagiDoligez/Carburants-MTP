@@ -1,5 +1,5 @@
 // Service worker : l'interface fonctionne hors ligne, les prix viennent du réseau en priorité.
-const CACHE = "plein-sud-v8";
+const CACHE = "plein-sud-v9";
 const SHELL = ["./", "index.html", "styles.css", "app.js", "garden.js", "catalog.js", "rank.js", "manifest.webmanifest", "icons/icon.svg", "fonts/archivo-wdth.woff2", "fonts/young-serif.woff2"];
 
 self.addEventListener("install", (e) => {

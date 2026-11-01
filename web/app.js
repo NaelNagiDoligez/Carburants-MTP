@@ -181,10 +181,10 @@ function renderFuels() {
 }
 function renderFresh() {
   const how = document.querySelector(".how p");
-  if (how && !how.dataset.done) {
-    how.dataset.done = "1";
-    how.insertAdjacentText("beforeend", ` Prix officiels relevés ${ago(new Date(data.generated_at))}.`);
-  }
+  if (!how) return;
+  let note = how.querySelector(".fresh-note");
+  if (!note) { note = document.createElement("span"); note.className = "fresh-note"; how.append(" ", note); }
+  note.textContent = `Prix officiels relevés ${ago(new Date(data.generated_at))}.`;
 }
 const navLabel = () => NAV_APPS.find((a) => a.id === state.nav)?.label;
 
@@ -975,11 +975,92 @@ els.fillQuick.addEventListener("click", () => {
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") {
     if (state.gps) startWatch();
+    if (loadedAt && Date.now() - loadedAt > 30 * 60 * 1000) refreshData({ quiet: true }); // retour après 30 min : prix rechargés en silence
     checkReturnFromNav();
   } else {
     stopWatch(); // on garde le début de présence à la station : il compte encore au retour
   }
 });
+
+// ---------- Données : chargement et « tirer pour actualiser » ----------
+let loadedAt = 0;
+async function loadData() {
+  const res = await fetch("data/latest.json", { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const next = await res.json();
+  for (const [f, name] of Object.entries(FUEL_NAMES)) if (next.fuels[f]) next.fuels[f].label = name;
+  data = next;
+  loadedAt = Date.now();
+}
+
+let refreshing = false;
+async function refreshData({ quiet = false } = {}) {
+  if (refreshing || !data) return;
+  refreshing = true;
+  const before = data.generated_at;
+  try {
+    await loadData();
+    renderFuels();
+    render();
+    renderFresh();
+    if (view === "fav") renderFavs();
+    if (view === "log") renderLog();
+    if (view === "map") renderMap();
+    if (!quiet) toast(data.generated_at === before ? `Déjà à jour : prix relevés ${ago(new Date(data.generated_at))}` : `Prix mis à jour : relevés ${ago(new Date(data.generated_at))}`);
+  } catch {
+    if (!quiet) toast("Pas de connexion : les prix n’ont pas changé");
+  } finally {
+    refreshing = false;
+  }
+}
+
+// Le geste : en haut de page, tirer vers le bas coud la fleur pétale par pétale ;
+// passé le seuil, le nœud central apparaît (« relâche ») ; au relâcher, la fleur tourne pendant le chargement.
+const PTR_GO = 72;
+const PTR_MAX = 116;
+const ptrEl = $("ptr");
+const ptrText = $("ptrText");
+const viewsEl = $("views");
+let ptrStart = null;
+let ptrPull = 0;
+let ptrArmed = false;
+function setPull(px, settle = false) {
+  ptrPull = px;
+  const p = Math.min(1, px / PTR_GO);
+  for (const el of [ptrEl, viewsEl]) el.classList.toggle("ptr-settle", settle);
+  ptrEl.style.setProperty("--pull", px.toFixed(1));
+  ptrEl.style.setProperty("--p", p.toFixed(3));
+  viewsEl.style.transform = px > 0 ? `translateY(${px.toFixed(1)}px)` : "";
+  const armed = px >= PTR_GO;
+  if (armed && !ptrArmed && navigator.vibrate) navigator.vibrate(12);
+  ptrArmed = armed;
+  ptrEl.classList.toggle("is-armed", armed);
+  if (!ptrEl.classList.contains("is-loading")) ptrText.textContent = armed ? "Relâche pour actualiser" : "Tire pour actualiser";
+}
+const ptrBlocked = () => refreshing || view === "map" || window.scrollY > 0 || document.querySelector("dialog[open]");
+document.addEventListener("touchstart", (e) => {
+  ptrStart = !ptrBlocked() && e.touches.length === 1 ? e.touches[0].clientY : null;
+}, { passive: true });
+document.addEventListener("touchmove", (e) => {
+  if (ptrStart === null) return;
+  const dy = e.touches[0].clientY - ptrStart;
+  if (window.scrollY > 0) { ptrStart = null; return setPull(0, true); }
+  setPull(Math.max(0, Math.min(PTR_MAX, dy * 0.5)));
+}, { passive: true });
+document.addEventListener("touchend", async () => {
+  if (ptrStart === null) return;
+  ptrStart = null;
+  if (ptrPull < PTR_GO) return setPull(0, true);
+  setPull(PTR_GO, true);
+  ptrEl.classList.add("is-loading");
+  ptrText.textContent = "Actualisation…";
+  const started = Date.now();
+  await refreshData();
+  await new Promise((r) => setTimeout(r, Math.max(0, 600 - (Date.now() - started)))); // le temps de voir la fleur tourner
+  ptrEl.classList.remove("is-loading");
+  setPull(0, true);
+});
+document.addEventListener("touchcancel", () => { if (ptrStart !== null) { ptrStart = null; setPull(0, true); } });
 
 // ---------- Démarrage ----------
 async function boot() {
@@ -987,10 +1068,7 @@ async function boot() {
   renderStart();
   if (state.placeId === "gps") locate(); // la position est demandée dès l'ouverture
   try {
-    const res = await fetch("data/latest.json", { cache: "no-cache" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    data = await res.json();
-    for (const [f, name] of Object.entries(FUEL_NAMES)) if (data.fuels[f]) data.fuels[f].label = name;
+    await loadData();
   } catch {
     els.answerBody.innerHTML = `<div class="ans-head"><p class="ans-name">Prix indisponibles</p><p class="ans-ville">Impossible de charger les prix. Vérifie ta connexion puis recharge la page.</p></div>`;
     return;

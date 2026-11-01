@@ -414,3 +414,23 @@ h1, h2, h3, .fill-title, .next-title { text-wrap: balance; }
 .field input.autofilled { background: var(--lav-fill); border-color: var(--lav); animation: autofill-pulse 900ms var(--ease-out); }
 @keyframes autofill-pulse { from { box-shadow: 0 0 0 6px var(--lav-fill); } to { box-shadow: 0 0 0 0 var(--lav-fill); } }
 @media (prefers-reduced-motion: reduce) { .field input.autofilled { animation: none; } }
+
+/* Tirer pour actualiser : la fleur se coud pétale par pétale (--p de 0 à 1), le nœud central marque le seuil. */
+html, body { overscroll-behavior-y: contain; }
+.ptr { position: relative; z-index: 2; height: 0; display: flex; flex-direction: column; align-items: center; pointer-events: none;
+  --pull: 0; --p: 0; opacity: min(1, calc(var(--p) * 1.6)); transform: translateY(calc(var(--pull) * 1px - 66px)); }
+.ptr-flower { flex: none; width: 44px; min-width: 44px; height: 44px; transform: rotate(calc(var(--p) * 90deg)); }
+.ptr-petals path { fill: none; stroke: var(--rose-thread); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: 3.2 1.8;
+  opacity: clamp(0, calc(var(--p) * 8 - var(--i)), 1); }
+.ptr-knot { fill: var(--ochre); transform-origin: 32px 32px; transform: scale(0); transition: transform 220ms var(--ease-out); }
+.ptr.is-armed .ptr-knot { transform: scale(1); }
+.ptr-text { margin-top: 2px; font-size: 13px; color: var(--ink-2); white-space: nowrap; }
+.ptr.ptr-settle, .views.ptr-settle { transition: transform 320ms var(--ease-out), opacity 240ms ease; }
+.ptr.is-loading .ptr-flower { animation: ptr-spin 1.4s linear infinite; }
+.ptr.is-loading .ptr-petals path { opacity: 1; animation: ptr-stitch 700ms linear infinite; }
+@keyframes ptr-spin { to { transform: rotate(450deg); } }
+@keyframes ptr-stitch { to { stroke-dashoffset: -10; } }
+@media (prefers-reduced-motion: reduce) {
+  .ptr.is-loading .ptr-flower, .ptr.is-loading .ptr-petals path { animation: none; }
+  .ptr.ptr-settle, .views.ptr-settle { transition: none; }
+}
