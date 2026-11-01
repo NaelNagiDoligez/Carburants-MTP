@@ -2,7 +2,7 @@
 
 Le flux officiel donne une adresse et des coordonnées approximatives (souvent le milieu de la route).
 OpenStreetMap connaît la station elle-même : on rapproche chaque station du flux de la station OSM
-la plus proche (150 m maximum, une station OSM ne sert qu'une fois), ce qui donne la vraie position
+la plus proche (400 m maximum, une station OSM ne sert qu'une fois), ce qui donne la vraie position
 et, souvent, l'enseigne. Si OSM est injoignable, rien ne casse : le site garde les coordonnées du flux.
 """
 
@@ -21,7 +21,7 @@ OVERPASS_URLS = [
 ]
 # Sud, ouest, nord, est : couvre l'Hérault et le Gard.
 BBOX = (43.20, 2.85, 44.45, 4.95)
-MAX_SNAP_M = 150.0
+MAX_SNAP_M = 400.0
 REFRESH_DAYS = 7
 
 
@@ -82,8 +82,9 @@ def snap(stations: list[dict], osm: list[dict], max_m: float = MAX_SNAP_M) -> di
     pairs = []
     for s in stations:
         for o in osm:
-            # prefiltre grossier (~0,002° = ~220 m) avant le calcul exact
-            if abs(s["lat"] - o["lat"]) > 0.002 or abs(s["lon"] - o["lon"]) > 0.003:
+            # prefiltre grossier (en degrés, un peu large) avant le calcul exact
+            box = max_m / 111000 * 1.3
+            if abs(s["lat"] - o["lat"]) > box or abs(s["lon"] - o["lon"]) > box * 1.5:
                 continue
             d = distance_m(s["lat"], s["lon"], o["lat"], o["lon"])
             if d <= max_m:
