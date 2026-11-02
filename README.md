@@ -61,7 +61,11 @@ API data.economie.gouv.fr -> extract -> transform -> quality -> load (Parquet pa
 | `src/carburants/load.py` | Écriture Parquet idempotente, sans doublon |
 | `.github/workflows/ingest.yml` | Exécution automatique toutes les 6 h |
 
-Zone suivie : départements 34 et 30, filtrés en local après téléchargement du flux complet (variable `CARBURANTS_DEPARTMENTS`).
+Zone suivie : toute la France (le flux complet est déjà téléchargé ; `CARBURANTS_DEPARTMENTS="34,30"` restreint pour les essais).
+Le site ne charge que le département de l'utilisateur : `web/data/dept/<code>.json` (ses stations + celles à moins de 35 km de sa frontière),
+`grid.json` (position → département) et `hist/<code>.json` (historique et prévision). Pour un trajet, les départements traversés sont chargés en plus.
+Ces fichiers sont générés au déploiement (`python -m carburants export`), jamais commités ; `data/` (Parquet) ne stocke qu'un fichier par jour.
+Les positions OpenStreetMap sont rafraîchies par département, 12 par passage, chacun au plus une fois par semaine.
 
 ## Points à vérifier au premier lancement réel
 

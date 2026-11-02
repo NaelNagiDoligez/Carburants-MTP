@@ -1,5 +1,11 @@
 # Journal des versions
 
+## Prochaine version — toute la France
+
+- Un fichier de prix par département (avec 35 km de marge de frontière), chargé selon la position ; départements traversés chargés pour un trajet.
+- Écran « Où es-tu ? » si la position est refusée (réactivation expliquée, ou adresse de départ).
+- Trajets enregistrés (avec date facultative), bandeau « nouvelle version », lieux enregistrés, véhicules modifiables d'un toucher.
+
 ## v0.9 (bêta) — 2 novembre 2026
 
 Première version complète pour Montpellier et ses alentours (Hérault, Gard).

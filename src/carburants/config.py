@@ -13,11 +13,10 @@ API_URL = (
     f"{DATASET_ID}/exports/json"
 )
 
-# Hérault (34) + Gard (30) : permet de comparer Montpellier aux stations voisines.
-# Filtre appliqué en local après téléchargement.
-# Pour tout garder : CARBURANTS_DEPARTMENTS="" (le dépôt grossira vite).
+# Toute la France par défaut. Pour restreindre (tests, essais) : CARBURANTS_DEPARTMENTS="34,30".
+# Filtre appliqué en local après téléchargement du flux complet.
 DEPARTMENTS = [
-    d.strip() for d in os.getenv("CARBURANTS_DEPARTMENTS", "34,30").split(",") if d.strip()
+    d.strip() for d in os.getenv("CARBURANTS_DEPARTMENTS", "").split(",") if d.strip()
 ]
 
 # Colonnes cherchées dans le flux : <carburant>_prix et <carburant>_maj (celles absentes sont ignorées).

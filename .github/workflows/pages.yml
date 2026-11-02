@@ -32,7 +32,7 @@ jobs:
           cache: pip
       - run: pip install -e .
       - name: Exporter les prix pour le site
-        run: python -m carburants export --out web/data/latest.json  # écrit aussi history.json
+        run: python -m carburants export --out web/data  # un fichier par département + grille + historique
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

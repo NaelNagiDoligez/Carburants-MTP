@@ -789,3 +789,13 @@ html, body { overscroll-behavior-y: none; }
 .saved-row.past .saved-main small { color: var(--ink-2); }
 .trip-save { margin: 12px 0 4px; display: grid; gap: 8px; }
 .trip-saved-ok { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--ink-2); font-weight: 600; }
+
+/* Écran « Où es-tu ? » : il ne se ferme pas tant qu'on ne sait pas d'où classer les stations. */
+.zone { border: 0; margin: 0; padding: 0; width: 100%; height: 100%; max-width: none; max-height: none; background: var(--ground); color: var(--ink); opacity: 0; transition: opacity 260ms ease; }
+.zone.is-open { opacity: 1; }
+.zone::backdrop { background: var(--ground); }
+.zone-card { max-width: 480px; margin: 0 auto; min-height: 100%; display: grid; align-content: center; gap: 16px; padding: max(24px, env(safe-area-inset-top)) 22px max(24px, env(safe-area-inset-bottom)); }
+.zone-card h2 { margin: 0; font: 400 clamp(32px, 9vw, 44px)/1.08 var(--f-name); }
+.zone-card p { margin: 0; color: var(--ink-2); }
+.zone-or { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+.zone-or::before, .zone-or::after { content: ""; flex: 1; border-top: 1.5px dashed var(--stitch); }

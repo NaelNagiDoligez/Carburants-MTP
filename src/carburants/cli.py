@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import analysis, config, export, extract, history, load, osm, quality, transform
+from . import analysis, config, export, extract, geo, history, load, osm, quality, transform
 
 
 def run(from_file: Path | None, data_dir: Path) -> int:
@@ -54,28 +54,36 @@ def stats(data_dir: Path) -> int:
 
 
 def export_cmd(data_dir: Path, out: Path) -> int:
+    """Écrit dans `out` (dossier) : dept/<code>.json, grid.json, index.json, hist/<code>.json et history.json (national)."""
+    out = Path(out)
+    if out.suffix == ".json":  # ancien usage : --out web/data/latest.json
+        out = out.parent
     events, stations = analysis.load_tables(data_dir)
     if events.empty or stations.empty:
         print("Aucune donnée à exporter.")
         return 1
+    now = pd.Timestamp.now(tz="UTC")
     cache = osm.read_cache(Path(data_dir) / "osm_fuel.json")
-    payload = export.build_payload(
-        events, stations, now=pd.Timestamp.now(tz="UTC"),
-        osm_stations=(cache or {}).get("stations"),
-    )
-    print(f"[export] {sum(1 for s in payload['stations'] if s.get('snap'))}/{len(payload['stations'])} stations placées via OpenStreetMap")
-    path = export.write_payload(payload, out)
-    print(f"[export] {len(payload['stations'])} stations -> {path} ({path.stat().st_size // 1024} Ko)")
-    # Historique + prévision, et l'état du dernier passage, pour la courbe et « En coulisses ».
-    hist = history.build_history(events, now=pd.Timestamp.now(tz="UTC"))
-    hist["osm_snapped"] = sum(1 for s in payload["stations"] if s.get("snap"))
+    payload = export.build_payload(events, stations, now=now, osm_stations=(cache or {}).get("stations"))
+    snapped = sum(1 for s in payload["stations"] if s.get("snap"))
+    print(f"[export] {snapped}/{len(payload['stations'])} stations placées via OpenStreetMap")
+    manifest = export.write_departments(payload, out)
+    big = max(manifest["departments"].items(), key=lambda kv: kv[1]["kb"])
+    print(f"[export] {len(manifest['departments'])} départements, {manifest['stations']} stations ; plus gros fichier : {big[0]} ({big[1]['kb']} Ko)")
+    # Historique + prévision : par département (courbe de l'appli) et national (page « En coulisses »).
+    dep_of = {str(r.station_id): geo.dep_of(getattr(r, "dep_code", None), getattr(r, "cp", None)) for r in stations.itertuples()}
+    events = events.assign(_dep=events["station_id"].astype(str).map(dep_of))
+    for dep, grp in events.groupby("_dep"):
+        h = history.build_history(grp.drop(columns="_dep"), now=now)
+        export.write_payload(h, out / "hist" / f"{dep}.json")
+    hist = history.build_history(events.drop(columns="_dep"), now=now)
+    hist["osm_snapped"] = snapped
     hist["exported_stations"] = len(payload["stations"])
     last_run = Path(data_dir) / "_last_run.json"
     if last_run.exists():
         hist["last_run"] = json.loads(last_run.read_text())
-    hpath = export.write_payload(hist, Path(out).with_name("history.json"))
-    spans = ", ".join(f"{k}: {len(v['days'])} j" for k, v in hist["fuels"].items())
-    print(f"[export] historique ({spans}) -> {hpath}")
+    hpath = export.write_payload(hist, out / "history.json")
+    print(f"[export] historique national + {events['_dep'].nunique()} départements -> {hpath.parent}")
     return 0
 
 
@@ -89,13 +97,16 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--data-dir", type=Path, default=config.DATA_DIR)
     e = sub.add_parser("export", help="Écrit latest.json pour le site mobile")
     e.add_argument("--data-dir", type=Path, default=config.DATA_DIR)
-    e.add_argument("--out", type=Path, default=Path("web/data/latest.json"))
+    e.add_argument("--out", type=Path, default=Path("web/data"), help="dossier de sortie")
     o = sub.add_parser("osm", help="Met à jour les positions OpenStreetMap (au plus une fois par semaine)")
     o.add_argument("--data-dir", type=Path, default=config.DATA_DIR)
     o.add_argument("--force", action="store_true")
     args = p.parse_args(argv)
     if args.cmd == "osm":
-        return osm.refresh(Path(args.data_dir) / "osm_fuel.json", force=args.force)
+        st = pd.read_parquet(Path(args.data_dir) / "stations.parquet")
+        pts = [{"dep": geo.dep_of(r.dep_code, r.cp), "lat": float(r.latitude), "lon": float(r.longitude)}
+               for r in st.itertuples() if pd.notna(r.latitude) and pd.notna(r.longitude)]
+        return osm.refresh(Path(args.data_dir) / "osm_fuel.json", pts, force=args.force)
     if args.cmd == "run":
         return run(args.from_file, args.data_dir)
     if args.cmd == "export":

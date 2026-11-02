@@ -1,6 +1,7 @@
 import * as fr from "./friends.js";
 import { rankStations, haversineKm, isOutOfStock, ROAD_FACTOR } from "./rank.js";
 import { matchVehicle, catalogNames } from "./catalog.js";
+import * as zone from "./zone.js";
 import { prepareRoute, stationsAlongRoute, coveredUntilKm, thin } from "./trip.js";
 import { trendSVG, trendWords, fmt3 } from "./chart.js";
 
@@ -35,7 +36,7 @@ const DWELL_OUT_M = 90;           // au-delà de 90 m, on considère qu'on est r
 const REORIGIN_M = 300;           // on ne reclasse qu'après 300 m de déplacement
 const DEFAULTS = {
   fuel: "sp95", placeId: "gps", places: [], gps: null, profileId: "", vehicles: [], seeded: true, vehAsked: false,
-  radius: 15, favs: [], log: [], nav: null, fillSeen: {}, theme: "auto", trips: [], savedTrips: [], tripCorr: 2,
+  radius: 15, favs: [], log: [], nav: null, fillSeen: {}, theme: "auto", trips: [], savedTrips: [], dep: null, favDep: {}, tripCorr: 2,
 };
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
@@ -58,6 +59,7 @@ let view = "rank";
 let firstRender = true;
 let lastLeadKey = "";
 let locating = false;
+let locFailed = false; // la position a été refusée ou est introuvable, et on n'en a aucune autre
 let showAll = false;
 let watchId = null;
 let gpsStale = false; // vrai si la position utilisée est l'ancienne, faute de GPS
@@ -200,7 +202,7 @@ function litresToBuy(v = vehicle()) {
   return Math.max(3, Math.round(tank * (1 - v.level) * 10) / 10);
 }
 const rangeOf = (v = vehicle()) => (v.level == null ? null : Math.round(((v.level * Number(v.litres)) / Math.max(0.1, Number(v.conso))) * 100));
-const stationById = (id) => data?.stations.find((s) => s.id === id);
+const stationById = (id) => data?.stations.find((s) => s.id === id) || zone.known.get(id);
 const isFav = (id) => state.favs.includes(id);
 const fuelLabel = () => data.fuels[state.fuel]?.label ?? state.fuel;
 
@@ -455,7 +457,7 @@ function render() {
   if (els.ride.open) renderRide();
   firstRender = false;
 }
-function update() { save(); render(); }
+function update() { save(); render(); ensureDept(); if (!needZone()) closeZoneGate(); }
 
 // ---------- Onglets ----------
 const VIEWS = ["rank", "map", "trip", "fav", "log"];
@@ -789,6 +791,9 @@ function renderSettings() {
 function locate({ fromUser = false } = {}) {
   if (!("geolocation" in navigator)) {
     if (fromUser) hint("Ton navigateur ne donne pas accès à la position. Choisis un point de départ.");
+    locFailed = true;
+    zoneHelpText("Ton navigateur ne donne pas accès à la position : indique une adresse de départ.");
+    if (needZone()) openZoneGate();
     return;
   }
   locating = true;
@@ -799,6 +804,7 @@ function locate({ fromUser = false } = {}) {
       locating = false;
       state.gps = { lat: pos.coords.latitude, lon: pos.coords.longitude, at: Date.now() };
       gpsStale = false;
+      locFailed = false;
       state.placeId = "gps";
       hint("");
       if (els.settingsSheet.open) renderSettings();
@@ -807,22 +813,89 @@ function locate({ fromUser = false } = {}) {
     },
     (err) => {
       locating = false;
+      locFailed = true;
       const msg = err.code === 1
-        ? "Position refusée : classement depuis la Comédie. Tu peux l'autoriser dans les réglages du navigateur."
-        : "Position introuvable pour l'instant : classement depuis la Comédie.";
-      if (state.placeId === "gps" && !state.gps) toast(msg);
+        ? `Position refusée. ${locHelp()}`
+        : "Position introuvable pour l'instant (pas de signal ?). Réessaie, ou choisis un lieu.";
+      zoneHelpText(msg);
+      if (state.placeId === "gps" && !state.gps) { /* l'écran « Où es-tu ? » prend le relais */ }
       else if (state.placeId === "gps" && state.gps) { // on repart de la dernière position connue : on le dit
         gpsStale = true;
         const when = state.gps.at ? ` (${ago(new Date(state.gps.at))})` : "";
         toast(`Position introuvable : classement depuis ta dernière position${when}`);
       }
-      if (fromUser) hint(msg);
+      if (fromUser) hint(`${msg}${err.code === 1 ? " Ou choisis un lieu enregistré." : ""}`);
       if (els.settingsSheet.open) renderSettings();
       render();
+      if (needZone()) openZoneGate();
     },
     { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 },
   );
 }
+// Une fois la position refusée, le navigateur ne la redemande plus : seul l'utilisateur peut la rouvrir, dans ses réglages.
+function locHelp() {
+  return isIOS
+    ? "Sur iPhone : Réglages > Confidentialité et sécurité > Service de localisation > Safari > « Lors de l’utilisation » (ou, dans Safari, bouton aA > Réglages du site web > Position > Autoriser)."
+    : "Touche le cadenas (ou les réglages) à côté de l’adresse du site > Autorisations > Position > Autoriser.";
+}
+const needZone = () => state.placeId === "gps" && !state.gps && locFailed;
+function zoneHelpText(text) {
+  const el = $("zoneHelp");
+  if (!el) return;
+  el.textContent = text;
+  el.hidden = !text;
+}
+function openZoneGate() {
+  const gate = $("zoneGate");
+  if (!gate || gate.open) return;
+  gate.showModal();
+  requestAnimationFrame(() => gate.classList.add("is-open"));
+}
+function closeZoneGate() {
+  const gate = $("zoneGate");
+  if (!gate?.open) return;
+  gate.classList.remove("is-open");
+  setTimeout(() => { gate.close(); askFirstVehicle(); }, 260);
+}
+$("zoneGate")?.addEventListener("cancel", (e) => e.preventDefault()); // impossible de fermer avec Échap : l'appli en a besoin
+$("zoneLocate")?.addEventListener("click", () => {
+  zoneHelpText("");
+  const wasData = !!data;
+  locate({ fromUser: true });
+  if (!wasData) { const t = setInterval(() => { if (state.gps) { clearInterval(t); location.reload(); } else if (!locating) clearInterval(t); }, 300); }
+});
+// Adresse de départ à défaut de position : elle devient un lieu enregistré, choisi comme point de départ.
+let zoneList = [], zoneSeq = 0, zoneTimer = 0;
+$("zoneAddr")?.addEventListener("input", () => {
+  clearTimeout(zoneTimer);
+  const q = $("zoneAddr").value.trim();
+  const sugg = $("zoneSugg");
+  if (q.length < 3) { sugg.hidden = true; return; }
+  const seq = ++zoneSeq;
+  zoneTimer = setTimeout(async () => {
+    try { zoneList = await geocode(q); } catch {
+      sugg.innerHTML = `<li class="trip-sugg-msg">Recherche d’adresse indisponible (connexion ?)</li>`; sugg.hidden = false; return;
+    }
+    if (seq !== zoneSeq) return;
+    sugg.innerHTML = zoneList.length
+      ? zoneList.map((g, i) => `<li role="option"><button type="button" data-zone-sugg="${i}">${esc(g.label)}<small>${esc(g.detail || "")}</small></button></li>`).join("")
+      : `<li class="trip-sugg-msg">Aucun lieu trouvé</li>`;
+    sugg.hidden = false;
+  }, 280);
+});
+$("zoneSugg")?.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-zone-sugg]");
+  if (!b) return;
+  const g = zoneList[Number(b.dataset.zoneSugg)];
+  const label = (g.short || "Mon lieu").slice(0, 24);
+  const existing = state.places.find((p) => p.lat === g.lat && p.lon === g.lon);
+  const rec = existing || { id: "p" + Date.now().toString(36), label, short: label.slice(0, 14), address: g.label, city: g.short || "", lat: g.lat, lon: g.lon };
+  if (!existing) state.places.push(rec);
+  state.placeId = rec.id;
+  save();
+  if (!data) return location.reload(); // l'appli n'avait pas encore pu démarrer : on repart avec ce lieu
+  update();
+});
 function hint(text) {
   els.gpsHint.textContent = text;
   els.gpsHint.hidden = !text;
@@ -1024,8 +1097,7 @@ function renderSavings() {
 let priceHistory = null;
 async function loadHistory() {
   try {
-    const res = await fetch("data/history.json", { cache: "no-store" });
-    if (res.ok) priceHistory = await res.json();
+    if (data?.dep) priceHistory = (await zone.fetchHistory(data.dep)) || priceHistory;
   } catch { /* la courbe est un bonus : sans elle, rien ne change */ }
   renderTrend();
 }
@@ -1169,8 +1241,8 @@ function tripName(t) {
   return m && m[1] ? `${m[1]}, ${m[2]}` : t.label || t.short;
 }
 async function geocode(q) {
-  const o = origin();
-  const res = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=5&lat=${o.lat}&lon=${o.lon}`);
+  const o = state.placeId === "gps" ? state.gps : placeById(state.placeId); // proche de soi si on sait où l'on est
+  const res = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=5${o ? `&lat=${o.lat}&lon=${o.lon}` : ""}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const j = await res.json();
   return (j.features || []).map((f) => ({
@@ -1207,8 +1279,15 @@ async function planTrip(dest) {
   if (seq !== tripSeq) return;
   const coords = thin(r.coords, 600);
   const route = prepareRoute(coords);
+  // Les prix des départements traversés (le tien est déjà là) : quelques petits fichiers, chargés en parallèle.
+  const deps = zone.routeDeps(coords);
+  const more = deps.filter((d) => d !== data?.dep);
+  if (more.length) els.tripOut.innerHTML = `<p class="trip-wait">On charge les prix le long de la route (${deps.length} départements)…</p>`;
+  await Promise.all(more.map((d) => zone.fetchDept(d).catch(() => null)));
+  if (seq !== tripSeq) return;
+  const pool = zone.pool([...new Set([data?.dep, ...deps].filter(Boolean))]);
   tripFresh = true;
-  trip = { dest, ...r, coords, route, coveredKm: data ? coveredUntilKm(coords, route, data.stations) : route.length };
+  trip = { dest, ...r, coords, route, pool, loadedDeps: deps.length, coveredKm: pool.length ? coveredUntilKm(coords, route, pool) : 0 };
   renderTrip();
 }
 const durText = (min) => (min < 60 ? `${Math.round(min)} min` : `${Math.floor(min / 60)} h ${String(Math.round(min % 60)).padStart(2, "0")}`);
@@ -1299,14 +1378,14 @@ function renderTrip() {
   const v = vehicle();
   const range = rangeOf(v);
   const scale = trip.distanceKm / Math.max(0.1, trip.route.length); // km de route par km du tracé
-  const rows = stationsAlongRoute(data.stations, state.fuel, trip.route, {
+  const rows = stationsAlongRoute(trip.pool || data.stations, state.fuel, trip.route, {
     corridorKm: state.tripCorr, litres: litresToBuy(v), conso: Number(v.conso) || 0, rangeKm: range != null ? range / scale : null,
   });
   const destName = tripName(trip.dest);
   const covered = trip.coveredKm;
   const notes = [];
   if (trip.approx) notes.push(`${icon("i-caution")}Le serveur d’itinéraire ne répond pas : tracé à vol d’oiseau, kilomètres approximatifs.`);
-  if (covered < trip.route.length - 0.5) notes.push(`${icon("i-caution")}Prix connus seulement dans l’Hérault et le Gard : rien après le km ${Math.round(covered * scale)}.`);
+  if (covered < trip.route.length - 0.5) notes.push(`${icon("i-caution")}Aucune station avec un prix récent trouvée après le km ${Math.round(covered * scale)}.`);
   let fuelNote;
   if (range == null) fuelNote = `<button type="button" class="linkish" data-open-settings>Indique le niveau de ton réservoir</button> pour savoir où t’arrêter au plus tard.`;
   else if (range * 0.9 >= trip.distanceKm) fuelNote = `Ton réservoir (environ ${range} km) suffit pour le trajet : arrête-toi là où c’est le moins cher.`;
@@ -1584,6 +1663,7 @@ document.addEventListener("click", (e) => {
   if (fav) {
     const id = fav.dataset.fav;
     state.favs = isFav(id) ? state.favs.filter((x) => x !== id) : [...state.favs, id];
+    if (isFav(id) && stationById(id)?.dep) state.favDep[id] = stationById(id).dep;
     save();
     for (const b of document.querySelectorAll(`[data-fav="${CSS.escape(id)}"]`)) {
       b.setAttribute("aria-pressed", String(isFav(id)));
@@ -1937,14 +2017,45 @@ document.addEventListener("visibilitychange", () => {
 // ---------- Données : chargement et « tirer pour actualiser » ----------
 let loadedAt = 0;
 let dataOffline = false; // vrai si le relevé vient du cache faute de réseau
-async function loadData() {
-  const res = await fetch("data/latest.json", { cache: "no-store" });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  dataOffline = res.headers.get("x-plein-sud-offline") === "1";
-  const next = await res.json();
-  for (const [f, name] of Object.entries(FUEL_NAMES)) if (next.fuels[f]) next.fuels[f].label = name;
-  data = next;
+async function loadData(dep = data?.dep || state.dep, { fresh = true } = {}) {
+  if (!dep) throw new Error("zone inconnue");
+  const { doc, offline } = await zone.fetchDept(dep, { fresh });
+  dataOffline = offline;
+  for (const [f, name] of Object.entries(FUEL_NAMES)) if (doc.fuels[f]) doc.fuels[f].label = name;
+  data = doc;
+  if (state.dep !== dep) { state.dep = dep; save(); }
   loadedAt = Date.now();
+}
+// Département de l'origine utilisée (position, ou lieu enregistré) ; null tant qu'on ne sait pas où l'on est.
+function homeDep() {
+  const o = state.placeId === "gps" ? state.gps : placeById(state.placeId);
+  return o ? zone.depAt(o.lat, o.lon) : null;
+}
+let switching = false;
+// Quand la position (ou le lieu choisi) change de département, on charge le fichier du nouveau.
+async function ensureDept() {
+  const dep = homeDep();
+  if (!dep || dep === data?.dep || switching) return;
+  switching = true;
+  try {
+    await loadData(dep, { fresh: false });
+    renderFuels();
+    render();
+    renderFresh();
+    applyFriendStock();
+    loadHistory();
+    loadFavDepts();
+  } catch { /* hors ligne : on reste sur le département déjà affiché */ } finally {
+    switching = false;
+  }
+}
+// Favoris situés dans d'autres départements : on charge leurs fichiers pour pouvoir les afficher.
+async function loadFavDepts() {
+  for (const id of state.favs) if (!state.favDep[id] && zone.known.get(id)?.dep) state.favDep[id] = zone.known.get(id).dep;
+  const deps = [...new Set(state.favs.filter((id) => !zone.known.has(id)).map((id) => state.favDep[id]).filter((d) => d && d !== data?.dep))];
+  if (!deps.length) return;
+  await Promise.all(deps.map((d) => zone.fetchDept(d).catch(() => null)));
+  if (view === "fav") renderFavs();
 }
 
 let refreshing = false;
@@ -2068,7 +2179,7 @@ function applyFriendStock() {
   const hit = new Map();
   for (const r of stockRows) if (r.is_out && stockOf(r.station_id, r.fuel).confirmed) hit.set(r.station_id, new Set([...(hit.get(r.station_id) || []), r.fuel]));
   const sig = [...hit].map(([id, set]) => `${id}:${[...set].sort()}`).sort().join("|");
-  for (const s of data.stations) s.friendOut = hit.get(s.id);
+  for (const s of zone.known.values()) s.friendOut = hit.get(s.id);
   if (sig !== stockSig) { stockSig = sig; update(); }
 }
 const namesOf = (rows) => rows.map((r) => (r.mine ? "toi" : r.pseudo)).join(", ");
@@ -2105,7 +2216,7 @@ els.stationSheet.addEventListener("click", (e) => {
 });
 
 // ---------- Sauvegarde du carnet, des véhicules et des favoris ----------
-const BACKUP_KEYS = ["log", "favs", "vehicles", "places", "profileId", "radius", "fuel", "nav", "trips", "savedTrips", "tripCorr", "theme"];
+const BACKUP_KEYS = ["log", "favs", "favDep", "vehicles", "places", "profileId", "radius", "fuel", "nav", "trips", "savedTrips", "tripCorr", "theme"];
 function backupSoon() {
   if (!fr.hasProfile() || restoring) return;
   clearTimeout(backupT);
@@ -2349,8 +2460,18 @@ async function boot() {
   els.answerBody.innerHTML = `<div class="skel" role="status" aria-label="Chargement des prix"><span class="skel-bar" style="width:46%;height:28px"></span><span class="skel-bar" style="width:62%;height:16px"></span><span class="skel-bar" style="width:74%;height:92px;margin-top:10px"></span><span class="skel-bar" style="width:100%;height:60px;margin-top:10px;border-radius:20px"></span></div>`;
   renderStart();
   if (state.placeId === "gps") locate(); // la position est demandée dès l'ouverture
+  await zone.loadGrid();
+  // Quel département ? Celui de la position ou du lieu choisi ; à défaut celui de la dernière fois, le temps d'avoir la position.
+  let dep = homeDep() || state.dep;
+  for (let i = 0; i < 90 && !dep && locating; i++) { await new Promise((r) => setTimeout(r, 150)); dep = homeDep(); }
+  if (!dep && needZone()) return openZoneGate();
+  if (!dep) dep = homeDep();
+  if (!dep) {
+    els.answerBody.innerHTML = `<div class="ans-head"><p class="ans-name">Où es-tu ?</p><p class="ans-ville">Autorise la position ou choisis un lieu de départ dans les réglages.</p></div>`;
+    return openZoneGate();
+  }
   try {
-    await loadData();
+    await loadData(dep, { fresh: true });
   } catch {
     els.answerBody.innerHTML = `<div class="ans-head"><p class="ans-name">Prix indisponibles</p><p class="ans-ville">Impossible de charger les prix. Vérifie ta connexion puis recharge la page.</p></div>`;
     return;
@@ -2360,6 +2481,8 @@ async function boot() {
   renderFresh();
   stitchIn(1100);
   loadHistory();
+  loadFavDepts();
+  if (needZone()) openZoneGate();
   // Démonstration du pop-up de plein : ouvrir le site avec #demo-plein
   if (location.hash === "#demo-plein" && ranked[0]) setTimeout(() => showFillCard(ranked[0].station), 1500);
   // Raccourcis (écran d'accueil Android, favori) : #go lance l'itinéraire vers la n°1, #plein ouvre le carnet.
@@ -2396,7 +2519,7 @@ boot().then(loadStock).then(async () => {
 });
 // Premier lancement (ou appareil remis à zéro) : aucun véhicule d'office, on propose d'en ajouter un.
 function askFirstVehicle() {
-  if (state.vehicles.length || state.vehAsked) return;
+  if (state.vehicles.length || state.vehAsked || $("zoneGate")?.open) return;
   state.vehAsked = true;
   save();
   setTimeout(() => {

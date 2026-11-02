@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Plein Sud</title>
-  <meta name="description" content="Où faire le plein autour de Montpellier, détour compris. Prix officiels relevés toutes les 6 heures.">
+  <meta name="description" content="Où faire le plein autour de toi, détour compris. Prix officiels de toute la France, relevés toutes les 6 heures.">
   <meta name="theme-color" content="#F3EDE0">
   <script src="theme.js"></script>
   <link rel="manifest" href="manifest.webmanifest">
@@ -256,6 +256,19 @@
       <p class="app-version">Plein Sud v0.9 · bêta</p>
       <button class="btn btn-main" type="submit">Voir les stations</button>
     </form>
+  </dialog>
+
+  <dialog class="zone" id="zoneGate" aria-labelledby="zoneTitle">
+    <div class="zone-card">
+      <h2 id="zoneTitle">Où es-tu ?</h2>
+      <p>Plein Sud classe les stations autour de toi, détour compris : il a besoin de ta position, ou d’une adresse de départ.</p>
+      <button class="btn btn-main" type="button" id="zoneLocate"><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg>Utiliser ma position</button>
+      <p class="hint" id="zoneHelp" role="alert" hidden></p>
+      <p class="zone-or"><span>ou</span></p>
+      <label class="field" for="zoneAddr">Adresse ou ville de départ
+        <input id="zoneAddr" type="search" enterkeyhint="search" autocomplete="off" placeholder="Lyon, 12 rue de la Loge…" aria-controls="zoneSugg" aria-autocomplete="list"></label>
+      <ul class="trip-sugg" id="zoneSugg" role="listbox" aria-label="Suggestions" hidden></ul>
+    </div>
   </dialog>
 
   <dialog class="ride" id="ride" aria-labelledby="rideName">

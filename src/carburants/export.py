@@ -21,7 +21,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import analysis, config
+from . import analysis, config, geo
 from . import osm as osm_mod
 
 FUEL_LABELS = {
@@ -76,6 +76,7 @@ def build_payload(
             "ville": _clean(row["ville"]),
             "adresse": _clean(row["adresse"]),
             "cp": _clean(row["cp"]),
+            "dep": geo.dep_of(row.get("dep_code"), row["cp"]),
             "lat": round(float(row["latitude"]), 5),
             "lon": round(float(row["longitude"]), 5),
             "prices": prices,
@@ -117,3 +118,53 @@ def write_payload(payload: dict, out: Path) -> Path:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     return out
+
+
+def fuels_summary(stations: list[dict]) -> dict:
+    """Même résumé que build_payload, calculé sur une liste de stations (fichier d'un département)."""
+    out = {}
+    for fuel, label in FUEL_LABELS.items():
+        prices = sorted(s["prices"][fuel][0] for s in stations if fuel in s["prices"])
+        if not prices:
+            continue
+        mid = len(prices) // 2
+        median = prices[mid] if len(prices) % 2 else (prices[mid - 1] + prices[mid]) / 2
+        out[fuel] = {"label": label, "stations": len(prices), "median": round(median, 3)}
+    return out
+
+
+def write_departments(payload: dict, out_dir: Path) -> dict:
+    """Un fichier par département (ses stations + la marge de frontière), la grille position -> département et un index."""
+    out_dir = Path(out_dir)
+    stations = [s for s in payload["stations"] if s.get("dep")]
+    points = [(s["id"], s["lat"], s["lon"], s["dep"]) for s in stations]
+    margin = geo.fringe(points)
+    by_dep: dict[str, list[dict]] = {}
+    for s in stations:
+        by_dep.setdefault(s["dep"], []).append(s)
+    by_id = {s["id"]: s for s in stations}
+    index = {}
+    for dep, own in by_dep.items():
+        extra = [by_id[i] for i in sorted(margin.get(dep, ()))]
+        part = own + extra
+        doc = {
+            "version": 2,
+            "dep": dep,
+            "generated_at": payload["generated_at"],
+            "last_price_at": payload["last_price_at"],
+            "max_age_days": payload["max_age_days"],
+            "fuels": fuels_summary(part),
+            "stations": part,
+        }
+        path = write_payload(doc, out_dir / "dept" / f"{dep}.json")
+        index[dep] = {"stations": len(own), "with_margin": len(part), "kb": path.stat().st_size // 1024}
+    write_payload(geo.build_grid(points), out_dir / "grid.json")
+    manifest = {
+        "version": 2,
+        "generated_at": payload["generated_at"],
+        "last_price_at": payload["last_price_at"],
+        "stations": len(stations),
+        "departments": index,
+    }
+    write_payload(manifest, out_dir / "index.json")
+    return manifest

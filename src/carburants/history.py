@@ -109,6 +109,10 @@ def backtest(values: list[float], horizon: int = HORIZON_DAYS) -> dict | None:
 
 
 def build_history(events: pd.DataFrame, now: pd.Timestamp, days: int = 90) -> dict:
+    total_events = len(events)
+    if len(events):
+        # Un prix de plus de (fenêtre + 14 j) ne peut plus être « en vigueur » sur la fenêtre : inutile de le parcourir.
+        events = events[events["price_updated_at"] >= now.tz_convert("UTC") - pd.Timedelta(days=days + 16)]
     first_seen = events["first_seen_at"].min() if "first_seen_at" in events and len(events) else None
     if first_seen is not None and pd.isna(first_seen):
         first_seen = None
@@ -130,7 +134,7 @@ def build_history(events: pd.DataFrame, now: pd.Timestamp, days: int = 90) -> di
         "version": 1,
         "generated_at": now.tz_convert("UTC").strftime("%Y-%m-%dT%H:%M:%SZ"),
         "collecting_since": first_seen.strftime("%Y-%m-%d") if first_seen is not None else None,
-        "events": len(events),
+        "events": total_events,
         "stations": int(events["station_id"].nunique()) if len(events) else 0,
         "fuels": fuels,
     }

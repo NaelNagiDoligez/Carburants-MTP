@@ -25,8 +25,9 @@ jobs:
       - run: pip install -e .
       - name: Snapshot
         run: python -m carburants run
-      - name: Positions OpenStreetMap (une fois par semaine)
+      - name: Positions OpenStreetMap (12 départements par passage, chacun une fois par semaine)
         continue-on-error: true
+        timeout-minutes: 25
         run: python -m carburants osm
       - name: Commit des nouvelles données
         run: |

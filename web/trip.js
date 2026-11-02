@@ -58,7 +58,7 @@ export function stationsAlongRoute(stations, fuel, route, { corridorKm = 2, litr
 }
 
 /**
- * Jusqu'où l'itinéraire reste dans la zone couverte par les prix (Hérault + Gard) : kilomètre du dernier
+ * Jusqu'où l'itinéraire reste dans la zone couverte par les prix (les départements chargés) : kilomètre du dernier
  * point de la route qui a une station du jeu de données à moins de `gapKm`.
  */
 export function coveredUntilKm(coords, route, stations, gapKm = 12) {
