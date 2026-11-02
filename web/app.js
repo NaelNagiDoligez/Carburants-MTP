@@ -1359,7 +1359,8 @@ function renderTripSave() {
   } else if (!tripSaving) {
     els.tripSave.innerHTML = `<button type="button" class="btn" data-trip-save>${icon("i-plus")}Enregistrer ce trajet</button>`;
   } else {
-    els.tripSave.innerHTML = `<div class="veh-form"><label class="field" for="tripWhen">Pour quand ? <span class="auto-tag">facultatif</span><input id="tripWhen" type="date" min="${dayKey()}"></label>
+    els.tripSave.innerHTML = `<div class="veh-form"><label class="field" for="tripWhen"><span>Pour quand ? <span class="opt-tag">(facultatif)</span></span><input id="tripWhen" type="date" min="${dayKey()}"></label>
+      <p class="hint">Laisse vide pour garder ce trajet sans date.</p>
       <div class="veh-actions"><button type="button" class="btn btn-main" data-trip-save-ok>Enregistrer</button><button type="button" class="btn" data-trip-save-cancel>Annuler</button></div></div>`;
   }
 }

@@ -799,3 +799,10 @@ html, body { overscroll-behavior-y: none; }
 .zone-card p { margin: 0; color: var(--ink-2); }
 .zone-or { display: flex; align-items: center; gap: 12px; font-size: 13px; }
 .zone-or::before, .zone-or::after { content: ""; flex: 1; border-top: 1.5px dashed var(--stitch); }
+
+/* « facultatif » : toujours visible (contrairement à .auto-tag, réservé au remplissage automatique). */
+.opt-tag { font-weight: 500; color: var(--ink-2); opacity: .85; }
+/* Champ date : sur iPhone il a une largeur propre et débordait à droite du formulaire. */
+.field input[type="date"] { display: block; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; -webkit-appearance: none; appearance: none; min-height: 46px; text-align: left; }
+.field input[type="date"]::-webkit-date-and-time-value { text-align: left; min-height: 1.2em; }
+.veh-form { min-width: 0; max-width: 100%; box-sizing: border-box; }
