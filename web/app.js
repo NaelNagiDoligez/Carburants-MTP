@@ -1093,9 +1093,9 @@ els.ride.addEventListener("close", () => { wakeLock?.release?.().catch?.(() => {
 els.rideNext.addEventListener("click", () => {
   rideIdx++;
   renderRide();
-  // Le prix se recoud de gauche à droite, le nom et les détails se posent juste après.
+  // Le prix apparaît en fondu, le nom et les détails se posent juste après.
   if (reduceMotion.matches) return void $("rideCard").animate([{ opacity: 0.2 }, { opacity: 1 }], { duration: 250 });
-  els.ridePrice.animate([{ clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0 0 0)" }], { duration: 560, easing: EASE_OUT });
+  els.ridePrice.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: "ease-out" });
   [els.rideName, els.rideMeta].forEach((el, i) => el.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 380, delay: 100 + i * 70, easing: EASE_OUT, fill: "backwards" }));
 });
 els.rideGo.addEventListener("click", () => { const r = ranked.slice(0, RIDE_MAX)[rideIdx]; if (r) go(r.station.id); });
