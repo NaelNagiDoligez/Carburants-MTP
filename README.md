@@ -1,5 +1,7 @@
 # Carburants Montpellier
 
+> **Version 0.9 (bêta)** : tout fonctionne ; restent à valider sur de vrais téléphones les amis à plusieurs et la restauration de la sauvegarde. Voir [CHANGELOG.md](CHANGELOG.md).
+
 https://carte-carburants-mtp.streamlit.app
 
 Pipeline de données qui historise chaque jour les prix des carburants (SP95, E10, SP98, gazole...)
@@ -86,3 +88,8 @@ collecte, et 7 jours de scénarios (réaliste = tendance des 14 derniers jours a
 
 L'onglet Trajet géocode la destination (Base Adresse Nationale), demande l'itinéraire au serveur public OSRM
 et classe les stations à moins de 1, 2 ou 5 km de la route (`web/trip.js`, testé dans `web/tests/trip.test.mjs`).
+
+
+## Amis (Supabase)
+
+Optionnel : connexion Google (ou pseudo + clé de récupération), amis par code d'invitation, classement d'économies du mois, signalement « carburant épuisé » (pris en compte à partir de deux personnes, ou soi-même), sauvegarde du carnet, des véhicules et des favoris. Base Supabase à Paris, règles RLS testées ; la page [confidentialité](web/confidentialite.html) détaille ce qui est stocké. Le workflow `keepalive.yml` appelle la base deux fois par semaine (un projet gratuit se met en pause après 7 jours sans activité) et purge les signalements de plus de 30 jours.

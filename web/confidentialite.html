@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Confidentialité · Plein Sud</title>
+  <meta name="description" content="Quelles données Plein Sud garde, où, qui les voit et comment les supprimer.">
+  <meta name="theme-color" content="#F3EDE0">
+  <script src="theme.js"></script>
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .page { max-width: 720px; margin: 0 auto; padding: calc(max(env(safe-area-inset-top, 0px), 12px) + 24px) max(18px, env(safe-area-inset-right)) 48px max(18px, env(safe-area-inset-left)); }
+    .back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; font-weight: 700; color: var(--ink); }
+    h1 { font: 400 clamp(34px, 9vw, 52px)/1.04 var(--f-name); margin: 10px 0 8px; }
+    .lede { font-size: 18px; color: var(--ink-2); max-width: 56ch; margin: 0 0 28px; }
+    h2 { font: 400 24px/1.15 var(--f-name); margin: 36px 0 12px; }
+    p, li { max-width: 65ch; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+    .stats li { padding: 14px 16px; border-radius: 16px; background: var(--cloth); border: 1.5px solid var(--edge); }
+    .stats b { display: block; font-weight: 800; font-stretch: 72%; font-size: 34px; line-height: 1; }
+    .stats span { font-size: 14px; color: var(--ink-2); }
+    .flow { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; counter-reset: step; }
+    .flow li { position: relative; padding: 0 0 18px 46px; counter-increment: step; }
+    .flow li::before { content: counter(step); position: absolute; left: 0; top: -2px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+      border: 1.5px dashed var(--rose-thread); color: var(--rose); font-weight: 800; font-stretch: 80%; background: var(--ground); }
+    .flow li::after { content: ""; position: absolute; left: 15px; top: 30px; bottom: 0; border-left: 1.5px dashed var(--stitch); }
+    .flow li:last-child::after { display: none; }
+    .flow b { display: block; font-size: 17px; }
+    .flow span { color: var(--ink-2); font-size: 15px; }
+    code { font-size: .92em; background: var(--cloth); border: 1px solid var(--seam); padding: 1px 5px; border-radius: 6px; }
+    .charts { display: grid; gap: 12px; }
+    .formula { padding: 14px 16px; border-radius: 16px; background: var(--cloth); outline: 1.5px dashed var(--stitch); outline-offset: -6px; font-size: 16px; }
+    .sources li { margin-bottom: 6px; }
+    .muted { color: var(--ink-2); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <a class="back" href="./">← Retour à l’appli</a>
+    <h1>Confidentialité</h1>
+    <p class="lede">En bref : sans profil d’ami, rien ne quitte ton téléphone. Avec un profil, seul le strict nécessaire est stocké, et tu peux tout supprimer en un geste.</p>
+
+    <h2>Sans profil (par défaut)</h2>
+    <ul>
+      <li>Ta position, tes véhicules, ton carnet de pleins, tes favoris et tes réglages restent <b>sur ton téléphone</b> (stockage du navigateur). Rien n’est envoyé à un serveur.</li>
+      <li>Ta position sert seulement à calculer les distances, sur le téléphone. Elle n’est jamais enregistrée ailleurs.</li>
+      <li>L’onglet Trajet envoie l’adresse tapée à la Base Adresse Nationale (api-adresse.data.gouv.fr) et les deux points du trajet au calcul d’itinéraire OSRM (router.project-osrm.org). Le fond de carte vient d’OpenFreeMap.</li>
+    </ul>
+
+    <h2>Avec un profil d’ami</h2>
+    <p>Les données sont hébergées par Supabase, à Paris (Union européenne). Sont stockés :</p>
+    <ul class="sources">
+      <li><b>Ton compte</b> : ton adresse Gmail et ton nom Google si tu te connectes avec Google (gérés par Supabase, jamais affichés aux autres) ; sinon un identifiant technique et ta clé de récupération (stockée hachée, illisible même pour l’administrateur).</li>
+      <li><b>Ton pseudo et ton code d’invitation</b> : visibles par tes amis.</li>
+      <li><b>Tes amitiés</b> : demandes et amis acceptés.</li>
+      <li><b>Tes signalements « épuisé »</b> (station, carburant, heure) : visibles par tes amis pendant 12 h, effacés automatiquement au bout de 30 jours.</li>
+      <li><b>Ton total d’économies du mois</b> et le nombre de pleins : visibles par tes amis dans le classement. Ni les stations, ni les lieux, ni les dates de tes pleins.</li>
+      <li><b>La sauvegarde</b> de ton carnet, de tes véhicules, de tes favoris et de quelques réglages : visible <b>par toi seul</b>, pour la retrouver sur un autre téléphone.</li>
+    </ul>
+    <p>Jamais stockés : ta position, ton historique de trajets côté serveur, des données de paiement. Aucune publicité, aucun traceur, aucune revente.</p>
+
+    <h2>Qui voit quoi</h2>
+    <p>Les règles d’accès sont appliquées par la base elle-même : une personne ne voit que ses propres données et ce que ses amis <b>acceptés</b> partagent (pseudo, signalements, total du mois). Une demande d’ami en attente ne montre que le pseudo.</p>
+
+    <h2>Supprimer tes données</h2>
+    <ul>
+      <li><b>Tout supprimer côté serveur</b> : Réglages → Amis → « Supprimer mon profil et mes données ». Le compte, le pseudo, les amitiés, les signalements, les économies et la sauvegarde sont effacés immédiatement et définitivement.</li>
+      <li><b>Sur le téléphone</b> : effacer les données du site dans les réglages du navigateur (Safari : Réglages → Safari → Avancé → Données des sites).</li>
+      <li>Te déconnecter (Amis → « Se déconnecter ») garde tes données sur le serveur et sur le téléphone ; tu pourras te reconnecter.</li>
+    </ul>
+
+    <h2>Contact</h2>
+    <p>Plein Sud est un projet personnel. Pour toute question sur tes données, écris à la personne qui t’a partagé l’appli.</p>
+    <p class="muted">Dernière mise à jour : 2 novembre 2026.</p>
+  </main>
+</body>
+</html>

@@ -998,6 +998,14 @@ function sewTrend() {
   clearTimeout(sewTrend.t);
   sewTrend.t = setTimeout(() => card.classList.remove("sewing"), 1600);
 }
+// Score de fiabilité : la prévision rejouée dans le passé, comparée aux prix réellement observés.
+const centimes = (eurL) => `${(eurL * 100).toFixed(1).replace(".", ",")} c`;
+function reliabilityText(bt, days) {
+  if (!bt) return `Fiabilité pas encore mesurable : ${days} jours de relevés, il en faut un peu plus.`;
+  const better = bt.mae <= bt.naive_mae;
+  return `Vérifiée sur ${bt.n} cas passés : écart moyen ${centimes(bt.mae)}/L, prix réel dans la fourchette ${Math.round(bt.coverage * 100)} % du temps. `
+    + (better ? `Mieux que « le prix ne bouge pas » (${centimes(bt.naive_mae)}).` : `Pour l’instant, « le prix ne bouge pas » fait mieux (${centimes(bt.naive_mae)}) : à prendre avec des pincettes.`);
+}
 function renderTrend() {
   const h = priceHistory?.fuels?.[state.fuel];
   els.trend.hidden = !h || h.days.length < 3;
@@ -1010,7 +1018,8 @@ function renderTrend() {
       <li><i class="lg-line"></i>relevé</li>
       <li><i class="lg-real"></i>réaliste : ${fmt3(fc.real.at(-1))} dans 7 jours</li>
       <li><i class="lg-band"></i>entre ${fmt3(fc.low.at(-1))} (optimiste) et ${fmt3(fc.high.at(-1))} (pessimiste)</li></ul>` : ""}
-    <p class="hint">Prévision expérimentale, faite sur ${h.days.length} jours de relevés : elle s’affinera avec le temps. <a href="coulisses.html#prevision">Comment elle est calculée</a></p>`;
+    ${fc ? `<p class="trend-score"><span class="exp-tag">Expérimental</span>${reliabilityText(h.backtest, h.days.length)}</p>` : ""}
+    <p class="hint"><a href="coulisses.html#prevision">Comment la prévision est calculée et vérifiée</a></p>`;
   const key = state.fuel;
   if (key === trendKey) return;
   const first = !trendKey;
@@ -1908,6 +1917,8 @@ async function openFriends() {
   await renderFriends();
 }
 async function renderFriends() {
+  const redirectErr = fr.takeRedirectError();
+  if (redirectErr) friendsMsg = redirectErr;
   if (!fr.hasProfile()) {
     friendsBody.innerHTML = `<a class="btn btn-main fr-google" href="${esc(fr.googleUrl(location.origin + location.pathname))}">Continuer avec Google</a>
       <p class="hint">Le plus simple : sur un nouveau téléphone, tu te reconnectes avec Google et tout revient (carnet, véhicules, amis).</p>
@@ -1916,7 +1927,9 @@ async function renderFriends() {
       <form class="fr-form" id="frCreate"><input id="frPseudo" type="text" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ton pseudo" aria-label="Pseudo"><button class="btn btn-main" type="submit">Créer mon profil</button></form>
       <h3 class="fr-h">Retrouver mon profil</h3>
       <form class="fr-stack" id="frRecover"><input id="frRecPseudo" type="text" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Pseudo" aria-label="Pseudo"><input id="frRecKey" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Clé de récupération" aria-label="Clé de récupération"><button class="btn" type="submit">Retrouver</button></form>
-      <p class="hint" id="frMsg" role="alert"${friendsMsg ? "" : " hidden"}>${esc(friendsMsg)}</p>`;
+      <p class="hint" id="frMsg" role="alert"${friendsMsg ? "" : " hidden"}>${esc(friendsMsg)}</p>
+      <a class="coulisses-link" href="confidentialite.html">Ce qui est stocké, qui le voit, comment tout supprimer</a>`;
+    friendsMsg = "";
     return;
   }
   friendsBody.innerHTML = `<p class="trip-wait">Chargement…</p>`;
@@ -1953,11 +1966,18 @@ async function renderFriends() {
       ${board ? `<ol class="fr-board">${board}</ol><p class="hint">Seuls le total économisé ce mois-ci et le nombre de pleins sont partagés, jamais les stations ni les lieux.</p>` : `<p class="muted">Note un plein dans le carnet pour entrer au classement.</p>`}
       <h3 class="fr-h">Carburants épuisés (12 h)</h3>
       ${feed ? `<ul class="rep-list">${feed}</ul>` : `<p class="muted">Rien de signalé. Sur la fiche d’une station, « Épuisé ici » prévient tes amis.</p>`}
-      <h3 class="fr-h">Sauvegarde et clé de récupération</h3>
-      <p class="muted">Ton carnet, tes véhicules et tes favoris sont sauvegardés sur ton profil${backupAt ? ` (dernière fois ${ago(new Date(backupAt))})` : ""}. Si tu changes de téléphone, « Retrouver mon profil » avec ton pseudo et cette clé :</p>
-      <div class="fr-code fr-key"><output>${esc(fr.showKey(fr.recoveryKey()) || "pas de clé : profil Google")}</output></div>
-      <p class="hint">Si tu t’es connecté avec Google, tu n’en as pas besoin : reconnecte-toi simplement avec Google.</p>
-      <button class="btn" type="button" data-fr-restore>Restaurer ma sauvegarde sur cet appareil</button>`;
+      <h3 class="fr-h">Sauvegarde</h3>
+      <p class="muted">Ton carnet, tes véhicules et tes favoris sont sauvegardés sur ton profil${backupAt ? ` (dernière fois ${ago(new Date(backupAt))})` : ""}.</p>
+      ${fr.recoveryKey() ? `<p class="muted">Sur un nouveau téléphone : « Retrouver mon profil » avec ton pseudo et cette clé de récupération.</p>
+      <div class="fr-code fr-key"><output>${esc(fr.showKey(fr.recoveryKey()))}</output></div>
+      <p class="hint">Garde-la précieusement : c’est la seule façon de récupérer ce profil.</p>` : `<p class="muted">Sur un nouveau téléphone, reconnecte-toi avec Google : tout revient.</p>`}
+      <button class="btn" type="button" data-fr-restore>Restaurer ma sauvegarde sur cet appareil</button>
+      <h3 class="fr-h">Mon compte</h3>
+      <a class="coulisses-link" href="confidentialite.html">Ce qui est stocké, qui le voit, comment tout supprimer</a>
+      <div class="veh-actions">
+        <button class="btn" type="button" data-fr-logout>Se déconnecter</button>
+        <button class="btn btn-text fr-danger" type="button" data-fr-delete>Supprimer mon profil et mes données</button>
+      </div>`;
     friendsMsg = "";
   } catch (e) {
     friendsBody.innerHTML = `<p class="hint" role="alert">${esc(e.message)}</p><button class="btn" type="button" id="frRetry">Réessayer</button>`;
@@ -2000,6 +2020,13 @@ friendsBody.addEventListener("click", (e) => {
   if (t("data-fr-yes")) return frAct(() => fr.respond(t("data-fr-yes").dataset.frYes, true));
   if (t("data-fr-no")) return frAct(() => fr.respond(t("data-fr-no").dataset.frNo, false));
   if (t("data-fr-del")) return frAct(() => fr.removeFriend(t("data-fr-del").dataset.frDel));
+  if (t("data-fr-logout")) { fr.forget(); friendsInfo = null; stockRows = []; applyFriendStock(); friendsMsg = "Déconnecté. Tes données restent sauvegardées."; return renderFriends(); }
+  const del = t("data-fr-delete");
+  if (del) {
+    // Deux appuis : le premier demande confirmation, le second supprime.
+    if (!del.dataset.armed) { del.dataset.armed = "1"; del.textContent = "Confirmer : tout supprimer définitivement"; setTimeout(() => { if (del.isConnected) { delete del.dataset.armed; del.textContent = "Supprimer mon profil et mes données"; } }, 5000); return; }
+    return frAct(async () => { await fr.deleteMe(); friendsInfo = null; stockRows = []; applyFriendStock(); friendsMsg = "Profil et données supprimés du serveur. Ton carnet reste sur ce téléphone."; });
+  }
   if (t("data-fr-restore")) return frAct(async () => { restoring = true; try { if (await restoreBackup()) return location.reload(); friendsMsg = "Aucune sauvegarde trouvée."; } finally { restoring = false; } });
   if (t("data-fr-share")) return navigator.share({ title: "Plein Sud", text: `Mon code Plein Sud : ${friendsInfo.code}` }).catch(() => {});
   if (e.target.closest("#frRetry")) return renderFriends();

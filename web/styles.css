@@ -722,3 +722,7 @@ html, body { overscroll-behavior-y: none; }
 .fr-stack input { min-height: 44px; padding: 8px 12px; border-radius: 12px; border: 1.5px solid var(--edge); background: var(--ground); color: var(--ink); font: inherit; font-size: 16px; }
 .fr-key output { font-size: 17px; letter-spacing: .06em; user-select: all; word-break: break-all; }
 .top { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.fr-danger { color: var(--rose); }
+.trend-score { margin: 10px 0 0; font-size: 14px; color: var(--ink-2); line-height: 1.45; }
+.exp-tag { display: inline-block; margin-right: 8px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: .02em; color: var(--rose); outline: 1.5px dashed var(--rose-thread); outline-offset: -3px; }
+.app-version { margin: 4px 4px 12px; font-size: 13px; color: var(--ink-2); }

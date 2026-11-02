@@ -23,11 +23,16 @@ const FR = {
 };
 
 async function raw(path, { method = "GET", body, token, prefer } = {}) {
-  const res = await fetch(`${URL_}${path}`, {
-    method,
-    headers: { apikey: KEY, "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(prefer ? { Prefer: prefer } : {}) },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  let res;
+  try {
+    res = await fetch(`${URL_}${path}`, {
+      method,
+      headers: { apikey: KEY, "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(prefer ? { Prefer: prefer } : {}) },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  } catch {
+    throw new FriendsError("Pas de connexion internet : réessaie dans un moment.", "offline");
+  }
   const text = await res.text();
   let j = null;
   try { j = text ? JSON.parse(text) : null; } catch { /* corps vide */ }
@@ -88,8 +93,18 @@ async function ensureId() {
 /** Connexion avec Google : Supabase gère la page Google puis nous renvoie ici avec la session dans l'adresse. */
 export const googleUrl = (redirect) => `${URL_}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirect)}`;
 /** Au retour de Google : récupère la session dans l'adresse (puis la nettoie). Renvoie true si on vient de se connecter. */
+let redirectError = "";
+export const takeRedirectError = () => { const e = redirectError; redirectError = ""; return e; };
 export function consumeRedirect() {
   const h = new URLSearchParams(location.hash.replace(/^#/, ""));
+  // Connexion refusée ou annulée côté Google / Supabase : on garde un message lisible et on nettoie l'adresse.
+  const q = new URLSearchParams(location.search);
+  const err = h.get("error_description") || h.get("error") || q.get("error_description");
+  if (err) {
+    redirectError = /access_denied|cancel/i.test(err) ? "Connexion Google annulée." : `Connexion Google impossible : ${err.replace(/\+/g, " ")}`;
+    history.replaceState(null, "", location.pathname);
+    return true;
+  }
   if (!h.get("access_token") || !h.get("refresh_token")) return false;
   sess = null;
   keep({ access_token: h.get("access_token"), refresh_token: h.get("refresh_token"), expires_in: Number(h.get("expires_in") || 3600), user: {} }, { key: "" });
@@ -123,4 +138,9 @@ export const pushBackup = (data) => api("/rest/v1/backups?on_conflict=user_id", 
 export async function pullBackup() {
   const rows = await api("/rest/v1/backups?select=data,updated_at");
   return rows[0] || null;
+}
+/** Supprime le compte et tout ce qui en dépend côté serveur, puis oublie la session ici. */
+export async function deleteMe() {
+  await rpc("delete_me");
+  forget();
 }

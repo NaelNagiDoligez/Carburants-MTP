@@ -34,3 +34,15 @@ def test_forecast_scenarios_bracket_the_trend_and_widen():
     assert all(lo < r < hi for lo, r, hi in zip(fc["low"], fc["real"], fc["high"]))
     assert (fc["high"][-1] - fc["low"][-1]) > (fc["high"][0] - fc["low"][0])
     assert history.forecast([2.0, 2.0]) is None
+
+
+def test_backtest_measures_past_forecasts():
+    from carburants.history import backtest
+
+    assert backtest([1.9, 1.91, 1.92]) is None  # trop court
+    flat = [1.9] * 12
+    bt = backtest(flat)
+    assert bt["n"] >= 10 and bt["mae"] == 0 and bt["naive_mae"] == 0 and bt["coverage"] == 1
+    trend = [1.9 + 0.01 * i for i in range(15)]
+    bt = backtest(trend)
+    assert bt["mae"] < bt["naive_mae"]  # une vraie tendance : mieux que « rien ne bouge »

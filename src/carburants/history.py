@@ -75,6 +75,39 @@ def forecast(values: list[float], horizon: int = HORIZON_DAYS) -> dict | None:
     }
 
 
+MIN_BACKTEST = 10  # en dessous, le score ne veut encore rien dire
+
+
+def backtest(values: list[float], horizon: int = HORIZON_DAYS) -> dict | None:
+    """Rejoue la prévision dans le passé : à chaque jour J, prévoir avec les seules données jusqu'à J,
+    puis comparer aux médianes réellement observées les jours suivants.
+
+    Renvoie l'écart moyen du scénario réaliste (en €/L), la part des jours tombés dans la bande
+    optimiste/pessimiste, et l'écart moyen de la prévision « rien ne bouge » pour comparaison.
+    """
+    y = [float(v) for v in values]
+    errs, naive, inside = [], [], 0
+    for t in range(3, len(y) - 1):
+        fc = forecast(y[: t + 1], horizon)
+        if not fc:
+            continue
+        for h in range(1, horizon + 1):
+            if t + h >= len(y):
+                break
+            actual = y[t + h]
+            errs.append(abs(fc["real"][h - 1] - actual))
+            naive.append(abs(y[t] - actual))
+            inside += fc["low"][h - 1] <= actual <= fc["high"][h - 1]
+    if len(errs) < MIN_BACKTEST:
+        return None
+    return {
+        "n": len(errs),
+        "mae": round(float(np.mean(errs)), 4),
+        "naive_mae": round(float(np.mean(naive)), 4),
+        "coverage": round(inside / len(errs), 3),
+    }
+
+
 def build_history(events: pd.DataFrame, now: pd.Timestamp, days: int = 90) -> dict:
     first_seen = events["first_seen_at"].min() if "first_seen_at" in events and len(events) else None
     if first_seen is not None and pd.isna(first_seen):
@@ -86,6 +119,9 @@ def build_history(events: pd.DataFrame, now: pd.Timestamp, days: int = 90) -> di
         values = grp["median"].tolist()
         fc = forecast(values)
         item = {"days": grp["day"].tolist(), "median": values, "n": grp["n"].astype(int).tolist()}
+        bt = backtest(values)
+        if bt:
+            item["backtest"] = bt
         if fc:
             last_day = pd.Timestamp(grp["day"].iloc[-1])
             item["forecast"] = {"days": [(last_day + pd.Timedelta(days=h)).strftime("%Y-%m-%d") for h in range(1, HORIZON_DAYS + 1)], **fc}

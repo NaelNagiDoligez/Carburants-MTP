@@ -62,6 +62,7 @@
     <h2 id="prevision">Les courbes et la prévision</h2>
     <p>Pour chaque jour, le prix « en vigueur » d’une station est son dernier prix connu ce jour-là ; la courbe suit la médiane de ces prix (au moins 8 stations). Les jours d’avant le début de la collecte ne sont pas reconstruits : on n’y connaîtrait que les prix qui n’ont plus bougé, ce qui biaiserait la médiane.</p>
     <p>La prévision à 7 jours reste simple et lisible. <b>Réaliste</b> : la tendance des 14 derniers jours, amortie de moitié. <b>Optimiste et pessimiste</b> : le réaliste moins ou plus la variation quotidienne habituelle, élargie avec la racine du nombre de jours (environ 8 cas sur 10 si les prix varient comme avant). Avec peu d’historique, la bande est large : c’est voulu.</p>
+    <p><b>Vérification.</b> À chaque export, la prévision est rejouée dans le passé : pour chaque jour, on prévoit avec les seules données connues ce jour-là, puis on compare aux médianes observées ensuite. On mesure l’écart moyen du scénario réaliste, la part des jours tombés dans la fourchette, et l’écart d’une prévision naïve (« le prix ne bouge pas ») pour savoir si la tendance apporte vraiment quelque chose. Tant que ce score n’est pas meilleur que la prévision naïve, la prévision reste étiquetée expérimentale.</p>
     <div class="charts" id="charts"><p class="muted">Chargement des courbes…</p></div>
 
     <h2>Limites connues</h2>
@@ -79,6 +80,7 @@
       <li>Adresses : Base Adresse Nationale (api-adresse.data.gouv.fr).</li>
     </ul>
     <p class="muted" id="gen"></p>
+    <p class="muted">Plein Sud v0.9 (bêta). <a href="confidentialite.html">Confidentialité</a></p>
   </main>
   <script type="module">
     import { trendSVG, trendWords, fmt3 } from "./chart.js";
@@ -107,7 +109,8 @@
         const fc = x.forecast;
         return `<div class="trend-card"><p class="trend-lead"><b>${NAMES[f]}</b> · médiane ${fmt3(x.median.at(-1))} €/L, ${x.n.at(-1)} stations${fc ? `<br><span>${trendWords(fc)}</span>` : ""}</p>
           ${trendSVG(x, { label: NAMES[f], compact: true })}
-          ${fc ? `<p class="muted">Dans 7 jours : réaliste ${fmt3(fc.real.at(-1))}, entre ${fmt3(fc.low.at(-1))} et ${fmt3(fc.high.at(-1))}. Variation quotidienne habituelle : ${(fc.daily_sigma * 100).toFixed(1).replace(".", ",")} c, sur ${fc.points} jours.</p>` : ""}</div>`;
+          ${fc ? `<p class="muted">Dans 7 jours : réaliste ${fmt3(fc.real.at(-1))}, entre ${fmt3(fc.low.at(-1))} et ${fmt3(fc.high.at(-1))}. Variation quotidienne habituelle : ${(fc.daily_sigma * 100).toFixed(1).replace(".", ",")} c, sur ${fc.points} jours.</p>` : ""}
+          ${x.backtest ? `<p class="muted">Vérification sur ${x.backtest.n} cas passés : écart moyen ${(x.backtest.mae * 100).toFixed(1).replace(".", ",")} c/L (prévision naïve : ${(x.backtest.naive_mae * 100).toFixed(1).replace(".", ",")} c), dans la fourchette ${Math.round(x.backtest.coverage * 100)} % du temps.</p>` : ""}</div>`;
       }).join("") || `<p class="muted">Pas encore assez de jours de relevés.</p>`;
       document.getElementById("gen").textContent = `Historique calculé le ${df.format(new Date(h.generated_at))}.`;
     }

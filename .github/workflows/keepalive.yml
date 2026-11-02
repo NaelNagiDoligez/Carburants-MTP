@@ -1,0 +1,26 @@
+name: Supabase actif (amis)
+
+# Un projet Supabase gratuit se met en pause après ~7 jours sans activité : les amis ne marcheraient plus.
+# Deux appels par semaine suffisent ; l'appel fait aussi le ménage (signalements « épuisé » de plus de 30 jours).
+on:
+  schedule:
+    - cron: "41 6 * * 1,4"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Appel de keepalive()
+        env:
+          # Clé publique (« publishable ») : elle est déjà dans l'appli, la base est protégée par ses règles RLS.
+          SUPABASE_URL: https://ognckggltaclmthuazff.supabase.co
+          SUPABASE_KEY: sb_publishable_SJk081lpKOdY1cOqX5Ylew_3UtvgOF4
+        run: |
+          code=$(curl -sS -o out.json -w '%{http_code}' -X POST "$SUPABASE_URL/rest/v1/rpc/keepalive" \
+            -H "apikey: $SUPABASE_KEY" -H "Content-Type: application/json" -d '{}')
+          echo "HTTP $code, signalements purgés : $(cat out.json)"
+          test "$code" = "200"
