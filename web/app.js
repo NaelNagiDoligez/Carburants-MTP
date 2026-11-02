@@ -325,10 +325,13 @@ function growBouquet(g, k = 1) {
         if (el.classList.contains("satin") || el.classList.contains("satin-rose")) el.animate([{ fillOpacity: 0 }, { fillOpacity: 1 }], { ...o, delay: delay + dur * 0.55, duration: dur * 0.6 });
       } else if (el.tagName === "path") {
         el.animate([{ opacity: 0 }, { opacity: 1 }], { ...o, duration: dur * 1.2 });
-      } else {
+      } else if (el.tagName === "circle") {
         el.style.transformBox = "fill-box";
         el.style.transformOrigin = "center";
-        el.animate([{ opacity: 0, scale: ".3" }, { opacity: 1, scale: "1" }], { ...o, duration: 300 }); // « scale » seul : garde la rotation de l'ellipse
+        el.animate([{ opacity: 0, scale: ".3" }, { opacity: 1, scale: "1" }], { ...o, duration: 300 }).finished.then(() => { el.style.transformBox = ""; el.style.transformOrigin = ""; }).catch(() => {});
+      } else {
+        // Ellipses (boutons de lavande) : elles portent une rotation dans l'attribut transform, qu'un « transform-box » ou un « scale » déplacerait. Fondu seulement.
+        el.animate([{ opacity: 0 }, { opacity: 1 }], { ...o, duration: 300 });
       }
     });
   }
@@ -1056,11 +1059,28 @@ function renderRide() {
   els.rideGo.hidden = false;
   els.rideNext.hidden = list.length < 2;
 }
+// Le bouquet de l'accueil, recopié dans le mode guidon : il s'y coud à chaque ouverture.
+function rideBouquet() {
+  let b = els.ride.querySelector(".bouquet");
+  if (!b) {
+    const src = document.querySelector(".answer .bouquet");
+    if (!src) return;
+    b = src.cloneNode(true);
+    b.classList.remove("pending");
+    b.querySelector("defs")?.remove();
+    els.ride.prepend(b);
+  }
+  const g = b.querySelector(".stitches");
+  if (g && !reduceMotion.matches) growBouquet(g, 0.8);
+}
 function openRide() {
   if (!data) return;
   rideIdx = 0;
   renderRide();
-  if (!els.ride.open) els.ride.showModal();
+  if (!els.ride.open) {
+    els.ride.showModal();
+    rideBouquet();
+  }
   keepAwake();
 }
 function closeRide() {
@@ -1073,11 +1093,10 @@ els.ride.addEventListener("close", () => { wakeLock?.release?.().catch?.(() => {
 els.rideNext.addEventListener("click", () => {
   rideIdx++;
   renderRide();
-  // Une page de carnet qu'on tourne : un seul calque (transform + opacité) glisse et se redresse, un fil se coud au-dessus.
-  const card = $("rideCard");
-  if (reduceMotion.matches) return void card.animate([{ opacity: 0.2 }, { opacity: 1 }], { duration: 250 });
-  card.animate([{ opacity: 0, transform: "translate3d(64px,0,0) rotate(3deg)" }, { opacity: 1, transform: "none" }], { duration: 560, easing: EASE_OUT });
-  $("rideThread").animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: 700, easing: EASE_IN_OUT });
+  // Le prix se recoud de gauche à droite, le nom et les détails se posent juste après.
+  if (reduceMotion.matches) return void $("rideCard").animate([{ opacity: 0.2 }, { opacity: 1 }], { duration: 250 });
+  els.ridePrice.animate([{ clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0 0 0)" }], { duration: 560, easing: EASE_OUT });
+  [els.rideName, els.rideMeta].forEach((el, i) => el.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 380, delay: 100 + i * 70, easing: EASE_OUT, fill: "backwards" }));
 });
 els.rideGo.addEventListener("click", () => { const r = ranked.slice(0, RIDE_MAX)[rideIdx]; if (r) go(r.station.id); });
 
@@ -1344,17 +1363,19 @@ async function renderTripMap(rows) {
   const lats = [...trip.coords.map((c) => c[1]), ...rows.slice(0, 5).map((r) => r.station.lat)];
   tripMap.fitBounds([[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]], { padding: 40, duration: 0, maxZoom: 13 });
 }
-// Google Maps sait faire une étape : station puis destination. Plans et Waze : la station d'abord.
+// Google Maps et Plans savent faire une étape : station puis destination. Waze : la station d'abord.
 function tripNavUrl(app, s) {
-  if (app !== "google" || !trip) return navUrl(app, s);
+  if (!trip || (app !== "google" && app !== "apple")) return navUrl(app, s);
   const street = streetOf(s);
   const via = s.snap || !street ? `${s.lat},${s.lon}` : [street, [s.cp, titleCase(s.ville)].filter(Boolean).join(" ")].join(", ");
+  // Plans : un « daddr » par arrêt, dans l'ordre (station puis destination).
+  if (app === "apple") return `https://maps.apple.com/?dirflg=d&daddr=${encodeURIComponent(via)}&daddr=${trip.dest.lat},${trip.dest.lon}`;
   return `https://www.google.com/maps/dir/?api=1&destination=${trip.dest.lat},${trip.dest.lon}&waypoints=${encodeURIComponent(via)}&travelmode=driving`;
 }
 function tripGo(id) {
   if (!trip) return go(id);
   const app = state.nav;
-  if (app && app !== "google") toast(`${navLabel()} ne prend pas d’étape : direction la station. Ensuite, « Aller directement à ${tripName(trip.dest)} ».`);
+  if (app && app !== "google" && app !== "apple") toast(`${navLabel()} ne prend pas d’étape : direction la station. Ensuite, « Aller directement à ${tripName(trip.dest)} ».`);
   go(id, tripNavUrl);
 }
 els.tripTo.addEventListener("input", () => {
@@ -1499,7 +1520,7 @@ els.navSheet.addEventListener("click", (e) => {
   if (!b || !pendingNavStation) return;
   if (els.navRemember.checked) { state.nav = b.dataset.navApp; save(); renderAnswer(); }
   closeSheet(els.navSheet);
-  if (pendingNavUrl === tripNavUrl && b.dataset.navApp !== "google" && trip) toast(`Pas d’étape possible ici : direction la station. Ensuite, « Aller directement à ${tripName(trip.dest)} ».`);
+  if (pendingNavUrl === tripNavUrl && !["google", "apple"].includes(b.dataset.navApp) && trip) toast(`Pas d’étape possible ici : direction la station. Ensuite, « Aller directement à ${tripName(trip.dest)} ».`);
   launchNav(b.dataset.navApp, pendingNavStation, pendingNavUrl);
 });
 els.settingsSheet.addEventListener("click", (e) => {
@@ -1986,6 +2007,48 @@ friendsBody.addEventListener("click", (e) => {
 $("openFriends").addEventListener("click", () => { closeSheet(els.settingsSheet); openFriends(); });
 
 const cameBack = fr.consumeRedirect();
+// ---------- Petite surprise : double clic sur le logo = pluie de pétales, triple = quatre saisons ----------
+{
+  const mark = document.querySelector(".top .mark");
+  let taps = 0, tapT = 0, busy = false;
+  const petalRain = () => {
+    if (reduceMotion.matches) return toast("Pluie de pétales…", null, { flower: true });
+    const box = document.createElement("div");
+    box.className = "petal-rain";
+    const colors = ["--rose-thread", "--coral", "--lav", "--ochre", "--sage"].map((v) => `var(${v})`);
+    for (let i = 0; i < 34; i++) {
+      const p = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      p.setAttribute("viewBox", "0 0 20 28");
+      p.innerHTML = `<path d="M10 27C2 20 2 7 10 1C18 7 18 20 10 27Z"/>`;
+      p.style.cssText = `left:${Math.random() * 100}%;color:${colors[i % colors.length]};width:${14 + Math.random() * 14}px`;
+      box.append(p);
+      const drift = (Math.random() - 0.5) * 160;
+      p.animate([{ transform: `translate3d(0,-40px,0) rotate(${Math.random() * 90}deg)`, opacity: 1 }, { transform: `translate3d(${drift}px,${innerHeight + 60}px,0) rotate(${360 + Math.random() * 360}deg)`, opacity: 0.9 }],
+        { duration: 2600 + Math.random() * 1800, delay: Math.random() * 700, easing: "cubic-bezier(.3,.1,.6,1)", fill: "backwards" });
+    }
+    document.body.append(box);
+    setTimeout(() => box.remove(), 5400);
+  };
+  const seasons = async () => {
+    for (const s of ["printemps", "ete", "automne", "hiver"]) { window.garden.plant(s); await new Promise((r) => setTimeout(r, 1100)); }
+    window.garden.plant();
+  };
+  mark?.addEventListener("click", () => {
+    taps++;
+    clearTimeout(tapT);
+    tapT = setTimeout(async () => {
+      const n = taps;
+      taps = 0;
+      if (n < 2 || busy) return;
+      busy = true;
+      if (!reduceMotion.matches) mark.animate([{ transform: "rotate(0)" }, { transform: "rotate(360deg)" }], { duration: 800, easing: EASE_IN_OUT });
+      if (n === 2) { petalRain(); toast("Montpellier en fleurs.", null, { flower: true }); }
+      else { toast("Les quatre saisons, en quatre secondes.", null, { flower: true }); await seasons(); }
+      setTimeout(() => { busy = false; }, 1200);
+    }, 380);
+  });
+}
+
 async function boot() {
   els.answerBody.innerHTML = `<div class="ans-head"><p class="ans-name">Plein Sud</p><p class="ans-ville">On cherche le meilleur plein autour de toi…</p></div>`;
   renderStart();

@@ -633,9 +633,9 @@ html, body { overscroll-behavior-y: none; }
 @keyframes view-from-left { from { opacity: .4; transform: translateX(-14px); } }
 @keyframes view-from-right { from { opacity: .4; transform: translateX(14px); } }
 
-/* Prix qui change : les chiffres se recousent de bas en haut. */
-.ans-price .num.restitch { animation: num-stitch 300ms var(--ease-out); }
-@keyframes num-stitch { from { clip-path: inset(100% 0 0 0); transform: translateY(6px); } to { clip-path: inset(0 0 0 0); } }
+/* Prix qui change : les chiffres se recousent de gauche à droite. */
+.ans-price .num.restitch { animation: num-stitch 420ms var(--ease-out); }
+@keyframes num-stitch { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 
 /* Tracés qui se cousent. Trait plein : pathLength="1" + .sew. Trait en pointillé (points de couture) :
    un masque qui se déroule (.sew sur le tracé du masque), pour garder le motif des points. */
@@ -655,9 +655,12 @@ html, body { overscroll-behavior-y: none; }
 .ride[open] { animation: ride-in 450ms var(--ease-out); }
 @keyframes ride-in { from { opacity: 0; } }
 /* Calques promus : le très gros texte n'est pas redessiné à chaque image (sinon ça saccade sur iPhone). */
-.ride-card { display: flex; flex-direction: column; gap: 14px; will-change: transform, opacity; transform-origin: 0 100%; }
-.ride-thread { width: 100%; height: 4px; margin: -4px 0; overflow: visible; }
-.ride-thread path { fill: none; stroke: var(--rose-thread); stroke-width: 2; stroke-linecap: round; }
+.ride-card { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 14px; padding: 20px 20px 22px; border-radius: 24px; background: var(--cloth); outline: 1.5px dashed var(--stitch); outline-offset: -8px; }
+.ride-meta { border-top: 1.5px dashed var(--stitch); padding-top: 12px; }
+.ride > .bouquet { top: auto; right: -4px; bottom: calc(max(18px, env(safe-area-inset-bottom)) + 184px); height: min(36vh, 300px); max-width: 60%; z-index: 0; opacity: .95; }
+.ride-top, .ride-go, .ride-next { position: relative; z-index: 1; }
+.petal-rain { position: fixed; inset: 0; z-index: 50; pointer-events: none; overflow: hidden; }
+.petal-rain svg { position: absolute; top: 0; height: auto; fill: currentColor; opacity: .85; }
 .fr-google { width: 100%; text-align: center; display: block; padding-top: 14px; padding-bottom: 14px; margin-bottom: 8px; }
 
 /* Plein noté : une petite fleur se coud dans le message. */
@@ -718,3 +721,4 @@ html, body { overscroll-behavior-y: none; }
 .fr-stack { display: grid; gap: 8px; }
 .fr-stack input { min-height: 44px; padding: 8px 12px; border-radius: 12px; border: 1.5px solid var(--edge); background: var(--ground); color: var(--ink); font: inherit; font-size: 16px; }
 .fr-key output { font-size: 17px; letter-spacing: .06em; user-select: all; word-break: break-all; }
+.top { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
