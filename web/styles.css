@@ -768,3 +768,6 @@ html, body { overscroll-behavior-y: none; }
 .ptr.is-done .ptr-text { color: var(--ink); }
 @keyframes ptr-pop { 40% { transform: scale(1.7); } }
 @media (prefers-reduced-motion: reduce) { .skel-bar { animation: none; } .ptr.is-done .ptr-knot { animation: none; } }
+
+.choice .ic-edit { width: 15px; height: 15px; margin-left: 6px; color: var(--ink-2); opacity: .75; flex: none; }
+.choice[aria-pressed="true"] .ic-edit { color: inherit; }

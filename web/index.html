@@ -30,6 +30,7 @@
       <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V4m0 0L8 8m4-4 4 4M6 12v6.5A1.5 1.5 0 0 0 7.5 20h9a1.5 1.5 0 0 0 1.5-1.5V12"/></symbol>
       <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
       <symbol id="i-caution" viewBox="0 0 24 24"><path d="M12 4 2.8 19.5h18.4L12 4Z"/><path d="M12 10v4.5M12 17.2v.3"/></symbol>
+      <symbol id="i-edit" viewBox="0 0 24 24"><path d="m5 19 .8-4L16.5 4.3a1.8 1.8 0 0 1 2.5 0l.7.7a1.8 1.8 0 0 1 0 2.5L9 18.2 5 19Zm9-12.5 3.5 3.5"/></symbol>
       <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
       <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
       <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
@@ -189,11 +190,21 @@
         <button type="button" class="choice choice-wide" id="useGps"><svg class="ic" aria-hidden="true"><use href="#i-pin"/></svg><span id="useGpsText">Ma position</span></button>
         <p class="hint" id="gpsHint" hidden></p>
         <div class="choices" id="places"></div>
+        <div class="veh-form" id="placeForm" hidden>
+          <label class="field" for="placeAddr">Adresse<input id="placeAddr" type="search" enterkeyhint="search" autocomplete="off" placeholder="12 rue de la Loge, Montpellier…" aria-controls="placeSugg" aria-autocomplete="list"></label>
+          <ul class="trip-sugg" id="placeSugg" role="listbox" aria-label="Suggestions d’adresses" hidden></ul>
+          <label class="field" for="placeName">Nom <span class="auto-tag">facultatif</span><input id="placeName" type="text" maxlength="24" autocomplete="off" placeholder="Maison, Travail…"></label>
+          <p class="hint" id="placeHint" role="alert" hidden></p>
+          <div class="veh-actions">
+            <button class="btn btn-main" type="button" id="placeSave">Enregistrer</button>
+            <button class="btn" type="button" id="placeCancel">Annuler</button>
+            <button class="btn btn-text" type="button" id="placeDelete" hidden>Supprimer</button>
+          </div>
+        </div>
       </fieldset>
       <fieldset>
         <legend>Véhicule</legend>
         <div class="choices" id="profiles"></div>
-        <button class="btn btn-text veh-edit" type="button" id="vehEdit" hidden>Modifier ce véhicule</button>
         <div class="level" id="levelBox">
           <label class="field" for="level"><span>Niveau du réservoir <output id="levelOut" for="level" class="level-out">inconnu</output></span>
             <input id="level" type="range" min="0" max="100" step="5" value="50"></label>

@@ -5,12 +5,9 @@ import { prepareRoute, stationsAlongRoute, coveredUntilKm, thin } from "./trip.j
 import { trendSVG, trendWords, fmt3 } from "./chart.js";
 
 // ---------- Constantes ----------
-const PLACES = [
-  { id: "comedie", label: "Place de la Comédie", short: "la Comédie", lat: 43.6084, lon: 3.8796 },
-  { id: "saint-roch", label: "Gare Saint-Roch", short: "Saint-Roch", lat: 43.6032, lon: 3.8809 },
-  { id: "odysseum", label: "Odysseum", short: "Odysseum", lat: 43.6046, lon: 3.9186 },
-  { id: "triolet", label: "Campus Triolet", short: "Triolet", lat: 43.6318, lon: 3.8613 },
-];
+// Point de départ de secours (position refusée, rien d'enregistré) : le centre de Montpellier. Jamais proposé comme lieu.
+const FALLBACK_PLACE = { id: "default", label: "Place de la Comédie", short: "la Comédie", lat: 43.6084, lon: 3.8796 };
+const MAX_PLACES = 6;
 // Véhicules de départ : de simples véhicules comme les autres (modifiables, supprimables).
 const SEEDS = [
   { id: "mt450", label: "CFMoto 450MT", short: "450MT", litres: 14, conso: 4.5 },
@@ -35,7 +32,7 @@ const DWELL_IN_M = 50;            // à moins de 50 m d'une station
 const DWELL_OUT_M = 90;           // au-delà de 90 m, on considère qu'on est reparti
 const REORIGIN_M = 300;           // on ne reclasse qu'après 300 m de déplacement
 const DEFAULTS = {
-  fuel: "sp95", placeId: "gps", gps: null, profileId: "mt450", vehicles: SEEDS, seeded: true,
+  fuel: "sp95", placeId: "gps", places: [], gps: null, profileId: "mt450", vehicles: SEEDS, seeded: true,
   radius: 15, favs: [], log: [], nav: null, fillSeen: {}, theme: "auto", trips: [], tripCorr: 2,
 };
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -50,6 +47,9 @@ let backupSig = "";
 let backupAt = 0;
 let restoring = false;
 let state = loadState();
+state.places = Array.isArray(state.places) ? state.places : [];
+if (state.placeId !== "gps" && !state.places.some((p) => p.id === state.placeId)) state.placeId = "gps"; // anciens lieux prédéfinis
+const placeById = (id) => state.places.find((p) => p.id === id);
 let data = null;
 let ranked = [];
 let view = "rank";
@@ -59,6 +59,7 @@ let locating = false;
 let showAll = false;
 let watchId = null;
 let gpsStale = false; // vrai si la position utilisée est l'ancienne, faute de GPS
+let placeEditing = null, placePick = null, placeSeq = 0;
 let vehEditing = null; // null = formulaire fermé, "new" = ajout, sinon l'id édité
 let dwell = null;
 
@@ -165,8 +166,9 @@ const els = {
   logPrice: $("logPrice"), logPreview: $("logPreview"), logList: $("logList"),
   stationSheet: $("stationSheet"), stationBody: $("stationBody"), navSheet: $("navSheet"), navApps: $("navApps"), navRemember: $("navRemember"),
   settingsSheet: $("settingsSheet"), settingsForm: $("settingsForm"), places: $("places"), profiles: $("profiles"), navPref: $("navPref"),
+  placeForm: $("placeForm"), placeName: $("placeName"), placeAddr: $("placeAddr"), placeSugg: $("placeSugg"), placeHint: $("placeHint"), placeDelete: $("placeDelete"),
   vehForm: $("vehForm"), vehName: $("vehName"), vehLitres: $("vehLitres"), vehConso: $("vehConso"), vehFuel: $("vehFuel"), vehHint: $("vehHint"), vehYear: $("vehYear"), vehMatch: $("vehMatch"), vehModels: $("vehModels"),
-  vehSave: $("vehSave"), vehCancel: $("vehCancel"), vehDelete: $("vehDelete"), vehEdit: $("vehEdit"), radius: $("radius"), radiusOut: $("radiusOut"),
+  vehSave: $("vehSave"), vehCancel: $("vehCancel"), vehDelete: $("vehDelete"), radius: $("radius"), radiusOut: $("radiusOut"),
   useGps: $("useGps"), useGpsText: $("useGpsText"), gpsHint: $("gpsHint"), toast: $("toast"),
   savings: $("savings"), trend: $("trend"), trendBody: $("trendBody"), themePref: $("themePref"), themeHint: $("themeHint"),
   tripForm: $("tripForm"), tripFrom: $("tripFrom"), tripTo: $("tripTo"), tripSugg: $("tripSugg"), tripRecent: $("tripRecent"), tripCorr: $("tripCorr"), tripOut: $("tripOut"), tripMap: $("tripMap"),
@@ -177,11 +179,11 @@ const els = {
 // ---------- Modèle ----------
 function origin() {
   if (state.placeId === "gps" && state.gps) return state.gps;
-  return PLACES.find((p) => p.id === state.placeId) || PLACES[0];
+  return placeById(state.placeId) || FALLBACK_PLACE;
 }
 function originLabel() {
   if (state.placeId === "gps") return state.gps ? "ta position" : "la Comédie";
-  return (PLACES.find((p) => p.id === state.placeId) || PLACES[0]).short;
+  return (placeById(state.placeId) || FALLBACK_PLACE).short;
 }
 const LEVEL_TTL = 48 * 3600000; // un niveau noté il y a plus de 48 h n'est plus utilisé
 function vehicle() {
@@ -212,7 +214,7 @@ function computeRanking() {
 function renderStart() {
   const v = vehicle();
   els.start.classList.toggle("locating", locating);
-  const where = state.placeId === "gps" ? (state.gps ? "Ta position" : "Comédie") : (PLACES.find((p) => p.id === state.placeId) || PLACES[0]).short;
+  const where = state.placeId === "gps" ? (state.gps ? "Ta position" : "Comédie") : (placeById(state.placeId) || FALLBACK_PLACE).short;
   els.startText.textContent = locating ? "Position…"
     : state.placeId === "gps" && state.gps ? (gpsStale ? `Ancienne position, ${v.short}` : `${v.short}, ${state.radius} km`)
     : `${where}, ${v.short}`;
@@ -760,13 +762,15 @@ els.levelFull.addEventListener("click", () => setLevel(1));
 els.levelUnknown.addEventListener("click", () => setLevel(null));
 
 function renderSettings() {
-  els.places.innerHTML = PLACES.map((p) => `<button type="button" class="choice" data-place="${p.id}" aria-pressed="${state.placeId === p.id}">${esc(p.label)}</button>`).join("");
+  const pen = `<svg class="ic ic-edit" aria-hidden="true"><use href="#i-edit"/></svg>`;
+  els.places.innerHTML = state.places.map((p) => `<button type="button" class="choice" data-place="${p.id}" aria-pressed="${state.placeId === p.id}">${esc(p.label)}${p.city ? `<small>${esc(p.city)}</small>` : ""}${state.placeId === p.id ? pen : ""}</button>`).join("")
+    + (state.places.length < MAX_PLACES ? `<button type="button" class="choice choice-add" data-place-add><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Ajouter un lieu</button>` : "");
+  els.placeForm.hidden = placeEditing === null;
+  els.placeDelete.hidden = placeEditing === null || placeEditing === "new";
   const current = vehicle().id;
-  els.profiles.innerHTML = state.vehicles.map((v) => `<button type="button" class="choice" data-profile="${v.id}" aria-pressed="${current === v.id}">${esc(v.label)}<small>${v.year ? `${v.year}, ` : ""}${litresText(v.litres)} L, ${commaNum(Number(v.conso), 1)} L/100</small></button>`).join("")
+  els.profiles.innerHTML = state.vehicles.map((v) => `<button type="button" class="choice" data-profile="${v.id}" aria-pressed="${current === v.id}">${esc(v.label)}<small>${v.year ? `${v.year}, ` : ""}${litresText(v.litres)} L, ${commaNum(Number(v.conso), 1)} L/100</small>${current === v.id ? pen : ""}</button>`).join("")
     + `<button type="button" class="choice choice-add" data-veh-add><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Ajouter un véhicule</button>`;
   renderLevel();
-  els.vehEdit.hidden = !state.vehicles.length || vehEditing !== null;
-  els.vehEdit.textContent = `Modifier « ${vehicle().label} »`;
   els.vehForm.hidden = vehEditing === null;
   els.vehDelete.hidden = vehEditing === null || vehEditing === "new" || state.vehicles.length <= 1;
   els.navPref.innerHTML = [{ id: "", label: "Me demander" }, ...NAV_APPS].map((a) => `<button type="button" class="choice" data-nav-pref="${a.id}" aria-pressed="${(state.nav || "") === a.id}">${esc(a.label)}</button>`).join("");
@@ -1608,9 +1612,14 @@ els.navSheet.addEventListener("click", (e) => {
 });
 els.settingsSheet.addEventListener("click", (e) => {
   const place = e.target.closest("[data-place]");
-  if (place) { state.placeId = place.dataset.place; renderSettings(); return update(); }
+  if (place) {
+    if (state.placeId === place.dataset.place) return openPlaceForm(place.dataset.place); // retoucher le lieu choisi
+    state.placeId = place.dataset.place; placeEditing = null; renderSettings(); return update();
+  }
+  if (e.target.closest("[data-place-add]")) return openPlaceForm("new");
   const prof = e.target.closest("[data-profile]");
   if (prof) {
+    if (prof.dataset.profile === state.profileId) return openVehForm(state.profileId); // retoucher le véhicule choisi
     state.profileId = prof.dataset.profile;
     const own = state.vehicles.find((v) => v.id === state.profileId);
     if (own?.fuel && data?.fuels[own.fuel]) state.fuel = own.fuel;
@@ -1624,7 +1633,77 @@ els.settingsSheet.addEventListener("click", (e) => {
   const nav = e.target.closest("[data-nav-pref]");
   if (nav) { state.nav = nav.dataset.navPref || null; renderSettings(); return update(); }
 });
-els.useGps.addEventListener("click", () => locate({ fromUser: true }));
+els.useGps.addEventListener("click", () => { placeEditing = null; renderSettings(); locate({ fromUser: true }); });
+// ---- Lieux enregistrés (domicile, travail…) ----
+function openPlaceForm(which) {
+  placeEditing = which;
+  const p = which === "new" ? null : placeById(which);
+  els.placeName.value = p?.label || "";
+  els.placeAddr.value = p?.address || "";
+  placePick = p ? { lat: p.lat, lon: p.lon, label: p.address, short: p.city } : null;
+  els.placeSugg.hidden = true;
+  els.placeHint.hidden = true;
+  renderSettings();
+  (p ? els.placeName : els.placeAddr).focus();
+}
+els.placeAddr.addEventListener("input", () => {
+  placePick = null;
+  clearTimeout(suggTimer);
+  const q = els.placeAddr.value.trim();
+  if (q.length < 3) { els.placeSugg.hidden = true; return; }
+  const seq = ++placeSeq;
+  suggTimer = setTimeout(async () => {
+    let list = [];
+    try { list = await geocode(q); } catch {
+      els.placeSugg.innerHTML = `<li class="trip-sugg-msg">Recherche d’adresse indisponible (connexion ?)</li>`;
+      els.placeSugg.hidden = false;
+      return;
+    }
+    if (seq !== placeSeq) return;
+    placeList = list;
+    els.placeSugg.innerHTML = list.length
+      ? list.map((g, i) => `<li role="option"><button type="button" data-place-sugg="${i}">${esc(g.label)}<small>${esc(g.detail || "")}</small></button></li>`).join("")
+      : `<li class="trip-sugg-msg">Aucun lieu trouvé</li>`;
+    els.placeSugg.hidden = false;
+  }, 280);
+});
+let placeList = [];
+els.placeSugg.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-place-sugg]");
+  if (!b) return;
+  placePick = placeList[Number(b.dataset.placeSugg)];
+  els.placeAddr.value = placePick.label;
+  els.placeName.placeholder = placePick.short || "Nom du lieu";
+  els.placeSugg.hidden = true;
+  els.placeHint.hidden = true;
+});
+$("placeSave").addEventListener("click", () => {
+  if (!placePick) { els.placeHint.textContent = "Choisis une adresse dans la liste proposée."; els.placeHint.hidden = false; return; }
+  const label = els.placeName.value.trim().slice(0, 24) || (placePick.short || "Mon lieu").slice(0, 24);
+  const rec = { label, short: label.slice(0, 14), address: placePick.label, city: placePick.short || "", lat: placePick.lat, lon: placePick.lon };
+  if (placeEditing === "new") { rec.id = "p" + Date.now().toString(36); state.places.push(rec); state.placeId = rec.id; }
+  else Object.assign(placeById(placeEditing), rec);
+  placeEditing = null;
+  renderSettings();
+  update();
+});
+$("placeCancel").addEventListener("click", () => { placeEditing = null; renderSettings(); });
+els.placeDelete.addEventListener("click", () => {
+  const idx = state.places.findIndex((p) => p.id === placeEditing);
+  const removed = state.places[idx];
+  const prev = state.placeId;
+  toast(`« ${removed.label} » supprimé`, { label: "Annuler", run: () => {
+    state.places.splice(idx, 0, removed);
+    state.placeId = prev;
+    if (els.settingsSheet.open) renderSettings();
+    update();
+  } });
+  state.places.splice(idx, 1);
+  if (state.placeId === removed.id) state.placeId = "gps";
+  placeEditing = null;
+  renderSettings();
+  update();
+});
 els.radius.addEventListener("input", () => { state.radius = Number(els.radius.value); els.radiusOut.textContent = `${state.radius} km`; update(); });
 function openVehForm(which) {
   vehEditing = which;
@@ -1668,7 +1747,6 @@ function vehError(msg) { els.vehHint.textContent = msg; els.vehHint.hidden = fal
 els.vehModels.innerHTML = catalogNames().map((n) => `<option value="${esc(n)}"></option>`).join("");
 els.vehSave.addEventListener("click", saveVehicle);
 els.vehCancel.addEventListener("click", () => { vehEditing = null; renderSettings(); });
-els.vehEdit.addEventListener("click", () => openVehForm(state.profileId));
 els.vehDelete.addEventListener("click", () => {
   const idx = state.vehicles.findIndex((x) => x.id === vehEditing);
   const removed = state.vehicles[idx];
@@ -1967,7 +2045,7 @@ els.stationSheet.addEventListener("click", (e) => {
 });
 
 // ---------- Sauvegarde du carnet, des véhicules et des favoris ----------
-const BACKUP_KEYS = ["log", "favs", "vehicles", "profileId", "radius", "fuel", "nav", "trips", "tripCorr", "theme"];
+const BACKUP_KEYS = ["log", "favs", "vehicles", "places", "profileId", "radius", "fuel", "nav", "trips", "tripCorr", "theme"];
 function backupSoon() {
   if (!fr.hasProfile() || restoring) return;
   clearTimeout(backupT);
