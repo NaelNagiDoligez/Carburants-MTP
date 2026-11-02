@@ -1814,6 +1814,7 @@ async function refreshData({ quiet = false } = {}) {
   if (refreshing) return;
   refreshing = true;
   const before = data?.generated_at;
+  let result = "fail";
   try {
     await loadData();
     renderFuels();
@@ -1825,6 +1826,8 @@ async function refreshData({ quiet = false } = {}) {
     if (!before) stitchIn(800);
     loadHistory();
     const when = ago(new Date(data.generated_at));
+    result = dataOffline ? "offline" : data.generated_at === before ? "same" : "new";
+    lastRefreshWhen = when;
     if (!quiet) toast(dataOffline ? `Hors ligne : prix du dernier relevé (${when})`
       : data.generated_at === before ? `Déjà à jour : prix relevés ${when}` : `Prix mis à jour : relevés ${when}`);
   } catch {
@@ -1832,7 +1835,9 @@ async function refreshData({ quiet = false } = {}) {
   } finally {
     refreshing = false;
   }
+  return result;
 }
+let lastRefreshWhen = "";
 
 // Le geste : en haut de page, tirer vers le bas coud la fleur pétale par pétale ;
 // passé le seuil, le nœud central apparaît (« relâche ») ; au relâcher, la fleur tourne pendant le chargement.
@@ -1878,9 +1883,15 @@ document.addEventListener("touchend", async () => {
   ptrEl.classList.add("is-loading");
   ptrText.textContent = "Actualisation…";
   const started = Date.now();
-  await refreshData();
+  const res = await refreshData({ quiet: true });
   await new Promise((r) => setTimeout(r, Math.max(0, 600 - (Date.now() - started)))); // le temps de voir la fleur tourner
+  // Le résultat se lit sur place : la fleur se pose, nœud ouvert, et dit ce qui s'est passé.
   ptrEl.classList.remove("is-loading");
+  ptrEl.classList.add("is-done", `res-${res}`);
+  ptrText.textContent = res === "new" ? "Prix mis à jour" : res === "same" ? `Déjà à jour · relevés ${lastRefreshWhen}` : res === "offline" ? `Hors ligne · dernier relevé ${lastRefreshWhen}` : "Pas de connexion, rien n'a changé";
+  if (res === "new" && !reduceMotion.matches) els.fresh.animate([{ opacity: 0.2, transform: "translateY(-4px)" }, { opacity: 1, transform: "none" }], { duration: 420, easing: EASE_OUT });
+  await new Promise((r) => setTimeout(r, 1300));
+  ptrEl.classList.remove("is-done", "res-new", "res-same", "res-offline", "res-fail");
   setPull(0, true);
 });
 document.addEventListener("touchcancel", () => { if (ptrStart !== null) { ptrStart = null; setPull(0, true); } });
@@ -2179,7 +2190,7 @@ const cameBack = fr.consumeRedirect();
 }
 
 async function boot() {
-  els.answerBody.innerHTML = `<div class="ans-head"><p class="ans-name">Plein Sud</p><p class="ans-ville">On cherche le meilleur plein autour de toi…</p></div>`;
+  els.answerBody.innerHTML = `<div class="skel" role="status" aria-label="Chargement des prix"><span class="skel-bar" style="width:46%;height:28px"></span><span class="skel-bar" style="width:62%;height:16px"></span><span class="skel-bar" style="width:74%;height:92px;margin-top:10px"></span><span class="skel-bar" style="width:100%;height:60px;margin-top:10px;border-radius:20px"></span></div>`;
   renderStart();
   if (state.placeId === "gps") locate(); // la position est demandée dès l'ouverture
   try {

@@ -753,3 +753,18 @@ html, body { overscroll-behavior-y: none; }
 .fav-burst svg { position: absolute; left: 0; top: 0; width: 13px; height: auto; fill: currentColor; opacity: 0; }
 .star-btn .ic { transition: fill 220ms ease, stroke 220ms ease; }
 #friendsBody { min-height: 220px; }
+
+/* Chargement : des cadres brodés en pointillés qui respirent, à la place du texte. */
+.skel { display: grid; gap: 10px; justify-items: start; padding: 4px 0; }
+.skel-bar { display: block; border: 1.5px dashed var(--stitch); border-radius: 14px; animation: breathe 1.6s ease-in-out infinite; }
+.skel-bar:nth-child(2) { animation-delay: .15s; } .skel-bar:nth-child(3) { animation-delay: .3s; } .skel-bar:nth-child(4) { animation-delay: .45s; }
+/* Tirer pour actualiser : résultat visible. */
+.ptr-text { font-size: 14px; font-weight: 600; }
+.ptr.is-done .ptr-petals path { opacity: 1; stroke: var(--sage); }
+.ptr.is-done .ptr-knot { transform: scale(1); fill: var(--sage); }
+.ptr.is-done.res-new .ptr-knot { fill: var(--ochre); animation: ptr-pop 420ms var(--ease-out); }
+.ptr.is-done.res-offline .ptr-petals path, .ptr.is-done.res-fail .ptr-petals path { stroke: var(--ink-2); }
+.ptr.is-done.res-offline .ptr-knot, .ptr.is-done.res-fail .ptr-knot { fill: var(--ink-2); }
+.ptr.is-done .ptr-text { color: var(--ink); }
+@keyframes ptr-pop { 40% { transform: scale(1.7); } }
+@media (prefers-reduced-motion: reduce) { .skel-bar { animation: none; } .ptr.is-done .ptr-knot { animation: none; } }
