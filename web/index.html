@@ -243,9 +243,12 @@
       <p class="ride-rank" id="rideRank"></p>
       <button class="icon-btn" type="button" id="rideClose" aria-label="Quitter le mode guidon"><svg class="ic" aria-hidden="true"><use href="#i-close"/></svg></button>
     </div>
-    <p class="ride-name" id="rideName"></p>
-    <p class="ride-price" id="ridePrice"></p>
-    <p class="ride-meta" id="rideMeta"></p>
+    <svg class="ride-thread" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true"><path id="rideThread" pathLength="1" d="M0 2H100" style="stroke-dasharray: 1 1"/></svg>
+    <div class="ride-card" id="rideCard">
+      <p class="ride-name" id="rideName"></p>
+      <p class="ride-price" id="ridePrice"></p>
+      <p class="ride-meta" id="rideMeta"></p>
+    </div>
     <button class="ride-go" type="button" id="rideGo"><svg class="ic" aria-hidden="true"><use href="#i-go"/></svg>Y aller</button>
     <button class="ride-next" type="button" id="rideNext">Station suivante</button>
   </dialog>

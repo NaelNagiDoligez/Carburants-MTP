@@ -74,10 +74,27 @@ export async function signUp(pseudo) {
   if (!j?.access_token) throw new FriendsError("Côté serveur, la confirmation par e-mail doit être désactivée (Authentication, Sign In / Providers, Email).", "confirm_email");
   sess = null;
   keep(j, { key });
-  try {
-    const rows = await api("/rest/v1/profiles", { method: "POST", body: { pseudo }, prefer: "return=representation" });
-    return rows[0];
-  } catch (e) { forget(); throw e; }
+  try { return await createProfile(pseudo); } catch (e) { forget(); throw e; }
+}
+export async function createProfile(pseudo) {
+  if (!PSEUDO.test(pseudo)) throw new FriendsError(FR["23514"], "23514");
+  await ensureId();
+  const rows = await api("/rest/v1/profiles", { method: "POST", body: { pseudo }, prefer: "return=representation" });
+  return rows[0];
+}
+async function ensureId() {
+  if (!sess.id) { sess.id = (await api("/auth/v1/user")).id; store(); }
+}
+/** Connexion avec Google : Supabase gère la page Google puis nous renvoie ici avec la session dans l'adresse. */
+export const googleUrl = (redirect) => `${URL_}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirect)}`;
+/** Au retour de Google : récupère la session dans l'adresse (puis la nettoie). Renvoie true si on vient de se connecter. */
+export function consumeRedirect() {
+  const h = new URLSearchParams(location.hash.replace(/^#/, ""));
+  if (!h.get("access_token") || !h.get("refresh_token")) return false;
+  sess = null;
+  keep({ access_token: h.get("access_token"), refresh_token: h.get("refresh_token"), expires_in: Number(h.get("expires_in") || 3600), user: {} }, { key: "" });
+  history.replaceState(null, "", location.pathname + location.search);
+  return true;
 }
 /** Retrouve un profil existant sur un nouvel appareil. */
 export async function signIn(pseudo, key) {
@@ -86,6 +103,7 @@ export async function signIn(pseudo, key) {
   keep(await raw("/auth/v1/token?grant_type=password", { method: "POST", body: { email: emailOf(pseudo.trim()), password: k } }), { key: k });
 }
 export async function profile() {
+  await ensureId();
   const rows = await api(`/rest/v1/profiles?select=pseudo,code&id=eq.${sess.id}`);
   return rows[0] || null;
 }

@@ -328,17 +328,22 @@ function growBouquet(g, k = 1) {
       } else {
         el.style.transformBox = "fill-box";
         el.style.transformOrigin = "center";
-        el.animate([{ opacity: 0, transform: "scale(.3)" }, { opacity: 1, transform: "none" }], { ...o, duration: 300 });
+        el.animate([{ opacity: 0, scale: ".3" }, { opacity: 1, scale: "1" }], { ...o, duration: 300 }); // « scale » seul : garde la rotation de l'ellipse
       }
     });
   }
 }
+let lastGrow = -1e6;
 function stitchIn(duration) {
   const svg = els.answer.querySelector(".bouquet");
   const g = svg?.querySelector(".stitches");
   if (!g) return;
   svg.classList.remove("pending");
   if (reduceMotion.matches) { g.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: "ease" }); return; }
+  // Une seule broderie à la fois : un deuxième appel (données rechargées, station différente) ne doit pas effacer puis refaire.
+  if (performance.now() - lastGrow < 3200) return;
+  lastGrow = performance.now();
+  for (const an of g.getAnimations({ subtree: true })) an.cancel();
   growBouquet(g, duration >= 800 ? 1 : 0.5);
 }
 function restitch() {
@@ -1068,8 +1073,11 @@ els.ride.addEventListener("close", () => { wakeLock?.release?.().catch?.(() => {
 els.rideNext.addEventListener("click", () => {
   rideIdx++;
   renderRide();
-  const kf = reduceMotion.matches ? [{ opacity: 0.2 }, { opacity: 1 }] : [{ opacity: 0.2, transform: "translateX(44px)" }, { opacity: 1, transform: "none" }];
-  for (const [i, el] of [els.rideName, els.ridePrice, els.rideMeta].entries()) el.animate(kf, { duration: 480, easing: EASE_OUT, delay: i * 90, fill: "backwards" });
+  // Une page de carnet qu'on tourne : un seul calque (transform + opacité) glisse et se redresse, un fil se coud au-dessus.
+  const card = $("rideCard");
+  if (reduceMotion.matches) return void card.animate([{ opacity: 0.2 }, { opacity: 1 }], { duration: 250 });
+  card.animate([{ opacity: 0, transform: "translate3d(64px,0,0) rotate(3deg)" }, { opacity: 1, transform: "none" }], { duration: 560, easing: EASE_OUT });
+  $("rideThread").animate([{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: 700, easing: EASE_IN_OUT });
 });
 els.rideGo.addEventListener("click", () => { const r = ranked.slice(0, RIDE_MAX)[rideIdx]; if (r) go(r.station.id); });
 
@@ -1481,7 +1489,7 @@ document.addEventListener("click", (e) => {
   }
 });
 
-for (const dlg of [els.stationSheet, els.settingsSheet, els.navSheet]) {
+for (const dlg of [els.stationSheet, els.settingsSheet, els.navSheet, $("friendsSheet")]) {
   enableDragToClose(dlg);
   dlg.addEventListener("click", (e) => { if (e.target.closest("[data-close]")) closeSheet(dlg); });
   dlg.addEventListener("cancel", (e) => { e.preventDefault(); closeSheet(dlg); });
@@ -1880,7 +1888,10 @@ async function openFriends() {
 }
 async function renderFriends() {
   if (!fr.hasProfile()) {
-    friendsBody.innerHTML = `<p class="fr-lede">Choisis un pseudo : tes amis te retrouvent avec un code, sans e-mail. Ils voient seulement tes signalements « épuisé » et ton total d’économies du mois, jamais ta position. Une clé de récupération te sera donnée pour retrouver ton profil si tu changes de téléphone.</p>
+    friendsBody.innerHTML = `<a class="btn btn-main fr-google" href="${esc(fr.googleUrl(location.origin + location.pathname))}">Continuer avec Google</a>
+      <p class="hint">Le plus simple : sur un nouveau téléphone, tu te reconnectes avec Google et tout revient (carnet, véhicules, amis).</p>
+      <h3 class="fr-h">Sans compte Google</h3>
+      <p class="fr-lede">Choisis un pseudo : tes amis te retrouvent avec un code, sans e-mail. Ils voient seulement tes signalements « épuisé » et ton total d’économies du mois, jamais ta position. Une clé de récupération te sera donnée pour retrouver ton profil si tu changes de téléphone.</p>
       <form class="fr-form" id="frCreate"><input id="frPseudo" type="text" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ton pseudo" aria-label="Pseudo"><button class="btn btn-main" type="submit">Créer mon profil</button></form>
       <h3 class="fr-h">Retrouver mon profil</h3>
       <form class="fr-stack" id="frRecover"><input id="frRecPseudo" type="text" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Pseudo" aria-label="Pseudo"><input id="frRecKey" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Clé de récupération" aria-label="Clé de récupération"><button class="btn" type="submit">Retrouver</button></form>
@@ -1889,6 +1900,13 @@ async function renderFriends() {
   }
   friendsBody.innerHTML = `<p class="trip-wait">Chargement…</p>`;
   try {
+    friendsInfo = friendsInfo || (await fr.profile());
+    if (!friendsInfo) {
+      friendsBody.innerHTML = `<p class="fr-lede">Connecté. Choisis le pseudo sous lequel tes amis te verront.</p>
+        <form class="fr-form" id="frPseudoOnly"><input id="frPseudo" type="text" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ton pseudo" aria-label="Pseudo"><button class="btn btn-main" type="submit">Valider</button></form>
+        <p class="hint" id="frMsg" role="alert"${friendsMsg ? "" : " hidden"}>${esc(friendsMsg)}</p>`;
+      return;
+    }
     await syncSavings(true);
     const [me, list, rank] = await Promise.all([friendsInfo ? friendsInfo : fr.profile(), fr.friends(), fr.savings(monthKey()), loadStock()]);
     friendsInfo = me;
@@ -1916,8 +1934,9 @@ async function renderFriends() {
       ${feed ? `<ul class="rep-list">${feed}</ul>` : `<p class="muted">Rien de signalé. Sur la fiche d’une station, « Épuisé ici » prévient tes amis.</p>`}
       <h3 class="fr-h">Sauvegarde et clé de récupération</h3>
       <p class="muted">Ton carnet, tes véhicules et tes favoris sont sauvegardés sur ton profil${backupAt ? ` (dernière fois ${ago(new Date(backupAt))})` : ""}. Si tu changes de téléphone, « Retrouver mon profil » avec ton pseudo et cette clé :</p>
-      <div class="fr-code fr-key"><output>${esc(fr.showKey(fr.recoveryKey()) || "clé inconnue (profil créé avant la mise à jour)")}</output></div>
-      <p class="hint">Garde-la précieusement : elle est la seule façon de récupérer ton profil.</p>`;
+      <div class="fr-code fr-key"><output>${esc(fr.showKey(fr.recoveryKey()) || "pas de clé : profil Google")}</output></div>
+      <p class="hint">Si tu t’es connecté avec Google, tu n’en as pas besoin : reconnecte-toi simplement avec Google.</p>
+      <button class="btn" type="button" data-fr-restore>Restaurer ma sauvegarde sur cet appareil</button>`;
     friendsMsg = "";
   } catch (e) {
     friendsBody.innerHTML = `<p class="hint" role="alert">${esc(e.message)}</p><button class="btn" type="button" id="frRetry">Réessayer</button>`;
@@ -1946,6 +1965,10 @@ friendsBody.addEventListener("submit", async (e) => {
     restoring = false;
     return renderFriends();
   }
+  if (e.target.id === "frPseudoOnly") {
+    try { friendsInfo = await fr.createProfile($("frPseudo").value.trim()); friendsMsg = ""; pushBackup(); } catch (err) { friendsMsg = err.message; }
+    return renderFriends();
+  }
   if (e.target.id === "frAdd") {
     const code = $("frCode").value;
     return frAct(async () => { const p = await fr.addFriend(code); friendsMsg = `Demande envoyée à ${p}.`; });
@@ -1956,11 +1979,13 @@ friendsBody.addEventListener("click", (e) => {
   if (t("data-fr-yes")) return frAct(() => fr.respond(t("data-fr-yes").dataset.frYes, true));
   if (t("data-fr-no")) return frAct(() => fr.respond(t("data-fr-no").dataset.frNo, false));
   if (t("data-fr-del")) return frAct(() => fr.removeFriend(t("data-fr-del").dataset.frDel));
+  if (t("data-fr-restore")) return frAct(async () => { restoring = true; try { if (await restoreBackup()) return location.reload(); friendsMsg = "Aucune sauvegarde trouvée."; } finally { restoring = false; } });
   if (t("data-fr-share")) return navigator.share({ title: "Plein Sud", text: `Mon code Plein Sud : ${friendsInfo.code}` }).catch(() => {});
   if (e.target.closest("#frRetry")) return renderFriends();
 });
 $("openFriends").addEventListener("click", () => { closeSheet(els.settingsSheet); openFriends(); });
 
+const cameBack = fr.consumeRedirect();
 async function boot() {
   els.answerBody.innerHTML = `<div class="ans-head"><p class="ans-name">Plein Sud</p><p class="ans-ville">On cherche le meilleur plein autour de toi…</p></div>`;
   renderStart();
@@ -1996,7 +2021,7 @@ async function boot() {
   }
 }
 
-boot().then(loadStock);
+boot().then(loadStock).then(() => { if (cameBack) openFriends(); });
 setTimeout(() => document.documentElement.classList.remove("intro"), 1400);
 
 if ("serviceWorker" in navigator && location.protocol === "https:") {
