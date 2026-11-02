@@ -652,8 +652,17 @@ html, body { overscroll-behavior-y: none; }
 .pin.pop-in { animation: pop 260ms var(--ease-out) both; animation-delay: var(--pd, 0ms); }
 
 /* Mode guidon : entrée sobre ; la station suivante glisse depuis la droite. */
-.ride[open] { animation: ride-in 450ms var(--ease-out); }
+.ride[open] { animation: ride-in 380ms var(--ease-out); }
 @keyframes ride-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: no-preference) {
+  /* Le guidon se met en place : la carte monte, la barre du haut descend, le gros bouton arrive en dernier. */
+  .ride[open] .ride-card { animation: ride-rise 640ms var(--ease-out) 60ms both; }
+  .ride[open] .ride-top { animation: ride-drop 480ms var(--ease-out) both; }
+  .ride[open] .ride-go { animation: ride-rise 560ms var(--ease-out) 220ms both; }
+  .ride[open] .ride-next { animation: ride-drop 480ms var(--ease-out) 300ms both; }
+}
+@keyframes ride-rise { from { opacity: 0; transform: translateY(34px) scale(.965); } }
+@keyframes ride-drop { from { opacity: 0; transform: translateY(-12px); } }
 /* Calques promus : le très gros texte n'est pas redessiné à chaque image (sinon ça saccade sur iPhone). */
 .ride-card { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 14px; padding: 20px 20px 22px; border-radius: 24px; background: var(--cloth); outline: 1.5px dashed var(--stitch); outline-offset: -8px; }
 .ride-meta { border-top: 1.5px dashed var(--stitch); padding-top: 12px; }
@@ -738,3 +747,9 @@ html, body { overscroll-behavior-y: none; }
 .who.on span { text-decoration: none; }
 .set-links { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 18px 0 20px; }
 .set-links .btn { display: flex; align-items: center; justify-content: center; width: 100%; text-decoration: none; }
+
+/* Favori : pétales qui s'envolent de l'étoile. */
+.fav-burst { position: fixed; width: 0; height: 0; z-index: 60; pointer-events: none; }
+.fav-burst svg { position: absolute; left: 0; top: 0; width: 13px; height: auto; fill: currentColor; opacity: 0; }
+.star-btn .ic { transition: fill 220ms ease, stroke 220ms ease; }
+#friendsBody { min-height: 220px; }

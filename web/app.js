@@ -675,30 +675,65 @@ function closeSheet(dlg) {
   dlg.classList.remove("is-open");
   setTimeout(() => { if (dlg.open && !dlg.classList.contains("is-open")) dlg.close(); }, 340);
 }
-// Glisser vers le bas pour fermer, depuis la poignée ou l'en-tête.
+// Glisser vers le bas pour fermer : au doigt depuis n'importe où dans le panneau quand son contenu est tout en haut
+// (sinon on fait défiler le contenu), à la souris depuis la poignée ou l'en-tête.
 function enableDragToClose(dlg) {
-  let startY = 0, dy = 0, dragging = false, sheet = null;
+  const sheet = dlg.querySelector(".sheet");
+  const scrim = dlg.querySelector(".scrim");
+  let y0 = 0, x0 = 0, t0 = 0, dy = 0, mode = "idle", fromHandle = false;
+  const follow = (d) => {
+    dy = d;
+    sheet.style.transform = `translateY(${d}px)`;
+    if (scrim) scrim.style.opacity = String(Math.max(0, 1 - d / Math.max(sheet.offsetHeight, 1)));
+  };
+  const release = (v) => {
+    const close = dy > 110 || v > 0.6;
+    sheet.style.transition = "";
+    sheet.style.transform = "";
+    if (scrim) { scrim.style.transition = ""; scrim.style.opacity = ""; }
+    mode = "idle";
+    if (close) closeSheet(dlg);
+  };
+  dlg.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1 || !e.target.closest(".sheet")) { mode = "idle"; return; }
+    y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; t0 = e.timeStamp; dy = 0;
+    fromHandle = !!e.target.closest(".grabber, .sheet-head");
+    mode = e.target.closest("input[type=range]") ? "idle" : "armed";
+  }, { passive: true });
+  dlg.addEventListener("touchmove", (e) => {
+    if (mode === "idle") return;
+    const t = e.touches[0];
+    const d = t.clientY - y0;
+    if (mode === "armed") {
+      if (Math.abs(t.clientX - x0) > Math.abs(d)) { mode = "idle"; return; } // geste horizontal
+      if (d > 6 && (fromHandle || sheet.scrollTop <= 0)) {
+        mode = "drag";
+        sheet.style.transition = "none";
+        if (scrim) scrim.style.transition = "none";
+        y0 = t.clientY; t0 = e.timeStamp; // on repart de zéro : pas de saut
+      } else if (d < -6 || sheet.scrollTop > 0) { mode = "idle"; return; }
+      else return;
+    }
+    e.preventDefault();
+    follow(Math.max(0, t.clientY - y0));
+  }, { passive: false });
+  const end = (e) => {
+    if (mode !== "drag") { mode = "idle"; return; }
+    release(dy / Math.max(e.timeStamp - t0, 1));
+  };
+  dlg.addEventListener("touchend", end);
+  dlg.addEventListener("touchcancel", end);
+  // Souris : poignée et en-tête.
   dlg.addEventListener("pointerdown", (e) => {
-    if (!e.target.closest(".grabber, .sheet-head") || e.target.closest("button, a, input")) return;
-    sheet = dlg.querySelector(".sheet");
-    dragging = true; startY = e.clientY; dy = 0;
+    if (e.pointerType !== "mouse" || !e.target.closest(".grabber, .sheet-head") || e.target.closest("button, a, input")) return;
+    mode = "mouse"; y0 = e.clientY; t0 = e.timeStamp; dy = 0;
     sheet.style.transition = "none";
     sheet.setPointerCapture(e.pointerId);
   });
-  dlg.addEventListener("pointermove", (e) => {
-    if (!dragging) return;
-    dy = Math.max(0, e.clientY - startY);
-    sheet.style.transform = `translateY(${dy}px)`;
-  });
-  const end = () => {
-    if (!dragging) return;
-    dragging = false;
-    sheet.style.transition = "";
-    sheet.style.transform = "";
-    if (dy > 90) closeSheet(dlg);
-  };
-  dlg.addEventListener("pointerup", end);
-  dlg.addEventListener("pointercancel", end);
+  dlg.addEventListener("pointermove", (e) => { if (mode === "mouse") follow(Math.max(0, e.clientY - y0)); });
+  const mend = (e) => { if (mode === "mouse") release(dy / Math.max(e.timeStamp - t0, 1)); };
+  dlg.addEventListener("pointerup", mend);
+  dlg.addEventListener("pointercancel", mend);
 }
 
 function renderLevel() {
@@ -1093,9 +1128,14 @@ function openRide() {
   keepAwake();
 }
 function closeRide() {
-  if (els.ride.open) els.ride.close();
-  wakeLock?.release?.().catch?.(() => {});
-  wakeLock = null;
+  const done = () => {
+    if (els.ride.open) els.ride.close();
+    wakeLock?.release?.().catch?.(() => {});
+    wakeLock = null;
+  };
+  if (!els.ride.open || reduceMotion.matches) return done();
+  const a = els.ride.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: "ease-in", fill: "forwards" });
+  a.finished.then(() => { done(); a.cancel(); }, done);
 }
 els.rideClose.addEventListener("click", closeRide);
 els.ride.addEventListener("close", () => { wakeLock?.release?.().catch?.(() => {}); wakeLock = null; });
@@ -1457,6 +1497,40 @@ requestAnimationFrame(() => { tabThread.style.transition = ""; });
 addEventListener("resize", placeThread);
 els.showAll.addEventListener("click", () => { showAll = !showAll; renderRank(); });
 
+// Favori : l'étoile se pose d'un petit tour, quelques pétales s'envolent ; en retirant, elle se replie doucement.
+function starPop(btn, added) {
+  const ic = btn.querySelector(".ic");
+  if (!added) return void ic?.animate([{ transform: "scale(1)" }, { transform: "scale(.7)" }, { transform: "scale(1)" }], { duration: 260, easing: EASE_OUT });
+  ic?.animate([
+    { transform: "scale(.5) rotate(-50deg)", offset: 0 },
+    { transform: "scale(1.45) rotate(14deg)", offset: 0.55 },
+    { transform: "scale(.92) rotate(-4deg)", offset: 0.8 },
+    { transform: "scale(1) rotate(0)", offset: 1 },
+  ], { duration: 560, easing: EASE_OUT });
+  const host = btn.closest("dialog") || document.body;
+  const r = btn.getBoundingClientRect();
+  const box = document.createElement("div");
+  box.className = "fav-burst";
+  box.style.cssText = `left:${r.left + r.width / 2}px;top:${r.top + r.height / 2}px`;
+  const colors = ["--rose-thread", "--ochre", "--coral", "--lav", "--sage", "--rose-thread", "--ochre"];
+  colors.forEach((c, i) => {
+    const p = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    p.setAttribute("viewBox", "0 0 20 28");
+    p.innerHTML = `<path d="M10 27C2 20 2 7 10 1C18 7 18 20 10 27Z"/>`;
+    p.style.color = `var(${c})`;
+    box.append(p);
+    const ang = (i / colors.length) * Math.PI * 2 - Math.PI / 2 + (Math.random() - 0.5) * 0.4;
+    const dist = 34 + Math.random() * 16;
+    const rot = Math.round(ang * 57.3 + 90);
+    p.animate([
+      { transform: `translate(-50%,-50%) rotate(${rot}deg) scale(.3)`, opacity: 0 },
+      { transform: `translate(calc(-50% + ${Math.cos(ang) * dist * 0.7}px),calc(-50% + ${Math.sin(ang) * dist * 0.7}px)) rotate(${rot + 30}deg) scale(1)`, opacity: 1, offset: 0.35 },
+      { transform: `translate(calc(-50% + ${Math.cos(ang) * dist}px),calc(-50% + ${Math.sin(ang) * dist + 10}px)) rotate(${rot + 80}deg) scale(.7)`, opacity: 0 },
+    ], { duration: 640, easing: EASE_OUT, fill: "forwards" });
+  });
+  host.append(box);
+  setTimeout(() => box.remove(), 700);
+}
 document.addEventListener("click", (e) => {
   const goBtn = e.target.closest("[data-go]");
   if (goBtn) return go(goBtn.dataset.go);
@@ -1470,7 +1544,7 @@ document.addEventListener("click", (e) => {
     for (const b of document.querySelectorAll(`[data-fav="${CSS.escape(id)}"]`)) {
       b.setAttribute("aria-pressed", String(isFav(id)));
       b.setAttribute("aria-label", isFav(id) ? "Retirer des favoris" : "Ajouter aux favoris");
-      if (!reduceMotion.matches) b.animate([{ transform: "scale(0.88)" }, { transform: "none" }], { duration: 220, easing: EASE_OUT });
+      if (b === fav && !reduceMotion.matches) starPop(b, isFav(id));
     }
     toast(isFav(id) ? "Ajoutée aux favoris" : "Retirée des favoris");
     if (view === "fav") renderFavs();
@@ -1925,6 +1999,12 @@ const friendsBody = $("friendsBody");
 async function openFriends() {
   openSheet($("friendsSheet"));
   await renderFriends();
+  if (!reduceMotion.matches) friendsBody.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 320, easing: EASE_OUT });
+}
+// Passer d'un panneau à l'autre : le nouveau monte par-dessus, l'ancien disparaît dessous sans qu'on le voie partir.
+function swapSheet(from, to) {
+  to();
+  setTimeout(() => { from.classList.remove("is-open"); if (from.open) from.close(); }, 380);
 }
 async function renderFriends() {
   refreshWho();
@@ -2043,13 +2123,21 @@ friendsBody.addEventListener("click", (e) => {
   if (t("data-fr-share")) return navigator.share({ title: "Plein Sud", text: `Mon code Plein Sud : ${friendsInfo.code}` }).catch(() => {});
   if (e.target.closest("#frRetry")) return renderFriends();
 });
-$("openFriends").addEventListener("click", () => { closeSheet(els.settingsSheet); openFriends(); });
+$("openFriends").addEventListener("click", () => swapSheet(els.settingsSheet, openFriends));
 
 const cameBack = fr.consumeRedirect();
 // ---------- Petite surprise : double clic sur le logo = pluie de pétales, triple = quatre saisons ----------
 {
   const mark = document.querySelector(".top .mark");
   let taps = 0, tapT = 0, busy = false;
+  // Ville du moment : la plus fréquente parmi les stations les plus proches de la position utilisée.
+  const cityNow = () => {
+    const o = origin();
+    const near = [...(data?.stations || [])].sort((a, b) => haversineKm(o, a) - haversineKm(o, b)).slice(0, 8);
+    const count = new Map();
+    for (const st of near) { const v = titleCase(st.ville || ""); if (v) count.set(v, (count.get(v) || 0) + 1); }
+    return [...count.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || "Montpellier";
+  };
   const petalRain = () => {
     if (reduceMotion.matches) return toast("Pluie de pétales…", null, { flower: true });
     const box = document.createElement("div");
@@ -2062,8 +2150,10 @@ const cameBack = fr.consumeRedirect();
       p.style.cssText = `left:${Math.random() * 100}%;color:${colors[i % colors.length]};width:${14 + Math.random() * 14}px`;
       box.append(p);
       const drift = (Math.random() - 0.5) * 160;
-      p.animate([{ transform: `translate3d(0,-40px,0) rotate(${Math.random() * 90}deg)`, opacity: 1 }, { transform: `translate3d(${drift}px,${innerHeight + 60}px,0) rotate(${360 + Math.random() * 360}deg)`, opacity: 0.9 }],
-        { duration: 2600 + Math.random() * 1800, delay: Math.random() * 700, easing: "cubic-bezier(.3,.1,.6,1)", fill: "backwards" });
+      p.style.opacity = "0"; // invisible tant que sa chute n'a pas commencé, et une fois finie : jamais de retour en haut
+      const fall = p.animate([{ transform: `translate3d(0,-40px,0) rotate(${Math.random() * 90}deg)`, opacity: 0.85 }, { transform: `translate3d(${drift}px,${innerHeight + 60}px,0) rotate(${360 + Math.random() * 360}deg)`, opacity: 0.85 }],
+        { duration: 2600 + Math.random() * 1800, delay: Math.random() * 700, easing: "cubic-bezier(.3,.1,.6,1)", fill: "both" });
+      fall.finished.then(() => p.remove(), () => {});
     }
     document.body.append(box);
     setTimeout(() => box.remove(), 5400);
@@ -2081,7 +2171,7 @@ const cameBack = fr.consumeRedirect();
       if (n < 2 || busy) return;
       busy = true;
       if (!reduceMotion.matches) mark.animate([{ transform: "rotate(0)" }, { transform: "rotate(360deg)" }], { duration: 800, easing: EASE_IN_OUT });
-      if (n === 2) { petalRain(); toast("Montpellier en fleurs.", null, { flower: true }); }
+      if (n === 2) { petalRain(); toast(`${cityNow()} en fleurs`, null, { flower: true }); }
       else { toast("Les quatre saisons, en quatre secondes.", null, { flower: true }); await seasons(); }
       setTimeout(() => { busy = false; }, 1200);
     }, 380);
