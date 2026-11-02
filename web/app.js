@@ -14,6 +14,8 @@ const SEEDS = [
   { id: "scooter", label: "Scooter 125", short: "Scooter", litres: 6, conso: 2.8 },
   { id: "car", label: "Voiture", short: "Voiture", litres: 40, conso: 6.5 },
 ];
+// Tant qu'aucun véhicule n'est ajouté : un calcul moyen, et l'appli propose d'en ajouter un.
+const NO_VEHICLE = { id: "none", label: "Mon véhicule", short: "Véhicule", litres: 14, conso: 5 };
 const NAV_APPS = [
   { id: "apple", label: "Plans", detail: "l'appli Plans de l'iPhone" },
   { id: "google", label: "Google Maps", detail: "appli ou site" },
@@ -32,7 +34,7 @@ const DWELL_IN_M = 50;            // à moins de 50 m d'une station
 const DWELL_OUT_M = 90;           // au-delà de 90 m, on considère qu'on est reparti
 const REORIGIN_M = 300;           // on ne reclasse qu'après 300 m de déplacement
 const DEFAULTS = {
-  fuel: "sp95", placeId: "gps", places: [], gps: null, profileId: "mt450", vehicles: SEEDS, seeded: true,
+  fuel: "sp95", placeId: "gps", places: [], gps: null, profileId: "", vehicles: [], seeded: true, vehAsked: false,
   radius: 15, favs: [], log: [], nav: null, fillSeen: {}, theme: "auto", trips: [], tripCorr: 2,
 };
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -92,7 +94,6 @@ function loadState() {
       merged.vehicles = [...structuredClone(SEEDS).filter((v) => !have.has(v.id)), ...merged.vehicles];
       merged.seeded = true;
     }
-    if (!merged.vehicles.length) merged.vehicles = structuredClone(SEEDS);
     return merged;
   } catch {
     return structuredClone(DEFAULTS);
@@ -187,7 +188,7 @@ function originLabel() {
 }
 const LEVEL_TTL = 48 * 3600000; // un niveau noté il y a plus de 48 h n'est plus utilisé
 function vehicle() {
-  const v = state.vehicles.find((x) => x.id === state.profileId) || state.vehicles[0] || SEEDS[0];
+  const v = state.vehicles.find((x) => x.id === state.profileId) || state.vehicles[0] || NO_VEHICLE;
   const known = Number.isFinite(v.level) && Date.now() - (v.levelAt || 0) < LEVEL_TTL;
   return { ...v, short: v.short || v.label, level: known ? v.level : null };
 }
@@ -771,6 +772,7 @@ function renderSettings() {
   els.profiles.innerHTML = state.vehicles.map((v) => `<button type="button" class="choice" data-profile="${v.id}" aria-pressed="${current === v.id}">${esc(v.label)}<small>${v.year ? `${v.year}, ` : ""}${litresText(v.litres)} L, ${commaNum(Number(v.conso), 1)} L/100</small>${current === v.id ? pen : ""}</button>`).join("")
     + `<button type="button" class="choice choice-add" data-veh-add><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Ajouter un véhicule</button>`;
   renderLevel();
+  $("levelBox").hidden = !state.vehicles.length;
   els.vehForm.hidden = vehEditing === null;
   els.vehDelete.hidden = vehEditing === null || vehEditing === "new" || state.vehicles.length <= 1;
   els.navPref.innerHTML = [{ id: "", label: "Me demander" }, ...NAV_APPS].map((a) => `<button type="button" class="choice" data-nav-pref="${a.id}" aria-pressed="${(state.nav || "") === a.id}">${esc(a.label)}</button>`).join("");
@@ -2058,6 +2060,24 @@ async function pushBackup() {
   if (sig === backupSig) return;
   try { await fr.pushBackup(d); backupSig = sig; backupAt = Date.now(); } catch { /* réessayé à la prochaine modification */ }
 }
+// Déconnexion : tes données restent sur ton compte (on les envoie avant de partir) ; cet appareil repart comme au premier lancement.
+async function logout() {
+  clearTimeout(backupT);
+  try { await pushBackup(); } catch { /* hors ligne : la dernière sauvegarde reste valable */ }
+  restoring = true;
+  fr.forget();
+  const keep = state.theme;
+  state = { ...structuredClone(DEFAULTS), theme: keep };
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); sessionStorage.setItem("ps-logout", "1"); } catch { /* stockage indisponible */ }
+  location.reload();
+}
+// Création d'un profil neuf : les véhicules d'origine jamais retouchés n'ont rien à faire sur un nouveau compte.
+function dropUntouchedSeeds() {
+  const same = (v) => SEEDS.some((s) => s.id === v.id && s.label === v.label && Number(s.litres) === Number(v.litres) && Number(s.conso) === Number(v.conso) && !Number.isFinite(v.level));
+  state.vehicles = state.vehicles.filter((v) => !same(v));
+  if (!state.vehicles.some((v) => v.id === state.profileId)) state.profileId = state.vehicles[0]?.id || "";
+  save();
+}
 async function restoreBackup() {
   const b = await fr.pullBackup();
   if (!b) return false;
@@ -2173,7 +2193,7 @@ friendsBody.addEventListener("submit", async (e) => {
   e.preventDefault();
   if (e.target.id === "frCreate") {
     const pseudo = $("frPseudo").value.trim();
-    try { friendsInfo = await fr.signUp(pseudo); friendsMsg = "Profil créé. Note ta clé de récupération tout en bas de cette fenêtre."; backupSoon(); } catch (err) { friendsMsg = err.message; }
+    try { friendsInfo = await fr.signUp(pseudo); dropUntouchedSeeds(); friendsMsg = "Profil créé. Note ta clé de récupération tout en bas de cette fenêtre."; backupSoon(); } catch (err) { friendsMsg = err.message; }
     return renderFriends();
   }
   if (e.target.id === "frRecover") {
@@ -2188,7 +2208,7 @@ friendsBody.addEventListener("submit", async (e) => {
     return renderFriends();
   }
   if (e.target.id === "frPseudoOnly") {
-    try { friendsInfo = await fr.createProfile($("frPseudo").value.trim()); friendsMsg = ""; pushBackup(); } catch (err) { friendsMsg = err.message; }
+    try { friendsInfo = await fr.createProfile($("frPseudo").value.trim()); dropUntouchedSeeds(); friendsMsg = ""; pushBackup(); } catch (err) { friendsMsg = err.message; }
     return renderFriends();
   }
   if (e.target.id === "frAdd") {
@@ -2201,7 +2221,7 @@ friendsBody.addEventListener("click", (e) => {
   if (t("data-fr-yes")) return frAct(() => fr.respond(t("data-fr-yes").dataset.frYes, true));
   if (t("data-fr-no")) return frAct(() => fr.respond(t("data-fr-no").dataset.frNo, false));
   if (t("data-fr-del")) return frAct(() => fr.removeFriend(t("data-fr-del").dataset.frDel));
-  if (t("data-fr-logout")) { fr.forget(); friendsInfo = null; stockRows = []; applyFriendStock(); friendsMsg = "Déconnecté. Tes données restent sauvegardées."; return renderFriends(); }
+  if (t("data-fr-logout")) return frAct(logout);
   const del = t("data-fr-delete");
   if (del) {
     // Deux appuis : le premier demande confirmation, le second supprime.
@@ -2306,8 +2326,30 @@ $("who").addEventListener("click", openFriends);
 boot().then(loadStock).then(async () => {
   refreshWho();
   if (fr.hasProfile() && !friendsInfo) { try { friendsInfo = await fr.profile(); } catch { /* hors ligne : on reste sur « Connecté » */ } refreshWho(); }
-  if (cameBack) openFriends();
+  if (cameBack) {
+    // Premier retour de Google sur un appareil encore vide : on récupère directement la sauvegarde du compte.
+    if (fr.hasProfile() && !state.vehicles.length && !state.log.length && !state.favs.length) {
+      restoring = true;
+      try { if (await restoreBackup()) return location.reload(); } catch { /* on continue avec un appareil vide */ }
+      restoring = false;
+    }
+    openFriends();
+  } else askFirstVehicle();
 });
+// Premier lancement (ou appareil remis à zéro) : aucun véhicule d'office, on propose d'en ajouter un.
+function askFirstVehicle() {
+  if (state.vehicles.length || state.vehAsked) return;
+  state.vehAsked = true;
+  save();
+  setTimeout(() => {
+    openSettingsSheet();
+    openVehForm("new");
+    toast("Ajoute ton véhicule pour calculer le vrai coût du plein.");
+  }, 900);
+}
+try {
+  if (sessionStorage.getItem("ps-logout")) { sessionStorage.removeItem("ps-logout"); setTimeout(() => toast("Déconnecté. Tes données restent sauvegardées sur ton compte."), 1200); }
+} catch { /* stockage indisponible */ }
 setTimeout(() => document.documentElement.classList.remove("intro"), 1400);
 
 if ("serviceWorker" in navigator && location.protocol === "https:") {
