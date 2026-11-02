@@ -806,3 +806,6 @@ html, body { overscroll-behavior-y: none; }
 .field input[type="date"] { display: block; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; -webkit-appearance: none; appearance: none; min-height: 46px; text-align: left; }
 .field input[type="date"]::-webkit-date-and-time-value { text-align: left; min-height: 1.2em; }
 .veh-form { min-width: 0; max-width: 100%; box-sizing: border-box; }
+
+.who.has-req span { text-decoration: none; font-weight: 700; }
+.who.has-req i { background: var(--rose); border-color: var(--rose); }

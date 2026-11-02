@@ -2158,9 +2158,38 @@ function refreshWho() {
   const on = fr.hasProfile();
   const name = on ? friendsInfo?.pseudo : "";
   who.classList.toggle("on", on);
-  who.querySelector("span").textContent = on ? (name || "Connecté") : "Se connecter";
-  who.setAttribute("aria-label", on ? `Connecté${name ? ` en tant que ${name}` : ""}. Ouvrir le profil` : "Se connecter (Amis)");
+  const n = on ? friendReq : 0;
+  who.querySelector("span").textContent = on ? (name || "Connecté") + (n ? ` · ${n} demande${n > 1 ? "s" : ""}` : "") : "Se connecter";
+  who.classList.toggle("has-req", n > 0);
+  who.setAttribute("aria-label", on ? `Connecté${name ? ` en tant que ${name}` : ""}${n ? `, ${n} demande${n > 1 ? "s" : ""} d’ami en attente` : ""}. Ouvrir le profil` : "Se connecter (Amis)");
+  const btn = $("openFriends");
+  if (btn) btn.textContent = n ? `Amis et profil (${n})` : "Amis et profil";
 }
+// Notifications discrètes : demandes d'amis reçues (compteur sous le titre) et demandes acceptées (message au retour dans l'appli).
+let friendReq = 0;
+const ACC_KEY = "plein-sud:friends-accepted";
+async function checkFriends({ announce = true } = {}) {
+  if (!fr.hasProfile()) { friendReq = 0; return refreshWho(); }
+  let list;
+  try { list = await fr.friends(); } catch { return; }
+  const incoming = list.filter((f) => f.status === "pending" && f.incoming);
+  friendReq = incoming.length;
+  const accepted = list.filter((f) => f.status === "accepted");
+  try {
+    const known = JSON.parse(localStorage.getItem(ACC_KEY) || "null");
+    localStorage.setItem(ACC_KEY, JSON.stringify(accepted.map((f) => f.user_id)));
+    if (announce && Array.isArray(known)) {
+      const fresh = accepted.filter((f) => !known.includes(f.user_id));
+      if (fresh.length) toast(fresh.length === 1 ? `${fresh[0].pseudo} est maintenant dans tes amis` : `${fresh.length} nouveaux amis`, { label: "Voir", run: openFriends });
+      else if (incoming.length) toast(`${incoming[0].pseudo} t’a ajouté${incoming.length > 1 ? ` (et ${incoming.length - 1} autre${incoming.length > 2 ? "s" : ""})` : ""}`, { label: "Voir", run: openFriends });
+    } else if (announce && incoming.length) toast(`${incoming[0].pseudo} t’a ajouté`, { label: "Voir", run: openFriends });
+  } catch { /* stockage indisponible : le compteur suffit */ }
+  refreshWho();
+}
+let friendsCheckedAt = 0;
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && fr.hasProfile() && Date.now() - friendsCheckedAt > 120000) { friendsCheckedAt = Date.now(); checkFriends(); }
+});
 let friendsMsg = "";
 let stockSig = "";
 const REPORT_NAMES = { sp95: "SP95-E5", e10: "SP95-E10", sp98: "SP98", gazole: "Gazole", e85: "E85", gplc: "GPLc" };
@@ -2316,6 +2345,9 @@ async function renderFriends() {
     const [me, list, rank] = await Promise.all([friendsInfo ? friendsInfo : fr.profile(), fr.friends(), fr.savings(monthKey()), loadStock()]);
     friendsInfo = me;
     const incoming = list.filter((f) => f.status === "pending" && f.incoming);
+    friendReq = incoming.length;
+    try { localStorage.setItem(ACC_KEY, JSON.stringify(list.filter((f) => f.status === "accepted").map((f) => f.user_id))); } catch { /* ignoré */ }
+    refreshWho();
     const waiting = list.filter((f) => f.status === "pending" && !f.incoming);
     const ok = list.filter((f) => f.status === "accepted");
     const keys = [...new Set(stockRows.filter((r) => r.is_out).map((r) => `${r.station_id}|${r.fuel}`))];
@@ -2508,6 +2540,8 @@ $("who").addEventListener("click", openFriends);
 boot().then(loadStock).then(async () => {
   refreshWho();
   if (fr.hasProfile() && !friendsInfo) { try { friendsInfo = await fr.profile(); } catch { /* hors ligne : on reste sur « Connecté » */ } refreshWho(); }
+  friendsCheckedAt = Date.now();
+  checkFriends({ announce: !cameBack });
   if (cameBack) {
     // Premier retour de Google sur un appareil encore vide : on récupère directement la sauvegarde du compte.
     if (fr.hasProfile() && !state.vehicles.length && !state.log.length && !state.favs.length) {
