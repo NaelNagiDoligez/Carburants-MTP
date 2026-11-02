@@ -1816,6 +1816,16 @@ document.addEventListener("touchcancel", () => { if (ptrStart !== null) { ptrSta
 // ---------- Amis : carburant épuisé ----------
 let stockRows = [];
 let friendsInfo = null;
+// Pastille discrète sous le titre : connecté (point plein + pseudo) ou non (point creux).
+function refreshWho() {
+  const who = $("who");
+  if (!who) return;
+  const on = fr.hasProfile();
+  const name = on ? friendsInfo?.pseudo : "";
+  who.classList.toggle("on", on);
+  who.querySelector("span").textContent = on ? (name || "Connecté") : "Non connecté";
+  who.setAttribute("aria-label", on ? `Profil : connecté${name ? ` en tant que ${name}` : ""}. Ouvrir Amis` : "Profil : non connecté. Ouvrir Amis");
+}
 let friendsMsg = "";
 let stockSig = "";
 const REPORT_NAMES = { sp95: "SP95-E5", e10: "SP95-E10", sp98: "SP98", gazole: "Gazole", e85: "E85", gplc: "GPLc" };
@@ -1917,6 +1927,7 @@ async function openFriends() {
   await renderFriends();
 }
 async function renderFriends() {
+  refreshWho();
   const redirectErr = fr.takeRedirectError();
   if (redirectErr) friendsMsg = redirectErr;
   if (!fr.hasProfile()) {
@@ -1935,6 +1946,7 @@ async function renderFriends() {
   friendsBody.innerHTML = `<p class="trip-wait">Chargement…</p>`;
   try {
     friendsInfo = friendsInfo || (await fr.profile());
+    refreshWho();
     if (!friendsInfo) {
       friendsBody.innerHTML = `<p class="fr-lede">Connecté. Choisis le pseudo sous lequel tes amis te verront.</p>
         <form class="fr-form" id="frPseudoOnly"><input id="frPseudo" type="text" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Ton pseudo" aria-label="Pseudo"><button class="btn btn-main" type="submit">Valider</button></form>
@@ -2111,7 +2123,12 @@ async function boot() {
   }
 }
 
-boot().then(loadStock).then(() => { if (cameBack) openFriends(); });
+$("who").addEventListener("click", openFriends);
+boot().then(loadStock).then(async () => {
+  refreshWho();
+  if (fr.hasProfile() && !friendsInfo) { try { friendsInfo = await fr.profile(); } catch { /* hors ligne : on reste sur « Connecté » */ } refreshWho(); }
+  if (cameBack) openFriends();
+});
 setTimeout(() => document.documentElement.classList.remove("intro"), 1400);
 
 if ("serviceWorker" in navigator && location.protocol === "https:") {
