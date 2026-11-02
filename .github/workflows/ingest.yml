@@ -38,5 +38,11 @@ jobs:
             echo "Rien de nouveau."
           else
             git commit -m "data: snapshot $(date -u +%Y-%m-%dT%H:%MZ)"
-            git push
+            # Quelqu'un (ou un autre passage) a pu pousser pendant la collecte : on se remet à jour puis on réessaie.
+            for i in 1 2 3 4; do
+              git pull --rebase origin main && git push && exit 0
+              echo "Push refusé (essai $i), nouvel essai…"
+              sleep $((i * 5))
+            done
+            exit 1
           fi
