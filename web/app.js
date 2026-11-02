@@ -14,8 +14,8 @@ const SEEDS = [
   { id: "scooter", label: "Scooter 125", short: "Scooter", litres: 6, conso: 2.8 },
   { id: "car", label: "Voiture", short: "Voiture", litres: 40, conso: 6.5 },
 ];
-// Tant qu'aucun véhicule n'est ajouté : un calcul moyen, et l'appli propose d'en ajouter un.
-const NO_VEHICLE = { id: "none", label: "Mon véhicule", short: "Véhicule", litres: 14, conso: 5 };
+// Tant qu'aucun véhicule n'est ajouté : une voiture moyenne (45 L, 6,5 L/100 km), et l'appli propose d'en ajouter un.
+const NO_VEHICLE = { id: "none", label: "Mon véhicule", short: "Véhicule", litres: 45, conso: 6.5 };
 const NAV_APPS = [
   { id: "apple", label: "Plans", detail: "l'appli Plans de l'iPhone" },
   { id: "google", label: "Google Maps", detail: "appli ou site" },
