@@ -2355,3 +2355,39 @@ setTimeout(() => document.documentElement.classList.remove("intro"), 1400);
 if ("serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }
+
+// ---------- Mise à jour : l'appli installée sur l'écran d'accueil reste ouverte en veille, parfois des jours ----------
+// À chaque retour au premier plan, on compare le numéro de version du service worker (sw.js, jamais en cache) avec celui
+// chargé au lancement. S'il a changé, un bandeau propose de recharger : pas besoin de recréer le raccourci.
+{
+  const versionOf = async () => {
+    try {
+      const t = await (await fetch(`sw.js?v=${Date.now()}`, { cache: "no-store" })).text();
+      return t.match(/CACHE\s*=\s*"([^"]+)"/)?.[1] || null;
+    } catch { return null; }
+  };
+  let loaded = null, last = 0, shown = false;
+  versionOf().then((v) => { loaded = v; });
+  const check = async () => {
+    if (shown || document.visibilityState !== "visible" || Date.now() - last < 60000) return;
+    last = Date.now();
+    const v = await versionOf();
+    if (!loaded) { loaded = v; return; }
+    if (!v || v === loaded) return;
+    shown = true;
+    const bar = document.createElement("div");
+    bar.className = "update-bar";
+    bar.setAttribute("role", "status");
+    bar.innerHTML = `<span>Une nouvelle version de Plein Sud est prête.</span><button type="button">Mettre à jour</button>`;
+    bar.querySelector("button").addEventListener("click", async () => {
+      bar.querySelector("button").textContent = "Mise à jour…";
+      try { await (await navigator.serviceWorker?.getRegistration())?.update(); } catch { /* le rechargement suffit */ }
+      location.reload();
+    });
+    document.body.append(bar);
+    if (!reduceMotion.matches) bar.animate([{ opacity: 0, transform: "translateY(12px)" }, { opacity: 1, transform: "none" }], { duration: 360, easing: EASE_OUT });
+  };
+  document.addEventListener("visibilitychange", check);
+  addEventListener("pageshow", check);
+  setInterval(check, 10 * 60000);
+}

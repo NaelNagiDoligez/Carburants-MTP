@@ -771,3 +771,10 @@ html, body { overscroll-behavior-y: none; }
 
 .choice .ic-edit { width: 15px; height: 15px; margin-left: 6px; color: var(--ink-2); opacity: .75; flex: none; }
 .choice[aria-pressed="true"] .ic-edit { color: inherit; }
+
+/* Bandeau « nouvelle version » : un petit patch cousu au-dessus de la barre d'onglets. */
+.update-bar { position: fixed; z-index: 70; left: 50%; transform: translateX(-50%); bottom: calc(max(12px, env(safe-area-inset-bottom)) + 76px); width: min(520px, calc(100% - 28px));
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; background: var(--ink); color: var(--ground); box-shadow: 0 10px 28px -10px var(--shade-1);
+  outline: 1.5px dashed color-mix(in srgb, var(--ground) 45%, transparent); outline-offset: -6px; font-size: 14px; }
+.update-bar span { flex: 1; }
+.update-bar button { flex: none; min-height: 40px; padding: 8px 14px; border: 0; border-radius: 12px; background: var(--ground); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
