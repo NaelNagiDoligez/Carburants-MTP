@@ -778,3 +778,14 @@ html, body { overscroll-behavior-y: none; }
   outline: 1.5px dashed color-mix(in srgb, var(--ground) 45%, transparent); outline-offset: -6px; font-size: 14px; }
 .update-bar span { flex: 1; }
 .update-bar button { flex: none; min-height: 40px; padding: 8px 14px; border: 0; border-radius: 12px; background: var(--ground); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+
+/* Trajets enregistrés */
+.trip-saved { display: grid; gap: 6px; margin: 4px 0 6px; }
+.trip-saved-h { margin: 0; font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.saved-row { display: flex; align-items: center; gap: 8px; }
+.saved-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 14px; border-radius: 16px; border: 1.5px dashed var(--stitch); background: var(--cloth); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.saved-main b { display: block; font-weight: 700; }
+.saved-main small { display: block; color: var(--rose); font-size: 13px; }
+.saved-row.past .saved-main small { color: var(--ink-2); }
+.trip-save { margin: 12px 0 4px; display: grid; gap: 8px; }
+.trip-saved-ok { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--ink-2); font-weight: 600; }

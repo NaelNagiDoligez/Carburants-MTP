@@ -35,7 +35,7 @@ const DWELL_OUT_M = 90;           // au-delà de 90 m, on considère qu'on est r
 const REORIGIN_M = 300;           // on ne reclasse qu'après 300 m de déplacement
 const DEFAULTS = {
   fuel: "sp95", placeId: "gps", places: [], gps: null, profileId: "", vehicles: [], seeded: true, vehAsked: false,
-  radius: 15, favs: [], log: [], nav: null, fillSeen: {}, theme: "auto", trips: [], tripCorr: 2,
+  radius: 15, favs: [], log: [], nav: null, fillSeen: {}, theme: "auto", trips: [], savedTrips: [], tripCorr: 2,
 };
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
@@ -74,7 +74,7 @@ function loadState() {
     if (!raw) return structuredClone(DEFAULTS);
     const merged = { ...structuredClone(DEFAULTS), ...raw };
     // État abîmé (édition à la main, ancienne version) : chaque champ retrouve un type sûr.
-    for (const k of ["favs", "log", "trips"]) if (!Array.isArray(merged[k])) merged[k] = [];
+    for (const k of ["favs", "log", "trips", "savedTrips"]) if (!Array.isArray(merged[k])) merged[k] = [];
     merged.trips = merged.trips.filter((t) => t && Number.isFinite(t.lat) && Number.isFinite(t.lon) && t.label);
     if (!merged.fillSeen || typeof merged.fillSeen !== "object") merged.fillSeen = {};
     if (!Number.isFinite(Number(merged.radius))) merged.radius = DEFAULTS.radius;
@@ -172,7 +172,7 @@ const els = {
   vehSave: $("vehSave"), vehCancel: $("vehCancel"), vehDelete: $("vehDelete"), radius: $("radius"), radiusOut: $("radiusOut"),
   useGps: $("useGps"), useGpsText: $("useGpsText"), gpsHint: $("gpsHint"), toast: $("toast"),
   savings: $("savings"), trend: $("trend"), trendBody: $("trendBody"), themePref: $("themePref"), themeHint: $("themeHint"),
-  tripForm: $("tripForm"), tripFrom: $("tripFrom"), tripTo: $("tripTo"), tripSugg: $("tripSugg"), tripRecent: $("tripRecent"), tripCorr: $("tripCorr"), tripOut: $("tripOut"), tripMap: $("tripMap"),
+  tripForm: $("tripForm"), tripFrom: $("tripFrom"), tripTo: $("tripTo"), tripSugg: $("tripSugg"), tripRecent: $("tripRecent"), tripSaved: $("tripSaved"), tripSave: $("tripSave"), tripCorr: $("tripCorr"), tripOut: $("tripOut"), tripMap: $("tripMap"),
   ride: $("ride"), rideRank: $("rideRank"), rideName: $("rideName"), ridePrice: $("ridePrice"), rideMeta: $("rideMeta"), rideGo: $("rideGo"), rideNext: $("rideNext"), rideClose: $("rideClose"),
   fillCard: $("fillCard"), fillText: $("fillText"), fillQuick: $("fillQuick"), fillYes: $("fillYes"), fillNo: $("fillNo"), hapticLabel: $("hapticLabel"),
 };
@@ -1248,7 +1248,45 @@ function tripRowHTML(r, i, best, scale) {
     <button type="button" class="icon-btn trip-go" data-trip-go="${esc(s.id)}" aria-label="Itinéraire par ${esc(stationName(s))}">${icon("i-go")}</button>
   </li>`;
 }
+// ---- Trajets enregistrés : à refaire plus tard, ou prévus pour un jour précis ----
+let tripSaving = false;
+const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const whenText = (w) => {
+  if (!w) return "";
+  const diff = Math.round((new Date(`${w}T12:00`) - new Date(`${dayKey()}T12:00`)) / 86400000);
+  if (diff === 0) return "aujourd’hui";
+  if (diff === 1) return "demain";
+  const d = new Date(`${w}T12:00`).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+  return diff < 0 ? `était prévu ${d}` : `prévu ${d}`;
+};
+function sortedSaved() {
+  const today = dayKey();
+  const rank = (t) => (t.when && t.when >= today ? 0 : t.when ? 2 : 1);
+  return [...state.savedTrips].sort((a, b) => rank(a) - rank(b) || (a.when && b.when ? a.when.localeCompare(b.when) : (b.savedAt || 0) - (a.savedAt || 0)));
+}
+function renderSavedTrips() {
+  const list = sortedSaved();
+  els.tripSaved.hidden = !list.length;
+  els.tripSaved.innerHTML = list.length ? `<p class="trip-saved-h">Mes trajets</p>` + list.map((t) => `<div class="saved-row${t.when && t.when < dayKey() ? " past" : ""}">
+      <button type="button" class="saved-main" data-saved-go="${esc(t.id)}">${icon("i-flag")}<span><b>${esc(tripName(t.dest))}</b>${t.when ? `<small>${esc(whenText(t.when))}</small>` : ""}</span></button>
+      <button type="button" class="icon-btn" data-saved-del="${esc(t.id)}" aria-label="Retirer ${esc(tripName(t.dest))} de mes trajets">${icon("i-close")}</button></div>`).join("") : "";
+}
+function renderTripSave() {
+  if (!trip) { els.tripSave.hidden = true; return; }
+  els.tripSave.hidden = false;
+  const saved = state.savedTrips.find((t) => t.dest.label === trip.dest.label);
+  if (saved) {
+    els.tripSave.innerHTML = `<p class="trip-saved-ok">${icon("i-flag")}Trajet enregistré${saved.when ? ` · ${esc(whenText(saved.when))}` : ""}</p>`;
+  } else if (!tripSaving) {
+    els.tripSave.innerHTML = `<button type="button" class="btn" data-trip-save>${icon("i-plus")}Enregistrer ce trajet</button>`;
+  } else {
+    els.tripSave.innerHTML = `<div class="veh-form"><label class="field" for="tripWhen">Pour quand ? <span class="auto-tag">facultatif</span><input id="tripWhen" type="date" min="${dayKey()}"></label>
+      <div class="veh-actions"><button type="button" class="btn btn-main" data-trip-save-ok>Enregistrer</button><button type="button" class="btn" data-trip-save-cancel>Annuler</button></div></div>`;
+  }
+}
 function renderTrip() {
+  renderSavedTrips();
+  renderTripSave();
   els.tripFrom.textContent = originLabel();
   els.tripRecent.innerHTML = state.trips.map((t, i) => `<button type="button" class="choice" data-trip-recent="${i}">${icon("i-flag")}${esc(tripName(t))}</button>`).join("");
   els.tripCorr.innerHTML = CORRIDORS.map((k) => `<button type="button" class="choice" data-trip-corr="${k}" aria-pressed="${state.tripCorr === k}">${k} km</button>`).join("");
@@ -1581,6 +1619,26 @@ document.addEventListener("click", (e) => {
   const tg = e.target.closest("[data-trip-go]");
   if (tg) return tripGo(tg.dataset.tripGo);
   if (e.target.closest("[data-trip-dest]")) return trip && go("dest", navUrl, { id: "dest", lat: trip.dest.lat, lon: trip.dest.lon, snap: 1 });
+  if (e.target.closest("[data-trip-save]")) { tripSaving = true; renderTripSave(); return; }
+  if (e.target.closest("[data-trip-save-cancel]")) { tripSaving = false; renderTripSave(); return; }
+  if (e.target.closest("[data-trip-save-ok]")) {
+    const when = $("tripWhen").value || null;
+    state.savedTrips = [{ id: "t" + Date.now().toString(36), dest: trip.dest, when, savedAt: Date.now() }, ...state.savedTrips].slice(0, 20);
+    tripSaving = false;
+    save();
+    renderSavedTrips(); renderTripSave();
+    return toast(when ? `Trajet enregistré, ${whenText(when)}` : "Trajet enregistré");
+  }
+  const sg = e.target.closest("[data-saved-go]");
+  if (sg) { const t = state.savedTrips.find((x) => x.id === sg.dataset.savedGo); return t && planTrip(t.dest); }
+  const sd = e.target.closest("[data-saved-del]");
+  if (sd) {
+    const idx = state.savedTrips.findIndex((x) => x.id === sd.dataset.savedDel);
+    const removed = state.savedTrips[idx];
+    state.savedTrips.splice(idx, 1);
+    save(); renderSavedTrips(); renderTripSave();
+    return toast(`« ${tripName(removed.dest)} » retiré`, { label: "Annuler", run: () => { state.savedTrips.splice(idx, 0, removed); save(); renderSavedTrips(); renderTripSave(); } });
+  }
   const tr = e.target.closest("[data-trip-recent]");
   if (tr) return planTrip(state.trips[Number(tr.dataset.tripRecent)]);
   const ts = e.target.closest("[data-trip-sugg]");
@@ -2047,7 +2105,7 @@ els.stationSheet.addEventListener("click", (e) => {
 });
 
 // ---------- Sauvegarde du carnet, des véhicules et des favoris ----------
-const BACKUP_KEYS = ["log", "favs", "vehicles", "places", "profileId", "radius", "fuel", "nav", "trips", "tripCorr", "theme"];
+const BACKUP_KEYS = ["log", "favs", "vehicles", "places", "profileId", "radius", "fuel", "nav", "trips", "savedTrips", "tripCorr", "theme"];
 function backupSoon() {
   if (!fr.hasProfile() || restoring) return;
   clearTimeout(backupT);
