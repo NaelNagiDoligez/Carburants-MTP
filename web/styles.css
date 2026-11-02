@@ -580,7 +580,7 @@ html, body { overscroll-behavior-y: none; }
 .ride-name { margin: 0; font: 400 clamp(30px, 9vw, 44px)/1.08 var(--f-name); text-wrap: balance; }
 .ride-price { margin: 0; display: flex; align-items: flex-start; gap: 8px; font-weight: 800; font-stretch: 66%; font-size: clamp(110px, 36vw, 170px); line-height: .85; letter-spacing: -.02em; }
 .ride-price sup { font-size: .42em; }
-.ride-price > span:not(.flaps) { font-size: 22px; font-stretch: 90%; font-weight: 700; color: var(--ink-2); margin-top: 10px; letter-spacing: 0; }
+.ride-price span { font-size: 22px; font-stretch: 90%; font-weight: 700; color: var(--ink-2); margin-top: 10px; letter-spacing: 0; }
 .ride-meta { margin: 0; font-size: 22px; font-weight: 700; }
 .ride-meta span { display: block; font-size: 18px; font-weight: 500; color: var(--ink-2); margin-bottom: 6px; }
 .ride-go { margin-top: auto; display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 96px; border-radius: 26px; border: 0; cursor: pointer;
@@ -722,17 +722,3 @@ html, body { overscroll-behavior-y: none; }
 .fr-stack input { min-height: 44px; padding: 8px 12px; border-radius: 12px; border: 1.5px solid var(--edge); background: var(--ground); color: var(--ink); font: inherit; font-size: 16px; }
 .fr-key output { font-size: 17px; letter-spacing: .06em; user-select: all; word-break: break-all; }
 .top { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-
-/* Split-flap : le prix du mode guidon bascule palette par palette. */
-.ride-price { align-items: flex-start; }
-.flaps { display: inline-flex; align-items: flex-start; gap: .035em; }
-.flaps sup { font-size: .42em; margin-left: .06em; }
-.flap { position: relative; display: inline-block; perspective: 700px; border-radius: .06em; font-variant-numeric: tabular-nums; }
-.fl-size { visibility: hidden; padding: 0 .06em; }
-.fl-top, .fl-bot { position: absolute; left: 0; right: 0; overflow: hidden; backface-visibility: hidden; background: color-mix(in srgb, var(--ink) 9%, var(--cloth)); }
-.fl-top { top: 0; bottom: 50%; border-radius: .06em .06em 0 0; transform-origin: 50% 100%; }
-.fl-bot { top: 50%; bottom: 0; border-radius: 0 0 .06em .06em; transform-origin: 50% 0; }
-.fl-top i, .fl-bot i { position: absolute; left: 0; right: 0; height: 200%; display: flex; align-items: center; justify-content: center; font-style: normal; }
-.fl-top i { top: 0; }
-.fl-bot i { top: -100%; }
-.fl-hinge { position: absolute; left: 0; right: 0; top: 50%; height: max(2px, .012em); margin-top: -1px; background: var(--ground); z-index: 3; }

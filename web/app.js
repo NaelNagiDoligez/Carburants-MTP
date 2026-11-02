@@ -1046,50 +1046,14 @@ let wakeLock = null;
 async function keepAwake() {
   try { wakeLock = await navigator.wakeLock?.request("screen"); } catch { /* pas grave : l'écran s'éteindra comme d'habitude */ }
 }
-// Prix « split-flap » : chaque chiffre est une palette qui bascule, comme un vieux panneau de gare.
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-let ridePrev = "2074";
-const flapHTML = (c) => `<span class="flap" data-c="${c}"><span class="fl-size">8</span><span class="fl-top"><i>${c}</i></span><span class="fl-bot"><i>${c}</i></span><span class="fl-hinge"></span></span>`;
-const flapsHTML = (d) => `<span class="flaps" aria-hidden="true">${flapHTML(d[0])},${flapHTML(d[1])}${flapHTML(d[2])}<sup>${flapHTML(d[3])}</sup></span><span>€/L</span>`;
-async function flipOnce(cell, ch) {
-  const top = cell.querySelector(".fl-top"), bot = cell.querySelector(".fl-bot");
-  const leafTop = top.cloneNode(true), leafBot = bot.cloneNode(true);
-  leafTop.classList.add("fl-leaf");
-  leafBot.classList.add("fl-leaf");
-  leafBot.querySelector("i").textContent = ch;
-  top.querySelector("i").textContent = ch; // dessous : le haut du nouveau chiffre, révélé quand la palette retombe
-  leafTop.style.zIndex = leafBot.style.zIndex = 2;
-  cell.append(leafTop, leafBot);
-  leafBot.style.visibility = "hidden";
-  await leafTop.animate([{ transform: "rotateX(0)" }, { transform: "rotateX(-90deg)" }], { duration: 75, easing: "ease-in", fill: "forwards" }).finished.catch(() => {});
-  leafBot.style.visibility = "";
-  await leafBot.animate([{ transform: "rotateX(90deg)" }, { transform: "rotateX(0)" }], { duration: 75, easing: "ease-out", fill: "forwards" }).finished.catch(() => {});
-  bot.querySelector("i").textContent = ch;
-  leafTop.remove();
-  leafBot.remove();
-  cell.dataset.c = ch;
-}
-async function flipCell(cell, to, delay) {
-  await sleep(delay);
-  const from = Number(cell.dataset.c), end = Number(to);
-  const steps = (end - from + 10) % 10;
-  for (let k = Math.min(steps, 4) - 1; k >= 0; k--) await flipOnce(cell, String((end - k + 10) % 10));
-}
-function setRidePrice(price, mode) {
-  const final = price.toFixed(3).replace(".", "");
-  if (reduceMotion.matches || !mode) { els.ridePrice.innerHTML = flapsHTML(final); ridePrev = final; return; }
-  els.ridePrice.innerHTML = flapsHTML(mode === "open" ? "0000" : ridePrev);
-  ridePrev = final;
-  [...els.ridePrice.querySelectorAll(".flap")].forEach((cell, i) => flipCell(cell, final[i], 60 + i * 90));
-}
-function renderRide(mode) {
+function renderRide() {
   const list = ranked.slice(0, RIDE_MAX);
   if (!list.length) { els.rideName.textContent = "Aucune station dans le rayon"; els.ridePrice.textContent = ""; els.rideMeta.textContent = ""; els.rideGo.hidden = true; els.rideNext.hidden = true; return; }
   rideIdx %= list.length;
   const r = list[rideIdx];
   els.rideRank.textContent = `${rideIdx + 1}${rideIdx ? "e" : "re"} sur ${list.length} · ${fuelLabel()}`;
   els.rideName.textContent = stationName(r.station);
-  setRidePrice(r.price, mode);
+  els.ridePrice.innerHTML = `${priceHTML(r.price)}<span>€/L</span>`;
   els.ridePrice.setAttribute("aria-label", priceSpoken(r.price));
   els.rideMeta.innerHTML = `<span>${esc(stationPlace(r.station))}</span>${kmText(r.distanceKm)} km · ${eur.format(r.total)} plein + détour${r.unreachable ? " · hors d’autonomie" : ""}`;
   els.rideGo.hidden = false;
@@ -1112,7 +1076,7 @@ function rideBouquet() {
 function openRide() {
   if (!data) return;
   rideIdx = 0;
-  renderRide("open");
+  renderRide();
   if (!els.ride.open) {
     els.ride.showModal();
     rideBouquet();
@@ -1128,9 +1092,10 @@ els.rideClose.addEventListener("click", closeRide);
 els.ride.addEventListener("close", () => { wakeLock?.release?.().catch?.(() => {}); wakeLock = null; });
 els.rideNext.addEventListener("click", () => {
   rideIdx++;
-  renderRide("next");
-  // Le prix bascule en split-flap, le nom et les détails se posent juste après.
+  renderRide();
+  // Le prix se recoud de gauche à droite, le nom et les détails se posent juste après.
   if (reduceMotion.matches) return void $("rideCard").animate([{ opacity: 0.2 }, { opacity: 1 }], { duration: 250 });
+  els.ridePrice.animate([{ clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0 0 0)" }], { duration: 560, easing: EASE_OUT });
   [els.rideName, els.rideMeta].forEach((el, i) => el.animate([{ opacity: 0, transform: "translateY(8px)" }, { opacity: 1, transform: "none" }], { duration: 380, delay: 100 + i * 70, easing: EASE_OUT, fill: "backwards" }));
 });
 els.rideGo.addEventListener("click", () => { const r = ranked.slice(0, RIDE_MAX)[rideIdx]; if (r) go(r.station.id); });
