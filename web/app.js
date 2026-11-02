@@ -1823,8 +1823,8 @@ function refreshWho() {
   const on = fr.hasProfile();
   const name = on ? friendsInfo?.pseudo : "";
   who.classList.toggle("on", on);
-  who.querySelector("span").textContent = on ? (name || "Connecté") : "Non connecté";
-  who.setAttribute("aria-label", on ? `Profil : connecté${name ? ` en tant que ${name}` : ""}. Ouvrir Amis` : "Profil : non connecté. Ouvrir Amis");
+  who.querySelector("span").textContent = on ? (name || "Connecté") : "Se connecter";
+  who.setAttribute("aria-label", on ? `Connecté${name ? ` en tant que ${name}` : ""}. Ouvrir le profil` : "Se connecter (Amis)");
 }
 let friendsMsg = "";
 let stockSig = "";

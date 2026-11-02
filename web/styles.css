@@ -727,12 +727,14 @@ html, body { overscroll-behavior-y: none; }
 .exp-tag { display: inline-block; margin-right: 8px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 800; letter-spacing: .02em; color: var(--rose); outline: 1.5px dashed var(--rose-thread); outline-offset: -3px; }
 .app-version { margin: 4px 4px 12px; font-size: 13px; color: var(--ink-2); }
 
-/* Pastille « connecté ou non » sous le nom de l'appli. */
-.brand { display: grid; gap: 3px; min-width: 0; }
-.who { display: inline-flex; align-items: center; gap: 6px; padding: 0; margin: 0; border: 0; background: none; color: var(--ink-2); font: inherit; font-size: 12px; font-weight: 600; line-height: 1.1; min-height: 20px; cursor: pointer; text-align: left; max-width: 100%; }
-.who span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.who i { flex: none; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--ink-2); box-sizing: border-box; }
-.who.on { color: var(--ink); }
-.who.on i { background: var(--sage); border-color: var(--sage); }
-.set-links { display: grid; gap: 10px; margin: 6px 0 14px; }
+/* « Se connecter » : petite ligne sous le titre, sans rien décaler (le titre reste à sa place). */
+.brand { position: relative; min-width: 0; }
+.who { position: absolute; left: 0; top: calc(100% + 1px); display: inline-flex; align-items: center; gap: 5px; padding: 0; margin: 0; border: 0; background: none; -webkit-appearance: none; appearance: none; color: var(--rose); font: inherit; font-size: 11.5px; font-weight: 600; line-height: 1; white-space: nowrap; cursor: pointer; }
+.who span { text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+.who::before { content: ""; position: absolute; inset: -10px -8px; } /* zone de tap plus grande que le texte */
+.who i { display: none; width: 7px; height: 7px; border-radius: 50%; background: var(--sage); }
+.who.on { color: var(--ink-2); }
+.who.on i { display: block; }
+.who.on span { text-decoration: none; }
+.set-links { display: grid; grid-template-columns: 1fr; gap: 12px; margin: 18px 0 20px; }
 .set-links .btn { display: flex; align-items: center; justify-content: center; width: 100%; text-decoration: none; }
