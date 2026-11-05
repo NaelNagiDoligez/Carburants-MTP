@@ -49,7 +49,7 @@
       <li><b>Flux officiel</b><span>Prix déclarés par les stations (data.economie.gouv.fr, licence ouverte), toute la France. L’appli ne charge que le département où tu te trouves, avec 35 km de marge au-delà de sa frontière.</span></li>
       <li><b>Collecte toutes les 6 heures</b><span>Un workflow GitHub Actions télécharge le flux, en Python (requests, pandas).</span></li>
       <li><b>Contrôles qualité</b><span>Prix hors de 0,50 à 4 €/L, dates dans le futur, volume anormal : une erreur bloque l’écriture et déclenche une alerte.</span></li>
-      <li><b>Historique en Parquet</b><span>Un fichier par mois, mise à jour idempotente : relancer la collecte ne crée pas de doublon. Seuls les changements de prix sont gardés.</span></li>
+      <li><b>Historique en Parquet</b><span>Un fichier par jour, écriture idempotente : relancer la collecte ne crée pas de doublon. Seuls les changements de prix sont gardés.</span></li>
       <li><b>Positions OpenStreetMap</b><span>Une fois par semaine, chaque station est recalée sur sa vraie position et reçoit son enseigne (rapprochement au plus proche, 400 m au plus).</span></li>
       <li><b>Export</b><span>un fichier par département (dernier prix de chaque station) et un historique par département (médiane quotidienne et prévision), publiés avec le site sur GitHub Pages.</span></li>
       <li><b>L’appli</b><span>HTML, CSS et JavaScript sans framework : le classement se calcule sur le téléphone, avec ta position et ton véhicule. Rien n’est envoyé à un serveur.</span></li>

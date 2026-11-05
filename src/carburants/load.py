@@ -1,4 +1,4 @@
-"""Chargement : stockage Parquet partitionné par mois, écriture idempotente.
+"""Chargement : stockage Parquet partitionné par jour, écriture idempotente.
 
 data/stations.parquet                dimension, réécrite à chaque run
 data/price_events/YYYY-MM-DD.parquet faits, append-only dédupliqués sur

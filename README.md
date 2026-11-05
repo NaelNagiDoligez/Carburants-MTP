@@ -48,7 +48,7 @@ Hors-ligne, avec le fichier d'exemple : `python -m carburants run --from-file te
 ## Fonctionnement
 
 ```
-API data.economie.gouv.fr -> extract -> transform -> quality -> load (Parquet par mois)
+API data.economie.gouv.fr -> extract -> transform -> quality -> load (Parquet par jour)
                                                        |
                                           erreur bloquante = run en échec = alerte GitHub
 ```
