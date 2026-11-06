@@ -2,6 +2,9 @@
 
 ## Prochaine version — toute la France
 
+- Trajet : les cases et le champ ne dépassent plus de la carte sur téléphone (adresses longues).
+- Mise à jour : l'appli connaît désormais sa propre version (elle ne se comparait qu'à celle du serveur, donc jamais de bandeau avec du code ancien) ; le service worker contourne le cache HTTP de GitHub Pages à l'installation et à chaque chargement, ce qui bloquait les mises à jour pendant ~10 min.
+
 - Trajet : une petite croix sur chaque trajet récent pour le retirer (avec « Annuler »).
 
 - Un fichier de prix par département (avec 35 km de marge de frontière), chargé selon la position ; départements traversés chargés pour un trajet.

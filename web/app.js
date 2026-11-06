@@ -2584,6 +2584,8 @@ if ("serviceWorker" in navigator && location.protocol === "https:") {
 // ---------- Mise à jour : l'appli installée sur l'écran d'accueil reste ouverte en veille, parfois des jours ----------
 // À chaque retour au premier plan, on compare le numéro de version du service worker (sw.js, jamais en cache) avec celui
 // chargé au lancement. S'il a changé, un bandeau propose de recharger : pas besoin de recréer le raccourci.
+// BUILD doit être identique au CACHE de sw.js (vérifié par web/tests/version.test.mjs).
+const BUILD = "plein-sud-v39";
 {
   const versionOf = async () => {
     try {
@@ -2591,14 +2593,12 @@ if ("serviceWorker" in navigator && location.protocol === "https:") {
       return t.match(/CACHE\s*=\s*"([^"]+)"/)?.[1] || null;
     } catch { return null; }
   };
-  let loaded = null, last = 0, shown = false;
-  versionOf().then((v) => { loaded = v; });
+  let last = 0, shown = false;
   const check = async () => {
     if (shown || document.visibilityState !== "visible" || Date.now() - last < 60000) return;
     last = Date.now();
     const v = await versionOf();
-    if (!loaded) { loaded = v; return; }
-    if (!v || v === loaded) return;
+    if (!v || v === BUILD) return;
     shown = true;
     const bar = document.createElement("div");
     bar.className = "update-bar";
@@ -2612,6 +2612,7 @@ if ("serviceWorker" in navigator && location.protocol === "https:") {
     document.body.append(bar);
     if (!reduceMotion.matches) bar.animate([{ opacity: 0, transform: "translateY(12px)" }, { opacity: 1, transform: "none" }], { duration: 360, easing: EASE_OUT });
   };
+  check(); // dès le lancement : si le code chargé est plus ancien que le serveur, on le dit tout de suite
   document.addEventListener("visibilitychange", check);
   addEventListener("pageshow", check);
   setInterval(check, 10 * 60000);

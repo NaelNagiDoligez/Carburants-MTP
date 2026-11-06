@@ -531,7 +531,7 @@ html, body { overscroll-behavior-y: none; }
 .linkish { border: 0; background: none; padding: 0; color: var(--ink); font: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 
 /* Trajet */
-.trip-form { display: grid; gap: 12px; padding: 14px; border-radius: 18px; background: var(--cloth); border: 1.5px solid var(--edge); }
+.trip-form { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 14px; border-radius: 18px; background: var(--cloth); border: 1.5px solid var(--edge); }
 .trip-from { margin: 0; font-size: 15px; color: var(--ink-2); }
 .trip-form input[type=search] { -webkit-appearance: none; appearance: none; }
 .trip-sugg { list-style: none; margin: -6px 0 0; padding: 6px; border-radius: 16px; background: var(--cloth); border: 1.5px solid var(--edge); display: grid; gap: 2px; }
@@ -541,7 +541,9 @@ html, body { overscroll-behavior-y: none; }
 .trip-sugg-msg { padding: 10px; font-size: 14px; color: var(--ink-2); }
 .trip-recent:empty { display: none; }
 .trip-recent .choice { min-height: 40px; padding: 6px 12px; font-weight: 600; max-width: 100%; }
-.trip-recent .choice { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.trip-form > * { min-width: 0; }
+.trip-recent .choice { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.trip-recent .choice-group { max-width: 100%; min-width: 0; }
 .trip-recent .ic { width: 18px; height: 18px; color: var(--rose-thread); }
 .trip-corr { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
 .trip-corr .choice { min-height: 40px; padding: 6px 12px; }

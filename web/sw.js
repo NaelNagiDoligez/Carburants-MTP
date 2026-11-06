@@ -1,9 +1,19 @@
 // Service worker : l'interface fonctionne hors ligne, les prix viennent du réseau en priorité.
-const CACHE = "plein-sud-v38";
+const CACHE = "plein-sud-v39";
 const SHELL = ["./", "index.html", "styles.css", "app.js", "garden.js", "theme.js", "catalog.js", "rank.js", "trip.js", "chart.js", "friends.js", "zone.js", "coulisses.html", "confidentialite.html", "manifest.webmanifest", "icons/icon.svg", "fonts/archivo-wdth.woff2", "fonts/young-serif.woff2"];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // cache: "reload" : on ne reprend jamais une copie du cache HTTP du navigateur (GitHub Pages la garde 10 min), sinon la
+  // « nouvelle » version installée contiendrait l'ancien code.
+  e.waitUntil(
+    caches.open(CACHE)
+      .then((c) => Promise.all(SHELL.map(async (u) => {
+        const res = await fetch(new Request(u, { cache: "reload" }));
+        if (!res.ok) throw new Error(`${u} : ${res.status}`);
+        await c.put(u, res);
+      })))
+      .then(() => self.skipWaiting()),
+  );
 });
 
 self.addEventListener("activate", (e) => {
@@ -32,7 +42,8 @@ self.addEventListener("fetch", (e) => {
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
       const cached = await cache.match(e.request);
-      const fromNetwork = fetch(e.request)
+      // « no-cache » : le navigateur revalide toujours auprès du serveur (réponse 304 légère si rien n'a changé).
+      const fromNetwork = fetch(e.request.mode === "navigate" ? e.request.url : e.request, networkFirst ? { cache: "no-cache" } : undefined)
         .then((res) => {
           if (res.ok) cache.put(e.request, res.clone());
           return res;
