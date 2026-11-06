@@ -318,6 +318,15 @@ legend { font-size: 13px; font-weight: 700; color: var(--ink-2); padding: 0; mar
 .choice[aria-pressed="true"] { background: var(--ink); color: var(--ground); border-color: var(--ink); }
 .choice[aria-pressed="true"] small { color: inherit; opacity: .7; }
 .choice-wide { width: 100%; font-weight: 700; }
+.choice-group { display: inline-flex; align-items: stretch; }
+.choice-group .choice { border-top-right-radius: 0; border-bottom-right-radius: 0; border-right-width: 0; }
+.choice-x {
+  display: inline-grid; place-items: center; min-width: 44px; min-height: 46px; padding: 0; cursor: pointer; color: var(--ink-2);
+  border: 1.5px solid var(--edge); border-left: 1px dashed var(--stitch); background: var(--ground);
+  border-radius: 0 14px 14px 0; transition: background-color 150ms ease, transform 150ms ease;
+}
+.choice-x .ic { width: 16px; height: 16px; }
+.choice-x:active { transform: scale(0.94); background: var(--seam); }
 .range { display: flex; align-items: center; gap: 14px; }
 .range input { flex: 1; accent-color: var(--accent); min-height: 44px; }
 .range output { font-weight: 800; font-stretch: 75%; font-size: 22px; min-width: 60px; text-align: right; }

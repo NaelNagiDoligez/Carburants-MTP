@@ -2,6 +2,8 @@
 
 ## Prochaine version — toute la France
 
+- Trajet : une petite croix sur chaque trajet récent pour le retirer (avec « Annuler »).
+
 - Un fichier de prix par département (avec 35 km de marge de frontière), chargé selon la position ; départements traversés chargés pour un trajet.
 - Écran « Où es-tu ? » si la position est refusée (réactivation expliquée, ou adresse de départ).
 - Trajets enregistrés (avec date facultative), bandeau « nouvelle version », lieux enregistrés, véhicules modifiables d'un toucher.

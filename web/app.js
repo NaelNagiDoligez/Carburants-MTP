@@ -1368,7 +1368,7 @@ function renderTrip() {
   renderSavedTrips();
   renderTripSave();
   els.tripFrom.textContent = originLabel();
-  els.tripRecent.innerHTML = state.trips.map((t, i) => `<button type="button" class="choice" data-trip-recent="${i}">${icon("i-flag")}${esc(tripName(t))}</button>`).join("");
+  els.tripRecent.innerHTML = state.trips.map((t, i) => `<span class="choice-group"><button type="button" class="choice" data-trip-recent="${i}">${icon("i-flag")}${esc(tripName(t))}</button><button type="button" class="choice-x" data-trip-recent-del="${i}" aria-label="Retirer ${esc(tripName(t))} des trajets récents">${icon("i-close")}</button></span>`).join("");
   els.tripCorr.innerHTML = CORRIDORS.map((k) => `<button type="button" class="choice" data-trip-corr="${k}" aria-pressed="${state.tripCorr === k}">${k} km</button>`).join("");
   if (!trip) {
     els.tripMap.hidden = true;
@@ -1719,6 +1719,15 @@ document.addEventListener("click", (e) => {
     state.savedTrips.splice(idx, 1);
     save(); renderSavedTrips(); renderTripSave();
     return toast(`« ${tripName(removed.dest)} » retiré`, { label: "Annuler", run: () => { state.savedTrips.splice(idx, 0, removed); save(); renderSavedTrips(); renderTripSave(); } });
+  }
+  const trd = e.target.closest("[data-trip-recent-del]");
+  if (trd) {
+    const idx = Number(trd.dataset.tripRecentDel);
+    const removed = state.trips[idx];
+    if (!removed) return;
+    state.trips.splice(idx, 1);
+    save(); renderTrip();
+    return toast(`« ${tripName(removed)} » retiré`, { label: "Annuler", run: () => { state.trips.splice(idx, 0, removed); save(); renderTrip(); } });
   }
   const tr = e.target.closest("[data-trip-recent]");
   if (tr) return planTrip(state.trips[Number(tr.dataset.tripRecent)]);
