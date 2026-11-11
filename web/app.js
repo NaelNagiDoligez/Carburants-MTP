@@ -863,7 +863,12 @@ function locHelp() {
     ? "Sur iPhone : Réglages > Confidentialité et sécurité > Service de localisation > Safari > « Lors de l’utilisation » (ou, dans Safari, bouton aA > Réglages du site web > Position > Autoriser)."
     : "Touche le cadenas (ou les réglages) à côté de l’adresse du site > Autorisations > Position > Autoriser.";
 }
-const needZone = () => state.placeId === "gps" && !state.gps && locFailed;
+// preAsk : premier lancement, on explique à quoi sert la position avant que le téléphone ne pose sa question.
+let preAsk = false;
+const needZone = () => state.placeId === "gps" && !state.gps && (locFailed || preAsk);
+async function geoGranted() {
+  try { return (await navigator.permissions.query({ name: "geolocation" })).state === "granted"; } catch { return false; }
+}
 function zoneHelpText(text) {
   const el = $("zoneHelp");
   if (!el) return;
@@ -885,9 +890,7 @@ function closeZoneGate() {
 $("zoneGate")?.addEventListener("cancel", (e) => e.preventDefault()); // impossible de fermer avec Échap : l'appli en a besoin
 $("zoneLocate")?.addEventListener("click", () => {
   zoneHelpText("");
-  const wasData = !!data;
-  locate({ fromUser: true });
-  if (!wasData) { const t = setInterval(() => { if (state.gps) { clearInterval(t); location.reload(); } else if (!locating) clearInterval(t); }, 300); }
+  locate({ fromUser: true }); // une fois la position obtenue, ensureDept() charge les prix du département : pas de rechargement de page
 });
 // Adresse de départ à défaut de position : elle devient un lieu enregistré, choisi comme point de départ.
 let zoneList = [], zoneSeq = 0, zoneTimer = 0;
@@ -2101,11 +2104,13 @@ async function ensureDept() {
   const dep = homeDep();
   if (!dep || dep === data?.dep || switching) return;
   switching = true;
+  const first = !data; // premier chargement (on arrive de l'écran « Où es-tu ? ») : le bouquet se coud comme au démarrage
   try {
     await loadData(dep, { fresh: false });
     renderFuels();
     render();
     renderFresh();
+    if (first) stitchIn(1100);
     applyFriendStock();
     loadHistory();
     loadFavDepts();
@@ -2556,7 +2561,12 @@ const cameBack = fr.consumeRedirect();
 async function boot() {
   els.answerBody.innerHTML = `<div class="skel" role="status" aria-label="Chargement des prix"><span class="skel-bar" style="width:46%;height:28px"></span><span class="skel-bar" style="width:62%;height:16px"></span><span class="skel-bar" style="width:74%;height:92px;margin-top:10px"></span><span class="skel-bar" style="width:100%;height:60px;margin-top:10px;border-radius:20px"></span></div>`;
   renderStart();
-  if (state.placeId === "gps") locate(); // la position est demandée dès l'ouverture
+  // Position : demandée dès l'ouverture si on l'a déjà eue (ou si elle est déjà autorisée). La toute première fois,
+  // l'écran « Où es-tu ? » explique d'abord pourquoi, et c'est le bouton qui déclenche la question du téléphone.
+  if (state.placeId === "gps") {
+    if (state.gps || (await geoGranted())) locate();
+    else preAsk = true;
+  }
   await zone.loadGrid();
   // Quel département ? Celui de la position ou du lieu choisi ; à défaut celui de la dernière fois, le temps d'avoir la position.
   let dep = homeDep() || state.dep;
@@ -2640,7 +2650,7 @@ if ("serviceWorker" in navigator && location.protocol === "https:") {
 // À chaque retour au premier plan, on compare le numéro de version du service worker (sw.js, jamais en cache) avec celui
 // chargé au lancement. S'il a changé, un bandeau propose de recharger : pas besoin de recréer le raccourci.
 // BUILD doit être identique au CACHE de sw.js (vérifié par web/tests/version.test.mjs).
-const BUILD = "plein-sud-v40";
+const BUILD = "plein-sud-v41";
 {
   const versionOf = async () => {
     try {

@@ -829,3 +829,4 @@ html, body { overscroll-behavior-y: none; }
 
 .who.has-req span { text-decoration: none; font-weight: 700; }
 .who.has-req i { background: var(--rose); border-color: var(--rose); }
+.zone-card .zone-next { text-align: center; margin-top: -8px; font-size: 13px; }

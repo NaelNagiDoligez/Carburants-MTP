@@ -2,6 +2,7 @@
 
 ## Prochaine version — toute la France
 
+- Premier lancement : l'écran « Où es-tu ? » explique à quoi sert la position avant que le téléphone ne demande l'autorisation.
 - **Ruptures** : le type (temporaire, définitive) et le début des ruptures déclarées par les stations sont collectés et affichés (« rupture temporaire depuis 3 j ») ; le classement indique combien de stations du rayon sont écartées pour rupture.
 - **Heure du relevé** : l'en-tête affiche l'heure de la dernière collecte, et plus celle de la publication du site ; source et date du relevé toujours visibles en bas de la liste.
 - Confidentialité : la page décrit exactement ce qui est sauvegardé (lieux et trajets compris) et ce qui est transmis aux services d'adresse et d'itinéraire.
