@@ -107,3 +107,7 @@ et classe les stations à moins de 1, 2 ou 5 km de la route (`web/trip.js`, test
 ## Amis (Supabase)
 
 Optionnel : connexion Google (ou pseudo + clé de récupération), amis par code d'invitation, classement d'économies du mois, signalement « carburant épuisé » (pris en compte à partir de deux personnes, ou soi-même), sauvegarde du carnet, des véhicules et des favoris. Base Supabase à Paris, règles RLS testées ; la page [confidentialité](web/confidentialite.html) détaille ce qui est stocké. Le workflow `keepalive.yml` appelle la base deux fois par semaine (un projet gratuit se met en pause après 7 jours sans activité) et purge les signalements de plus de 30 jours.
+
+## Licences
+
+Code : [MIT](LICENSE). Prix : ministère de l'Économie, flux instantané v2, Licence Ouverte 2.0. Positions et enseignes : © contributeurs OpenStreetMap (ODbL). Polices Archivo et Young Serif : SIL Open Font License. Contact : sudpleincontact@gmail.com

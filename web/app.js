@@ -2650,7 +2650,7 @@ if ("serviceWorker" in navigator && location.protocol === "https:") {
 // À chaque retour au premier plan, on compare le numéro de version du service worker (sw.js, jamais en cache) avec celui
 // chargé au lancement. S'il a changé, un bandeau propose de recharger : pas besoin de recréer le raccourci.
 // BUILD doit être identique au CACHE de sw.js (vérifié par web/tests/version.test.mjs).
-const BUILD = "plein-sud-v41";
+const BUILD = "plein-sud-v42";
 {
   const versionOf = async () => {
     try {
