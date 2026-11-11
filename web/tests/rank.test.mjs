@@ -74,3 +74,14 @@ test("l'autonomie écarte les stations trop loin et les classe en dernier", () =
   const out = rankStations([far, near], "e10", { lat: 43.6, lon: 3.88 }, { litres: 10, conso: 5, radiusKm: 40, now, rangeKm: 15 });
   assert.deepEqual(out.map((r) => [r.station.id, r.unreachable]), [["proche", false], ["loin", true]]);
 });
+
+test("rupture déclarée dans le flux : écarte le carburant et donne le type et le début", async () => {
+  const { isOutOfStock, ruptureOf } = await import("../rank.js");
+  const s = { prices: { gazole: [2.1, "2026-11-10T08:00:00Z"] }, rupt: { gazole: ["temporaire", "2026-11-09T06:00:00Z"], sp98: ["definitive", null] } };
+  assert.equal(isOutOfStock(s, "gazole"), true);
+  assert.equal(isOutOfStock(s, "e10"), false);
+  assert.equal(ruptureOf(s, "gazole").type, "temporaire");
+  assert.equal(ruptureOf(s, "gazole").since.toISOString(), "2026-11-09T06:00:00.000Z");
+  assert.equal(ruptureOf(s, "sp98").since, null);
+  assert.equal(ruptureOf(s, "e10"), null);
+});

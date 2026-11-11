@@ -1,5 +1,5 @@
 import * as fr from "./friends.js";
-import { rankStations, haversineKm, isOutOfStock, ROAD_FACTOR } from "./rank.js";
+import { rankStations, haversineKm, isOutOfStock, ruptureOf, ROAD_FACTOR } from "./rank.js";
 import { matchVehicle, catalogNames } from "./catalog.js";
 import * as zone from "./zone.js";
 import { prepareRoute, stationsAlongRoute, coveredUntilKm, thin } from "./trip.js";
@@ -192,7 +192,14 @@ const LEVEL_TTL = 48 * 3600000; // un niveau noté il y a plus de 48 h n'est plu
 function vehicle() {
   const v = state.vehicles.find((x) => x.id === state.profileId) || state.vehicles[0] || NO_VEHICLE;
   const known = Number.isFinite(v.level) && Date.now() - (v.levelAt || 0) < LEVEL_TTL;
-  return { ...v, short: v.short || v.label, level: known ? v.level : null };
+  return { ...v, short: v.short || shortLabel(v.label), level: known ? v.level : null };
+}
+// « CFMoto 450MT » -> « 450MT », « Renault Clio » -> « Clio » : la pastille d'en-tête doit garder la place du rayon.
+function shortLabel(label) {
+  const t = String(label || "").trim();
+  if (t.length <= 10) return t;
+  const last = t.split(/\s+/).at(-1);
+  return last.length >= 2 && last.length <= 10 ? last : `${t.slice(0, 9)}…`;
 }
 const rawVehicle = () => state.vehicles.find((x) => x.id === state.profileId) || state.vehicles[0];
 // Litres à mettre : ce qui manque pour remplir le réservoir (au moins 3 L) ; plein assumé si le niveau est inconnu.
@@ -206,11 +213,22 @@ const stationById = (id) => data?.stations.find((s) => s.id === id) || zone.know
 const isFav = (id) => state.favs.includes(id);
 const fuelLabel = () => data.fuels[state.fuel]?.label ?? state.fuel;
 
+let outNearby = 0; // stations du rayon écartées du classement parce que le carburant y est en rupture
 function computeRanking() {
   const v = vehicle();
-  const usable = data.stations.filter((s) => !isOutOfStock(s, state.fuel));
-  ranked = rankStations(usable, state.fuel, origin(), { litres: litresToBuy(v), conso: Number(v.conso) || 0, radiusKm: state.radius, rangeKm: rangeOf(v) });
+  const opts = { litres: litresToBuy(v), conso: Number(v.conso) || 0, radiusKm: state.radius, rangeKm: rangeOf(v) };
+  const usable = [], out = [];
+  for (const s of data.stations) (isOutOfStock(s, state.fuel) ? out : usable).push(s);
+  ranked = rankStations(usable, state.fuel, origin(), opts);
   ranked.forEach((r, i) => { r.rank = i + 1; });
+  outNearby = rankStations(out, state.fuel, origin(), opts).length;
+}
+// « Rupture temporaire depuis 3 j » : ce que la station a déclaré, ou à défaut une mention générale.
+function ruptureText(s, f) {
+  const r = ruptureOf(s, f);
+  if (!r) return "rupture signalée";
+  const kind = /d[ée]finitive/i.test(r.type || "") ? "rupture définitive" : /temporaire/i.test(r.type || "") ? "rupture temporaire" : "rupture";
+  return r.since ? `${kind} depuis ${ago(r.since).replace(/^il y a /, "")}` : kind;
 }
 
 // ---------- Rendu ----------
@@ -226,27 +244,27 @@ function renderFuels() {
   const fuels = FUEL_ORDER.filter((f) => data.fuels[f]);
   if (!fuels.includes(state.fuel)) state.fuel = fuels[0];
   els.fuels.innerHTML = fuels.map((f) => `<button type="button" role="radio" class="fuel" data-fuel="${f}"
-      aria-checked="${f === state.fuel}"><b>${esc(data.fuels[f].label)}</b></button>`).join("");
+      aria-checked="${f === state.fuel}" tabindex="${f === state.fuel ? 0 : -1}"><b>${esc(data.fuels[f].label)}</b></button>`).join("");
 }
 function renderFresh() {
-  const age = hoursOld(new Date(data.generated_at));
-  const old = age > 24;
+  const at = relevedAt();
+  const old = hoursOld(at) > 24;
   els.fresh.hidden = false;
   els.fresh.classList.toggle("warn", old);
   els.fresh.innerHTML = old
-    ? `${icon("i-caution")}<span>Prix relevés ${ago(new Date(data.generated_at))} : ils ont pu changer. Tire vers le bas pour actualiser.</span>`
-    : `Prix relevés ${ago(new Date(data.generated_at))}`;
-  const how = document.querySelector(".how p");
-  if (!how) return;
-  let note = how.querySelector(".fresh-note");
-  if (!note) { note = document.createElement("span"); note.className = "fresh-note"; how.append(" ", note); }
-  note.textContent = `Prix officiels relevés ${ago(new Date(data.generated_at))}.`;
+    ? `${icon("i-caution")}<span>Prix relevés ${ago(at)} : ils ont pu changer. Tire vers le bas pour actualiser.</span>`
+    : `Prix relevés ${ago(at)}`;
+  // Source et date du relevé, toujours visibles (Licence Ouverte : mention de la source et de la date de mise à jour).
+  const src = $("srcNote");
+  if (src) src.innerHTML = `Source des prix : <a href="https://www.prix-carburants.gouv.fr/" target="_blank" rel="noopener">prix-carburants.gouv.fr</a> (ministère de l’Économie), Licence Ouverte. Dernier relevé : ${esc(dayFmt(at))} à ${esc(timeFmt.format(at))}. Plein Sud n’est pas un service officiel.`;
 }
+// Heure du dernier relevé du flux. generated_at n'est que l'heure de l'export : le site peut être republié sans nouvelle collecte.
+const relevedAt = () => new Date(data.collected_at || data.generated_at);
 const navLabel = () => NAV_APPS.find((a) => a.id === state.nav)?.label;
 
 function renderAnswer() {
   if (!ranked.length) {
-    const tooOld = hoursOld(new Date(data.generated_at)) > 24 * 14;
+    const tooOld = hoursOld(relevedAt()) > 24 * 14;
     const why = !Object.keys(data.fuels).length ? "Le relevé ne contient aucun prix pour l’instant. Tire vers le bas pour réessayer."
       : tooOld ? "Les prix de ce relevé ont plus de 14 jours. Tire vers le bas pour actualiser."
       : `Pas de ${esc(fuelLabel())} avec un prix récent à moins de ${state.radius} km ${esc(deName(originLabel()))}.`;
@@ -415,6 +433,11 @@ function renderRank() {
     setTimeout(() => els.alts.classList.remove("unroll"), 1000);
   }
   const rest = ranked.length - 1 - ALTS;
+  const outNote = $("outNote");
+  if (outNote) {
+    outNote.hidden = !outNearby;
+    if (outNearby) outNote.innerHTML = `${icon("i-caution")}<span>${outNearby} station${outNearby > 1 ? "s" : ""} à moins de ${state.radius} km écartée${outNearby > 1 ? "s" : ""} : ${esc(fuelLabel())} en rupture.</span>`;
+  }
   els.showAll.hidden = rest <= 0;
   els.showAll.setAttribute("aria-expanded", String(showAll));
   els.showAllText.textContent = showAll ? "Masquer les autres stations" : (rest === 1 ? "Voir l’autre station" : `Voir les ${rest} autres stations`);
@@ -447,7 +470,7 @@ function render() {
   if (!data) return renderStart();
   computeRanking();
   renderStart();
-  for (const b of els.fuels.querySelectorAll(".fuel")) b.setAttribute("aria-checked", String(b.dataset.fuel === state.fuel));
+  for (const b of els.fuels.querySelectorAll(".fuel")) { b.setAttribute("aria-checked", String(b.dataset.fuel === state.fuel)); b.tabIndex = b.dataset.fuel === state.fuel ? 0 : -1; }
   renderRank();
   if (view === "fav") renderFavs();
   if (view === "map") renderMap();
@@ -476,7 +499,7 @@ function showView(next) {
   const dir = VIEWS.indexOf(next) > VIEWS.indexOf(view) ? "from-right" : "from-left";
   view = next;
   placeThread();
-  for (const t of document.querySelectorAll(".tabs [role=tab]")) t.setAttribute("aria-selected", String(t.dataset.view === next));
+  for (const t of document.querySelectorAll(".tabs [role=tab]")) { t.setAttribute("aria-selected", String(t.dataset.view === next)); t.tabIndex = t.dataset.view === next ? 0 : -1; }
   for (const id of VIEWS) {
     const el = $(`view-${id}`);
     el.hidden = id !== next;
@@ -576,11 +599,11 @@ function recolor(style, pal) {
   return s;
 }
 const currentPalette = () => MAP_PALETTES[isDark() ? "dark" : "light"];
-function flowerPin(n, top) {
+function flowerPin(n, top, label) {
   const el = document.createElement("button");
   el.type = "button";
   el.className = `pin${top ? " is-best" : ""}`;
-  el.setAttribute("aria-label", `Station ${n}`);
+  el.setAttribute("aria-label", label || `Station ${n}`);
   // Pastille cousue (point de couture en pointillé), numéro du classement au centre
   el.textContent = String(n);
   return el;
@@ -628,7 +651,7 @@ async function renderMap() {
     placed.push({ x: pt.x + r.pinOffset[0], y: pt.y + r.pinOffset[1] });
   }
   shown.slice().reverse().forEach((r) => {
-    const el = flowerPin(r.rank, r.rank === 1);
+    const el = flowerPin(r.rank, r.rank === 1, `${r.rank}${r.rank === 1 ? "re" : "e"}, ${stationName(r.station)}, ${priceSpoken(r.price)}, ${kmText(r.distanceKm)} kilomètres`);
     el.addEventListener("click", (e) => { e.stopPropagation(); openStation(r.station.id); });
     markers.push(new maplib.Marker({ element: el, offset: r.pinOffset }).setLngLat([r.station.lon, r.station.lat]).addTo(map));
   });
@@ -639,10 +662,12 @@ function openStation(id) {
   const s = stationById(id);
   if (!s) return;
   const r = ranked.find((x) => x.station.id === id);
-  const prices = FUEL_ORDER.filter((f) => s.prices[f]).map((f) => {
+  const prices = FUEL_ORDER.filter((f) => s.prices[f] || s.rupt?.[f]).map((f) => {
+    const name = `<span class="fuel-name${f === state.fuel ? " cur" : ""}">${esc(data.fuels[f]?.label ?? REPORT_NAMES[f] ?? f)}</span>`;
+    const out = isOutOfStock(s, f) ? `<span class="flag">${icon("i-caution")}${esc(ruptureText(s, f))}</span>` : "";
+    if (!s.prices[f]) return `<li class="is-out">${name}<span class="num">–</span><small>${out}</small></li>`; // en rupture, plus de prix récent
     const [p, t] = s.prices[f];
-    const out = isOutOfStock(s, f) ? ` <span class="flag">${icon("i-caution")}rupture signalée</span>` : "";
-    return `<li><span class="fuel-name${f === state.fuel ? " cur" : ""}">${esc(data.fuels[f]?.label ?? f)}</span><span class="num">${priceHTML(p)}</span><small>prix ${ago(new Date(t))}${out}</small></li>`;
+    return `<li${out ? ' class="is-out"' : ""}>${name}<span class="num">${priceHTML(p)}</span><small>${out ? "dernier prix connu" : "prix"} ${ago(new Date(t))} ${out}</small></li>`;
   }).join("");
   const facts = [
     s.snap ? ["Position", "relevée sur OpenStreetMap, l’itinéraire vise la station"] : ["Position", "approximative : l’itinéraire vise l’adresse"],
@@ -766,12 +791,12 @@ els.levelUnknown.addEventListener("click", () => setLevel(null));
 
 function renderSettings() {
   const pen = `<svg class="ic ic-edit" aria-hidden="true"><use href="#i-edit"/></svg>`;
-  els.places.innerHTML = state.places.map((p) => `<button type="button" class="choice" data-place="${p.id}" aria-pressed="${state.placeId === p.id}">${esc(p.label)}${p.city ? `<small>${esc(p.city)}</small>` : ""}${state.placeId === p.id ? pen : ""}</button>`).join("")
+  els.places.innerHTML = state.places.map((p) => `<button type="button" class="choice" data-place="${esc(p.id)}" aria-pressed="${state.placeId === p.id}">${esc(p.label)}${p.city ? `<small>${esc(p.city)}</small>` : ""}${state.placeId === p.id ? pen : ""}</button>`).join("")
     + (state.places.length < MAX_PLACES ? `<button type="button" class="choice choice-add" data-place-add><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Ajouter un lieu</button>` : "");
   els.placeForm.hidden = placeEditing === null;
   els.placeDelete.hidden = placeEditing === null || placeEditing === "new";
   const current = vehicle().id;
-  els.profiles.innerHTML = state.vehicles.map((v) => `<button type="button" class="choice" data-profile="${v.id}" aria-pressed="${current === v.id}">${esc(v.label)}<small>${v.year ? `${v.year}, ` : ""}${litresText(v.litres)} L, ${commaNum(Number(v.conso), 1)} L/100</small>${current === v.id ? pen : ""}</button>`).join("")
+  els.profiles.innerHTML = state.vehicles.map((v) => `<button type="button" class="choice" data-profile="${esc(v.id)}" aria-pressed="${current === v.id}">${esc(v.label)}<small>${v.year ? `${esc(v.year)}, ` : ""}${litresText(v.litres)} L, ${commaNum(Number(v.conso), 1)} L/100</small>${current === v.id ? pen : ""}</button>`).join("")
     + `<button type="button" class="choice choice-add" data-veh-add><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Ajouter un véhicule</button>`;
   renderLevel();
   $("levelBox").hidden = !state.vehicles.length;
@@ -878,7 +903,7 @@ $("zoneAddr")?.addEventListener("input", () => {
     }
     if (seq !== zoneSeq) return;
     sugg.innerHTML = zoneList.length
-      ? zoneList.map((g, i) => `<li role="option"><button type="button" data-zone-sugg="${i}">${esc(g.label)}<small>${esc(g.detail || "")}</small></button></li>`).join("")
+      ? zoneList.map((g, i) => `<li role="presentation"><button type="button" role="option" data-zone-sugg="${i}">${esc(g.label)}<small>${esc(g.detail || "")}</small></button></li>`).join("")
       : `<li class="trip-sugg-msg">Aucun lieu trouvé</li>`;
     sugg.hidden = false;
   }, 280);
@@ -1058,7 +1083,7 @@ function renderLog() {
     els.logTotal.insertAdjacentHTML("beforeend", `<p class="hint">Ajoute le kilométrage à deux pleins pour voir ta consommation réelle.</p>`);
   }
   els.logList.innerHTML = entries.map((e) => `<li class="log-item">
-      <p>${esc(e.ville)}, ${esc(e.fuelLabel)}<small>${dayFmt(new Date(e.date))}, ${String(e.litres).replace(".", ",")} L à ${commaNum(e.price, 3)} €</small></p>
+      <p>${esc(e.ville)}, ${esc(e.fuelLabel)}<small>${dayFmt(new Date(e.date))}, ${esc(String(e.litres).replace(".", ","))} L à ${commaNum(e.price, 3)} €</small></p>
       <span class="log-gain${e.gain < 0 ? " neg" : ""}" aria-label="${eur.format(Math.abs(e.gain))} ${e.gain >= 0 ? "économisés" : "de plus que le prix médian"}">${e.gain >= 0 ? "+" : "−"}${eur.format(Math.abs(e.gain))}</span>
       <button type="button" class="log-del" data-del="${esc(e.id)}" aria-label="Supprimer ce plein">${icon("i-close")}</button>
     </li>`).join("");
@@ -1155,8 +1180,8 @@ function themeHint() {
   if (!T || (state.theme || "auto") !== "auto") return "";
   const now = new Date();
   const { sunrise, sunset } = T.sunTimes(now);
-  if (now < sunrise) return `Fleurs de nuit jusqu’au lever du soleil, à ${timeFmt.format(sunrise)} à Montpellier.`;
-  if (now < sunset) return `Passe en sombre au coucher du soleil, à ${timeFmt.format(sunset)} aujourd’hui à Montpellier.`;
+  if (now < sunrise) return `Fleurs de nuit jusqu’au lever du soleil, à ${timeFmt.format(sunrise)}.`;
+  if (now < sunset) return `Passe en sombre au coucher du soleil, à ${timeFmt.format(sunset)} aujourd’hui.`;
   const tomorrow = T.sunTimes(new Date(now.getTime() + 86400000)).sunrise;
   return `Repasse en clair au lever du soleil, à ${timeFmt.format(tomorrow)} demain.`;
 }
@@ -1254,8 +1279,11 @@ async function fetchRoute(a, b) {
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 9000);
-    const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${a.lon},${a.lat};${b.lon},${b.lat}?overview=full&geometries=geojson`, { signal: ctrl.signal });
-    clearTimeout(timer);
+    let res;
+    try {
+      res = await fetch(`https://router.project-osrm.org/route/v1/driving/${a.lon},${a.lat};${b.lon},${b.lat}?overview=full&geometries=geojson`, { signal: ctrl.signal });
+    } finally { clearTimeout(timer); }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const r = (await res.json()).routes?.[0];
     if (!r) throw new Error("pas d'itinéraire");
     return { coords: r.geometry.coordinates, distanceKm: r.distance / 1000, durationMin: r.duration / 60, approx: false };
@@ -1513,7 +1541,7 @@ async function renderTripMap(rows) {
   end.setAttribute("aria-label", tripName(trip.dest));
   const sewing = tripFresh;
   rows.slice(0, 5).map((r, i) => ({ r, i })).reverse().forEach(({ r, i }) => {
-    const el = flowerPin(i + 1, i === 0);
+    const el = flowerPin(i + 1, i === 0, `${i + 1}${i === 0 ? "re" : "e"} sur la route, ${stationName(r.station)}, ${priceSpoken(r.price)}`);
     el.addEventListener("click", (e) => { e.stopPropagation(); openStation(r.station.id); });
     if (sewing) { el.classList.add(reduceMotion.matches ? "pop-in" : "pin-hold"); el.style.setProperty("--pd", `${Math.round(300 + (r.atKm / Math.max(0.1, trip.route.length)) * 1700)}ms`); }
     const holder = document.createElement("div");
@@ -1566,7 +1594,7 @@ els.tripTo.addEventListener("input", () => {
     }
     if (els.tripTo.value.trim() !== q) return;
     els.tripSugg.innerHTML = suggestions.length
-      ? suggestions.map((g, i) => `<li role="option"><button type="button" data-trip-sugg="${i}">${esc(g.label)}<small>${esc(g.detail || "")}</small></button></li>`).join("")
+      ? suggestions.map((g, i) => `<li role="presentation"><button type="button" role="option" data-trip-sugg="${i}">${esc(g.label)}<small>${esc(g.detail || "")}</small></button></li>`).join("")
       : `<li class="trip-sugg-msg">Aucun lieu trouvé</li>`;
     els.tripSugg.hidden = false;
   }, 280);
@@ -1611,6 +1639,32 @@ els.fuels.addEventListener("click", (e) => {
   els.logStation.innerHTML = "";
   update();
 });
+// Clavier : flèches gauche/droite (et Début/Fin) pour passer d'un carburant ou d'un onglet à l'autre.
+function arrowNav(container, selector, activate) {
+  container.addEventListener("keydown", (e) => {
+    const items = [...container.querySelectorAll(selector)];
+    const i = items.indexOf(document.activeElement);
+    if (i < 0) return;
+    const j = e.key === "ArrowRight" || e.key === "ArrowDown" ? (i + 1) % items.length
+      : e.key === "ArrowLeft" || e.key === "ArrowUp" ? (i - 1 + items.length) % items.length
+      : e.key === "Home" ? 0 : e.key === "End" ? items.length - 1 : -1;
+    if (j < 0) return;
+    e.preventDefault();
+    activate(items[j]);
+    container.querySelectorAll(selector)[j]?.focus();
+  });
+}
+arrowNav(els.fuels, "[data-fuel]", (b) => b.click());
+arrowNav(document.querySelector(".tabs"), "[role=tab]", (t) => showView(t.dataset.view));
+for (const t of document.querySelectorAll(".tabs [role=tab]")) t.tabIndex = t.getAttribute("aria-selected") === "true" ? 0 : -1;
+// Listes de suggestions d'adresses : le champ annonce si sa liste est ouverte.
+for (const ul of document.querySelectorAll(".trip-sugg")) {
+  const input = document.querySelector(`[aria-controls="${ul.id}"]`);
+  if (!input) continue;
+  const sync = () => input.setAttribute("aria-expanded", String(!ul.hidden));
+  new MutationObserver(sync).observe(ul, { attributes: true, attributeFilter: ["hidden"] });
+  sync();
+}
 function openSettingsSheet() { renderSettings(); openSheet(els.settingsSheet); }
 els.start.addEventListener("click", openSettingsSheet);
 for (const t of document.querySelectorAll(".tabs [role=tab]")) t.addEventListener("click", () => showView(t.dataset.view));
@@ -1812,7 +1866,7 @@ els.placeAddr.addEventListener("input", () => {
     if (seq !== placeSeq) return;
     placeList = list;
     els.placeSugg.innerHTML = list.length
-      ? list.map((g, i) => `<li role="option"><button type="button" data-place-sugg="${i}">${esc(g.label)}<small>${esc(g.detail || "")}</small></button></li>`).join("")
+      ? list.map((g, i) => `<li role="presentation"><button type="button" role="option" data-place-sugg="${i}">${esc(g.label)}<small>${esc(g.detail || "")}</small></button></li>`).join("")
       : `<li class="trip-sugg-msg">Aucun lieu trouvé</li>`;
     els.placeSugg.hidden = false;
   }, 280);
@@ -2072,7 +2126,8 @@ let refreshing = false;
 async function refreshData({ quiet = false } = {}) {
   if (refreshing) return;
   refreshing = true;
-  const before = data?.generated_at;
+  const stamp = () => data?.collected_at || data?.generated_at;
+  const before = stamp();
   let result = "fail";
   try {
     await loadData();
@@ -2084,11 +2139,11 @@ async function refreshData({ quiet = false } = {}) {
     if (view === "map") renderMap();
     if (!before) stitchIn(800);
     loadHistory();
-    const when = ago(new Date(data.generated_at));
-    result = dataOffline ? "offline" : data.generated_at === before ? "same" : "new";
+    const when = ago(relevedAt());
+    result = dataOffline ? "offline" : stamp() === before ? "same" : "new";
     lastRefreshWhen = when;
     if (!quiet) toast(dataOffline ? `Hors ligne : prix du dernier relevé (${when})`
-      : data.generated_at === before ? `Déjà à jour : prix relevés ${when}` : `Prix mis à jour : relevés ${when}`);
+      : stamp() === before ? `Déjà à jour : prix relevés ${when}` : `Prix mis à jour : relevés ${when}`);
   } catch {
     if (!quiet) toast("Pas de connexion : les prix n’ont pas changé");
   } finally {
@@ -2365,7 +2420,7 @@ async function renderFriends() {
       const st = stockOf(id, fuel), s = stationById(id);
       return `<li class="${st.confirmed ? "rep-ok" : "rep-wait"}"><span><b>${esc(s ? stationName(s) : "station hors zone")}</b> · ${esc(REPORT_NAMES[fuel] || fuel)} épuisé<br><small>${st.confirmed ? "selon" : "à confirmer, signalé par"} ${esc(namesOf(st.out))}, ${ago(new Date(st.out[0].created_at))}</small></span></li>`;
     }).join("");
-    const board = rank.map((r, i) => `<li${r.mine ? ' class="me"' : ""}><span class="rk">${i + 1}</span><span class="nm">${esc(r.mine ? `${r.pseudo} (toi)` : r.pseudo)}</span><span class="eu">${r.euros >= 0 ? "+" : "−"}${eur.format(Math.abs(Number(r.euros)))}</span><small>${r.fills} plein${r.fills > 1 ? "s" : ""}</small></li>`).join("");
+    const board = rank.map((r, i) => `<li${r.mine ? ' class="me"' : ""}><span class="rk">${i + 1}</span><span class="nm">${esc(r.mine ? `${r.pseudo} (toi)` : r.pseudo)}</span><span class="eu">${r.euros >= 0 ? "+" : "−"}${eur.format(Math.abs(Number(r.euros)))}</span><small>${Number(r.fills) || 0} plein${r.fills > 1 ? "s" : ""}</small></li>`).join("");
     friendsBody.innerHTML = `
       <p class="fr-me">Tu es <b>${esc(me.pseudo)}</b>. Ton code d’invitation :</p>
       <div class="fr-code"><output>${esc(me.code)}</output>${navigator.share ? `<button class="icon-btn" type="button" data-fr-share aria-label="Partager mon code">${icon("i-share")}</button>` : ""}</div>
@@ -2585,7 +2640,7 @@ if ("serviceWorker" in navigator && location.protocol === "https:") {
 // À chaque retour au premier plan, on compare le numéro de version du service worker (sw.js, jamais en cache) avec celui
 // chargé au lancement. S'il a changé, un bandeau propose de recharger : pas besoin de recréer le raccourci.
 // BUILD doit être identique au CACHE de sw.js (vérifié par web/tests/version.test.mjs).
-const BUILD = "plein-sud-v39";
+const BUILD = "plein-sud-v40";
 {
   const versionOf = async () => {
     try {

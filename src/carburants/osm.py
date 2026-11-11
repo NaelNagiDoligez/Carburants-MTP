@@ -3,7 +3,7 @@
 Le flux officiel donne une adresse et des coordonnées approximatives (souvent le milieu de la route).
 OpenStreetMap connaît la station elle-même : on rapproche chaque station du flux de la station OSM
 la plus proche (400 m maximum, une station OSM ne sert qu'une fois), ce qui donne la vraie position
-et, souvent, l'enseigne. Si OSM est injoignable, rien ne casse : le site garde les coordonnées du flux.
+et, à moins de 150 m, l'enseigne. Si OSM est injoignable, rien ne casse : le site garde les coordonnées du flux.
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ OVERPASS_URLS = [
     "https://overpass.kumi.systems/api/interpreter",
 ]
 MAX_SNAP_M = 400.0
+NAME_MAX_M = 150.0  # au-delà, on reprend la position mais pas l'enseigne : ce peut être la station d'en face
 REFRESH_DAYS = 7
 MAX_REGIONS_PER_RUN = 12  # départements interrogés par passage : la France entière se remplit en quelques passages
 PAUSE_S = 4.0
@@ -104,7 +105,7 @@ def snap(stations: list[dict], osm: list[dict], max_m: float = MAX_SNAP_M) -> di
         used_station.add(sid)
         used_osm.add(oid)
         o = by_osm[oid]
-        out[sid] = {"lat": o["lat"], "lon": o["lon"], "nom": display_name(o), "osm_id": oid, "dist_m": round(d)}
+        out[sid] = {"lat": o["lat"], "lon": o["lon"], "nom": display_name(o) if d <= NAME_MAX_M else None, "osm_id": oid, "dist_m": round(d)}
     return out
 
 

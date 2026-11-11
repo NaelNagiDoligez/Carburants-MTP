@@ -1,11 +1,12 @@
-# Carburants Montpellier
+# Plein Sud : prix des carburants en France, du flux officiel à l'appli de poche
 
-> **Version 0.9 (bêta)** : tout fonctionne ; restent à valider sur de vrais téléphones les amis à plusieurs et la restauration de la sauvegarde. Voir [CHANGELOG.md](CHANGELOG.md).
+> **Version 0.9 (bêta)** : tout fonctionne ; reste à valider sur de vrais téléphones les amis à plusieurs. Voir [CHANGELOG.md](CHANGELOG.md).
 
-https://carte-carburants-mtp.streamlit.app
+- **L'appli mobile** : https://naelnagidoligez.github.io/Carburants-MTP/ (site statique installable, classement par coût total d'un plein, détour compris)
+- **Le tableau de bord des données** : https://carte-carburants-mtp.streamlit.app (médianes par jour, prévision et sa fiabilité, ruptures, état de la collecte)
 
-Pipeline de données qui historise chaque jour les prix des carburants (SP95, E10, SP98, gazole...)
-autour de Montpellier, à partir du flux officiel
+Pipeline de données qui historise plusieurs fois par jour les prix des carburants (SP95, E10, SP98, gazole...)
+de toute la France, à partir du flux officiel
 [Prix des carburants en France, flux instantané v2](https://www.data.gouv.fr/fr/datasets/6407d088d4e23dc662022e2c)
 (licence ouverte 2.0).
 
@@ -15,17 +16,19 @@ le contrôle, puis sert à analyser et prévoir les prix (voir `docs/roadmap.htm
 ## Où en est le projet
 
 - [x] Étape 1 : ingestion, contrôles qualité, stockage Parquet, tests, GitHub Actions
-- [~] Étape 2 : appli « où faire le plein » (faite, à déployer), analyses SQL et historique (à faire)
-- [ ] Étape 3 : prévision du prix à 7 jours
+- [x] Étape 2 : site mobile Plein Sud (toute la France, par département), tableau de bord Streamlit, historique
+- [x] Étape 3 : prévision du prix à 7 jours, étiquetée expérimentale, vérifiée sur le passé
+- [x] Ruptures déclarées par les stations (type et début), collectées et affichées
+- [ ] v1 : test des amis à plusieurs sur de vrais téléphones
 
 ## Site mobile « Plein Sud »
 
 Site statique (`web/`) pensé pour le téléphone : position GPS, classement des stations par coût total
 d'un plein (détour compris), profils de véhicule, animations, installable sur l'écran d'accueil.
-Il lit `latest.json`, produit par `python -m carburants export` et republié sur GitHub Pages après
-chaque collecte (`.github/workflows/pages.yml`).
+Il lit les fichiers produits par `python -m carburants export` (un par département), republiés sur GitHub Pages après
+chaque collecte, une fois les tests passés (`.github/workflows/pages.yml`).
 
-Tester en local : `python -m carburants export` puis `python -m http.server -d web 8000` et ouvrir http://localhost:8000.
+Tester en local : `python -m carburants export --out web/data` puis `python -m http.server -d web 8000` et ouvrir http://localhost:8000.
 
 ## Lancer en local (Windows, PowerShell)
 
@@ -57,9 +60,10 @@ API data.economie.gouv.fr -> extract -> transform -> quality -> load (Parquet pa
 |---|---|
 | `src/carburants/extract.py` | Téléchargement avec reprises automatiques |
 | `src/carburants/transform.py` | Passage « une colonne par carburant » vers une table propre (station, carburant, prix, date) |
-| `src/carburants/quality.py` | Prix hors bornes, flux gelé, chute de volume |
-| `src/carburants/load.py` | Écriture Parquet idempotente, sans doublon |
-| `.github/workflows/ingest.yml` | Exécution automatique toutes les 6 h |
+| `src/carburants/quality.py` | Prix hors bornes (écartés ; relevé refusé au-delà de 1 %), flux gelé, chute de volume |
+| `src/carburants/load.py` | Écriture Parquet idempotente, sans doublon ; dimension des stations stable, disponibilité à part |
+| `src/carburants/export.py`, `history.py` | Fichiers du site par département, médianes quotidiennes, prévision et score |
+| `.github/workflows/ingest.yml` | Exécution automatique, planifiée toutes les 4 h (GitHub en saute : 3 à 4 passages réels par jour) |
 
 Zone suivie : toute la France (le flux complet est déjà téléchargé ; `CARBURANTS_DEPARTMENTS="34,30"` restreint pour les essais).
 Le site ne charge que le département de l'utilisateur : `web/data/dept/<code>.json` (ses stations + celles à moins de 35 km de sa frontière),
@@ -67,26 +71,32 @@ Le site ne charge que le département de l'utilisateur : `web/data/dept/<code>.j
 Ces fichiers sont générés au déploiement (`python -m carburants export`), jamais commités ; `data/` (Parquet) ne stocke qu'un fichier par jour.
 Les positions OpenStreetMap sont rafraîchies par département, 12 par passage, chacun au plus une fois par semaine.
 
-## Points à vérifier au premier lancement réel
+## Données stockées
 
-Le schéma du flux (noms de colonnes `sp95_prix`, `sp95_maj`, `dep_code`...) a été écrit
-d'après la documentation, sans pouvoir être testé sur le vrai flux. Si les colonnes diffèrent,
-`transform.py` s'arrête avec la liste des colonnes disponibles : il suffit d'ajuster `config.py`.
+| Fichier | Contenu |
+|---|---|
+| `data/price_events/AAAA-MM-JJ.parquet` | Un événement par changement de prix (station, carburant, prix, date de mise à jour, date de première observation), un fichier par jour |
+| `data/stations.parquet` | Dimension des stations (adresse, position, horaires, services) : triée, réécrite seulement si elle change |
+| `data/station_status.parquet` | Ce qui bouge à chaque relevé : carburants indisponibles, ruptures (type, début) |
+| `data/osm_fuel.json` | Cache des stations OpenStreetMap, par département |
+
+Le flux fournit `<carburant>_prix`, `<carburant>_maj`, `<carburant>_rupture_type`, `<carburant>_rupture_debut`, `code_departement`…
+Si le schéma change, `transform.py` s'arrête en listant les colonnes disponibles.
 
 ## Positions des stations (OpenStreetMap)
 
 Les coordonnées du flux officiel tombent parfois au milieu de la route. Une fois par semaine, `python -m carburants osm`
 récupère les stations `amenity=fuel` d'OpenStreetMap (cache `data/osm_fuel.json`) et l'export recale chaque station sur le
-point OSM le plus proche (≤ 150 m), avec son enseigne. Sans cache, l'itinéraire utilise l'adresse.
+point OSM le plus proche (≤ 400 m pour la position ; l'enseigne n'est reprise qu'à moins de 150 m). Sans cache, l'itinéraire utilise l'adresse.
 Données © contributeurs OpenStreetMap, licence ODbL.
 
 ## En coulisses
 
 La page [`web/coulisses.html`](web/coulisses.html) (lien « En coulisses » en bas des réglages de l'appli) montre le
 chemin d'un prix, les chiffres du jour, les courbes par carburant et la méthode de prévision. L'export écrit
-`web/data/history.json` à côté de `latest.json` : médiane quotidienne du prix en vigueur depuis le début de la
+`web/data/history.json` (national) et `web/data/hist/<code>.json` (par département) : médiane quotidienne du prix en vigueur depuis le début de la
 collecte, et 7 jours de scénarios (réaliste = tendance des 14 derniers jours amortie, optimiste/pessimiste =
-± variation quotidienne habituelle × √jours). Code : `src/carburants/history.py`.
+± variation quotidienne habituelle × √jours, plus l'incertitude sur la tendance). Code : `src/carburants/history.py`.
 
 ## Trajet
 

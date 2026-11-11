@@ -43,9 +43,10 @@
 
     <h2>Sans profil (par défaut)</h2>
     <ul>
-      <li>Ta position, tes véhicules, ton carnet de pleins, tes favoris et tes réglages restent <b>sur ton téléphone</b> (stockage du navigateur). Rien n’est envoyé à un serveur.</li>
-      <li>Ta position sert seulement à calculer les distances, sur le téléphone. Elle n’est jamais enregistrée ailleurs.</li>
-      <li>L’onglet Trajet envoie l’adresse tapée à la Base Adresse Nationale (api-adresse.data.gouv.fr) et les deux points du trajet au calcul d’itinéraire OSRM (router.project-osrm.org). Le fond de carte vient d’OpenFreeMap.</li>
+      <li>Ta position, tes véhicules, ton carnet de pleins, tes favoris et tes réglages restent <b>sur ton téléphone</b> (stockage du navigateur). Aucun compte n’est nécessaire.</li>
+      <li>Ta position sert à calculer les distances, sur le téléphone. Plein Sud ne l’enregistre sur aucun serveur. Elle est transmise à deux services publics, seulement quand tu t’en sers : la recherche d’adresse et le calcul d’itinéraire (ci-dessous).</li>
+      <li>Quand tu cherches une adresse (trajet, lieu de départ), le texte tapé est envoyé à la Base Adresse Nationale (api-adresse.data.gouv.fr), avec ta position ou ton lieu de départ pour proposer d’abord les adresses proches. Quand tu calcules un trajet, le départ et l’arrivée sont envoyés au calcul d’itinéraire OSRM (router.project-osrm.org). Le fond de carte vient d’OpenFreeMap, qui reçoit la zone affichée.</li>
+      <li>Comme tout site, l’hébergeur (GitHub Pages) voit l’adresse IP des appareils qui chargent les pages.</li>
     </ul>
 
     <h2>Avec un profil d’ami</h2>
@@ -56,9 +57,9 @@
       <li><b>Tes amitiés</b> : demandes et amis acceptés.</li>
       <li><b>Tes signalements « épuisé »</b> (station, carburant, heure) : visibles par tes amis pendant 12 h, effacés automatiquement au bout de 30 jours.</li>
       <li><b>Ton total d’économies du mois</b> et le nombre de pleins : visibles par tes amis dans le classement. Ni les stations, ni les lieux, ni les dates de tes pleins.</li>
-      <li><b>La sauvegarde</b> de ton carnet, de tes véhicules, de tes favoris et de quelques réglages : visible <b>par toi seul</b>, pour la retrouver sur un autre téléphone.</li>
+      <li><b>La sauvegarde</b> de ton carnet, de tes véhicules, de tes favoris, de tes <b>lieux enregistrés</b> (nom, adresse et position, par exemple « Maison »), de tes <b>trajets récents et enregistrés</b> (destinations) et de quelques réglages : visible <b>par toi seul</b>, pour tout retrouver sur un autre téléphone.</li>
     </ul>
-    <p>Jamais stockés : ta position, ton historique de trajets côté serveur, des données de paiement. Aucune publicité, aucun traceur, aucune revente.</p>
+    <p>Jamais stockés : ta position du moment, tes déplacements réels, des données de paiement. Aucune publicité, aucun traceur, aucune revente. Si tu ne veux pas que tes lieux et tes destinations soient sauvegardés, n’utilise pas de profil : l’appli fonctionne entièrement sans.</p>
 
     <h2>Qui voit quoi</h2>
     <p>Les règles d’accès sont appliquées par la base elle-même : une personne ne voit que ses propres données et ce que ses amis <b>acceptés</b> partagent (pseudo, signalements, total du mois). Une demande d’ami en attente ne montre que le pseudo.</p>
@@ -67,12 +68,12 @@
     <ul>
       <li><b>Tout supprimer côté serveur</b> : Réglages → Amis → « Supprimer mon profil et mes données ». Le compte, le pseudo, les amitiés, les signalements, les économies et la sauvegarde sont effacés immédiatement et définitivement.</li>
       <li><b>Sur le téléphone</b> : effacer les données du site dans les réglages du navigateur (Safari : Réglages → Safari → Avancé → Données des sites).</li>
-      <li>Te déconnecter (Amis → « Se déconnecter ») garde tes données sur le serveur et sur le téléphone ; tu pourras te reconnecter.</li>
+      <li>Te déconnecter (Amis → « Se déconnecter ») envoie une dernière sauvegarde sur ton profil, puis remet ce téléphone à zéro (seul le thème est gardé). Tes données restent sur le serveur : tu retrouves tout en te reconnectant.</li>
     </ul>
 
     <h2>Contact</h2>
     <p>Plein Sud est un projet personnel. Pour toute question sur tes données, écris à la personne qui t’a partagé l’appli.</p>
-    <p class="muted">Dernière mise à jour : 2 novembre 2026.</p>
+    <p class="muted">Dernière mise à jour : 11 novembre 2026.</p>
   </main>
 </body>
 </html>

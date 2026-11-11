@@ -31,19 +31,24 @@ STATION_COLUMNS = {
     "longitude": "longitude",
 }
 
-# Colonnes facultatives, gardées seulement si le flux les fournit (noms non vérifiés sur le flux réel).
+# Colonnes facultatives, gardées seulement si le flux les fournit.
 OPTIONAL_STATION_COLUMNS = {
     "horaires_automate_24_24": "automate_24_24",
     "carburants_indisponibles": "indisponibles",
     "horaires_jour": "horaires",
     "services_service": "services",
 }
+# Colonnes qui changent à chaque relevé (disponibilité) : stockées à part dans station_status.parquet,
+# pour que stations.parquet ne soit réécrit que lorsqu'une station change vraiment.
+VOLATILE_STATION_COLUMNS = ["indisponibles", "ruptures"]
 
 DATA_DIR = Path(os.getenv("CARBURANTS_DATA_DIR", Path(__file__).resolve().parents[2] / "data"))
 
 # Bornes de plausibilité (€/L) utilisées par les contrôles qualité.
 PRICE_MIN = 0.50
 PRICE_MAX = 4.00
+# Au-delà de cette part de prix hors bornes, le relevé entier est refusé ; en dessous, seules ces lignes sont écartées.
+MAX_BAD_PRICE_SHARE = 0.01
 # Alerte si le nombre de lignes chute de plus de 30 % par rapport au dernier run.
 MAX_ROW_DROP = 0.30
 # Alerte si le prix le plus récent du flux date de plus de N jours.

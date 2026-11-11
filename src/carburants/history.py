@@ -6,7 +6,7 @@ dernier prix connu à la fin de J (s'il a moins de 14 jours). La médiane de ces
 La prévision reste volontairement simple et lisible :
 - réaliste : la tendance des 14 derniers jours (pente des moindres carrés), amortie de moitié ;
 - optimiste / pessimiste : réaliste -/+ la variation quotidienne typique, qui s'élargit avec la racine
-  du nombre de jours (marche aléatoire). Peu d'historique = bande large, et on le dit.
+  du nombre de jours (marche aléatoire), plus l'incertitude sur la tendance (elle peut s'arrêter ou continuer). Peu d'historique = bande large, et on le dit.
 """
 
 from __future__ import annotations
@@ -65,7 +65,9 @@ def forecast(values: list[float], horizon: int = HORIZON_DAYS) -> dict | None:
     real, low, high = [], [], []
     for h in range(1, horizon + 1):
         mid = last + slope * h
-        spread = 1.28 * sigma * math.sqrt(h)  # ~80 % des cas si les variations restent comme avant
+        # ~80 % des cas si les variations restent comme avant, plus l'incertitude sur la tendance elle-même :
+        # elle peut s'arrêter net ou continuer sans s'amortir (soit ± la pente amortie, cumulée).
+        spread = 1.28 * sigma * math.sqrt(h) + abs(slope) * h
         real.append(round(mid, 4))
         low.append(round(mid - spread, 4))
         high.append(round(mid + spread, 4))
@@ -120,6 +122,9 @@ def build_history(events: pd.DataFrame, now: pd.Timestamp, days: int = 90) -> di
     fuels = {}
     for fuel, grp in med.groupby("fuel"):
         grp = grp.sort_values("day")
+        # Jours où l'on suivait beaucoup moins de stations qu'aujourd'hui (début de collecte sur une zone réduite) :
+        # leur médiane n'est pas comparable, elle fausserait la courbe et la prévision.
+        grp = grp[grp["n"] >= 0.5 * grp["n"].max()]
         values = grp["median"].tolist()
         fc = forecast(values)
         item = {"days": grp["day"].tolist(), "median": values, "n": grp["n"].astype(int).tolist()}

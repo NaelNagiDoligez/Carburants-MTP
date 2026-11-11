@@ -2,8 +2,9 @@ name: Ingestion prix carburants
 
 on:
   schedule:
-    # Toutes les 6 h (UTC). GitHub peut retarder ou sauter un déclenchement : c'est normal.
-    - cron: "17 */6 * * *"
+    # Toutes les 4 h (UTC). GitHub retarde ou saute souvent des déclenchements (mesuré : 2 à 3 passages réels
+    # par jour avec un cron de 6 h) : on en demande 6 pour en obtenir environ 4.
+    - cron: "17 */4 * * *"
   workflow_dispatch:
 
 permissions:

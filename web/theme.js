@@ -1,4 +1,5 @@
-// Thème : clair le jour, « fleurs de nuit » après le coucher du soleil à Montpellier.
+// Thème : clair le jour, « fleurs de nuit » après le coucher du soleil, là où l'on est (dernière position ou lieu
+// choisi, lus dans les réglages enregistrés ; Montpellier tant qu'on ne sait rien).
 // Script classique chargé dans <head> : le thème est posé avant le premier affichage (pas de flash).
 (() => {
   const LAT = 43.6108, LON = 3.8767; // Montpellier
@@ -6,7 +7,15 @@
   const rad = Math.PI / 180;
 
   // Lever et coucher du soleil (algorithme de la NOAA, précis à une ou deux minutes près).
-  function sunTimes(date = new Date(), lat = LAT, lon = LON) {
+  function here() {
+    try {
+      const s = JSON.parse(localStorage.getItem(KEY) || "null") || {};
+      const p = s.placeId && s.placeId !== "gps" ? (s.places || []).find((x) => x.id === s.placeId) : s.gps;
+      if (p && Number.isFinite(p.lat) && Number.isFinite(p.lon)) return [p.lat, p.lon];
+    } catch { /* stockage indisponible */ }
+    return [LAT, LON];
+  }
+  function sunTimes(date = new Date(), lat = here()[0], lon = here()[1]) {
     const day = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
     const n = Math.round(day / 86400000 + 2440587.5 - 2451545.0 + 0.0008);
     const Js = n - lon / 360;

@@ -60,6 +60,14 @@ export function bearingDeg(a, b) {
   return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
 }
 
+/** Rupture déclarée dans le flux : { type: "temporaire" | "definitive" | null, since: Date | null }, ou null. */
+export function ruptureOf(station, fuel) {
+  const r = station.rupt?.[fuel];
+  if (!r) return null;
+  const since = r[1] ? new Date(r[1]) : null;
+  return { type: r[0] || null, since: since && !Number.isNaN(since.getTime()) ? since : null };
+}
+
 const OUTAGE_NAMES = {
   e10: ["e10", "sp95-e10"],
   sp95: ["sp95"],
@@ -72,6 +80,7 @@ const OUTAGE_NAMES = {
 /** Vrai si le flux signale ce carburant indisponible dans cette station. */
 export function isOutOfStock(station, fuel) {
   if (station.friendOut?.has(fuel)) return true; // signalé épuisé par toi ou par tes amis (voir app.js)
+  if (station.rupt?.[fuel]) return true; // rupture déclarée par la station dans le flux officiel
   if (!station.indisponibles) return false;
   const listed = String(station.indisponibles)
     .toLowerCase()

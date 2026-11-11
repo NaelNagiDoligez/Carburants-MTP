@@ -2,6 +2,14 @@
 
 ## Prochaine version — toute la France
 
+- **Ruptures** : le type (temporaire, définitive) et le début des ruptures déclarées par les stations sont collectés et affichés (« rupture temporaire depuis 3 j ») ; le classement indique combien de stations du rayon sont écartées pour rupture.
+- **Heure du relevé** : l'en-tête affiche l'heure de la dernière collecte, et plus celle de la publication du site ; source et date du relevé toujours visibles en bas de la liste.
+- Confidentialité : la page décrit exactement ce qui est sauvegardé (lieux et trajets compris) et ce qui est transmis aux services d'adresse et d'itinéraire.
+- Accessibilité : flèches du clavier sur les carburants et les onglets, curseur Rayon étiqueté, suggestions d'adresses annoncées, pastilles de carte nommées, cibles tactiles agrandies.
+- Réglages : titre « Réglages », nom court du véhicule dans la pastille, curseur du réservoir aux couleurs de l'appli, lever et coucher du soleil calculés là où tu es.
+- Données : dimension des stations stable (le dépôt ne grossit plus de 270 Ko par collecte), prix hors bornes écartés sans bloquer la collecte, enseigne OpenStreetMap reprise seulement à moins de 150 m, fourchette de prévision élargie, tests avant chaque publication, collecte planifiée toutes les 4 h.
+- Tableau de bord Streamlit : médianes par jour, prévision et fiabilité, ruptures, état de la collecte.
+
 - Trajet : les cases et le champ ne dépassent plus de la carte sur téléphone (adresses longues).
 - Mise à jour : l'appli connaît désormais sa propre version (elle ne se comparait qu'à celle du serveur, donc jamais de bandeau avec du code ancien) ; le service worker contourne le cache HTTP de GitHub Pages à l'installation et à chaque chargement, ce qui bloquait les mises à jour pendant ~10 min.
 

@@ -4,14 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "carburants"
-version = "0.1.0"
-description = "Pipeline d'historisation des prix des carburants (Montpellier / Hérault)"
+version = "0.9.0"
+description = "Pipeline d'historisation des prix des carburants en France et site mobile Plein Sud"
 requires-python = ">=3.11"
 dependencies = [
-    "pandas>=2.2",
+    # Bornes hautes : une version majeure ne doit pas arriver dans la collecte sans passer par les tests.
+    "pandas>=2.2,<4",
     "pyarrow>=15",
-    "numpy>=1.26",
-    "requests>=2.31",
+    "numpy>=1.26,<3",
+    "requests>=2.31,<3",
 ]
 
 [project.optional-dependencies]

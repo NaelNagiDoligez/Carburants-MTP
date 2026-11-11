@@ -1,4 +1,4 @@
-"""Ligne de commande : python -m carburants run | stats"""
+"""Ligne de commande : python -m carburants run | osm | export | stats"""
 
 from __future__ import annotations
 
@@ -16,6 +16,9 @@ def run(from_file: Path | None, data_dir: Path) -> int:
     now = pd.Timestamp.now(tz="UTC")
     records = extract.read_records(from_file) if from_file else extract.fetch_records()
     print(f"[extract] {len(records)} stations reçues")
+    if not records:
+        print("[extract] flux vide : rien n'est écrit.")
+        return 1
     print(f"[extract] colonnes du flux : {sorted(records[0])}")
 
     stations, events = transform.normalize(
@@ -34,6 +37,10 @@ def run(from_file: Path | None, data_dir: Path) -> int:
     if quality.has_errors(issues):
         print("[quality] erreurs bloquantes : rien n'est écrit.")
         return 1
+    bad = quality.out_of_range_mask(events)
+    if bad.any():  # quelques prix invraisemblables (faute de saisie d'une station) : écartés, le reste est gardé
+        print(f"[quality] {int(bad.sum())} prix hors bornes écartés : {events[bad].head(5).to_dict('records')}")
+        events = events[~bad].reset_index(drop=True)
 
     new_rows = load.upsert_events(events, data_dir)
     load.write_stations(stations, data_dir)
@@ -64,7 +71,11 @@ def export_cmd(data_dir: Path, out: Path) -> int:
         return 1
     now = pd.Timestamp.now(tz="UTC")
     cache = osm.read_cache(Path(data_dir) / "osm_fuel.json")
-    payload = export.build_payload(events, stations, now=now, osm_stations=(cache or {}).get("stations"))
+    last_run = Path(data_dir) / "_last_run.json"
+    collected_at = json.loads(last_run.read_text()).get("at") if last_run.exists() else None
+    payload = export.build_payload(
+        events, stations, now=now, osm_stations=(cache or {}).get("stations"), collected_at=collected_at
+    )
     snapped = sum(1 for s in payload["stations"] if s.get("snap"))
     print(f"[export] {snapped}/{len(payload['stations'])} stations placées via OpenStreetMap")
     manifest = export.write_departments(payload, out)
@@ -79,7 +90,6 @@ def export_cmd(data_dir: Path, out: Path) -> int:
     hist = history.build_history(events.drop(columns="_dep"), now=now)
     hist["osm_snapped"] = snapped
     hist["exported_stations"] = len(payload["stations"])
-    last_run = Path(data_dir) / "_last_run.json"
     if last_run.exists():
         hist["last_run"] = json.loads(last_run.read_text())
     hpath = export.write_payload(hist, out / "history.json")
@@ -95,7 +105,7 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--data-dir", type=Path, default=config.DATA_DIR)
     s = sub.add_parser("stats", help="Résumé de l'historique stocké")
     s.add_argument("--data-dir", type=Path, default=config.DATA_DIR)
-    e = sub.add_parser("export", help="Écrit latest.json pour le site mobile")
+    e = sub.add_parser("export", help="Écrit les fichiers du site : un par département, grille, index, historique")
     e.add_argument("--data-dir", type=Path, default=config.DATA_DIR)
     e.add_argument("--out", type=Path, default=Path("web/data"), help="dossier de sortie")
     o = sub.add_parser("osm", help="Met à jour les positions OpenStreetMap (au plus une fois par semaine)")
@@ -103,8 +113,8 @@ def main(argv: list[str] | None = None) -> int:
     o.add_argument("--force", action="store_true")
     args = p.parse_args(argv)
     if args.cmd == "osm":
-        st = pd.read_parquet(Path(args.data_dir) / "stations.parquet")
-        pts = [{"dep": geo.dep_of(r.dep_code, r.cp), "lat": float(r.latitude), "lon": float(r.longitude)}
+        st = load.read_stations(args.data_dir)
+        pts = [{"dep": geo.dep_of(getattr(r, "dep_code", None), r.cp), "lat": float(r.latitude), "lon": float(r.longitude)}
                for r in st.itertuples() if pd.notna(r.latitude) and pd.notna(r.longitude)]
         return osm.refresh(Path(args.data_dir) / "osm_fuel.json", pts, force=args.force)
     if args.cmd == "run":

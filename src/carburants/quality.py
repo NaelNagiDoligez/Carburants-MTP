@@ -16,6 +16,11 @@ class Issue:
     message: str
 
 
+def out_of_range_mask(events: pd.DataFrame) -> pd.Series:
+    """Vrai pour les prix hors des bornes de plausibilité."""
+    return (events["price"] < config.PRICE_MIN) | (events["price"] > config.PRICE_MAX)
+
+
 def check_events(
     events: pd.DataFrame,
     now: pd.Timestamp,
@@ -26,11 +31,13 @@ def check_events(
     if events.empty:
         return [Issue("error", "not_empty", "Aucun événement de prix après transformation.")]
 
-    out_of_range = events[(events["price"] < config.PRICE_MIN) | (events["price"] > config.PRICE_MAX)]
+    out_of_range = events[out_of_range_mask(events)]
     if len(out_of_range):
+        # Quelques fautes de saisie : on écarte ces lignes (voir cli.run). Beaucoup : le flux a un problème, on refuse tout.
+        blocking = len(out_of_range) / len(events) > config.MAX_BAD_PRICE_SHARE
         issues.append(
             Issue(
-                "error",
+                "error" if blocking else "warning",
                 "price_range",
                 f"{len(out_of_range)} prix hors [{config.PRICE_MIN}, {config.PRICE_MAX}] €/L "
                 f"(ex. station {out_of_range.iloc[0]['station_id']} : {out_of_range.iloc[0]['price']}).",

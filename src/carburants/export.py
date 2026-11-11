@@ -1,6 +1,6 @@
 """Export : produit de données compact consommé par le site mobile (web/).
 
-Format de latest.json (version 1) :
+Sorties (voir write_departments) : dept/<code>.json, grid.json, index.json. Format d'un fichier de département :
 {
   "version": 1,
   "generated_at": "...Z",          # date de l'export
@@ -48,6 +48,7 @@ def build_payload(
     now: pd.Timestamp,
     max_age_days: float = 14.0,
     osm_stations: list[dict] | None = None,
+    collected_at: str | None = None,
 ) -> dict:
     last = analysis.latest_prices(events)
     age = (now - last["price_updated_at"]).dt.total_seconds() / 86400
@@ -90,6 +91,9 @@ def build_payload(
         for key in config.OPTIONAL_STATION_COLUMNS.values():
             if key in row.index and _clean(row[key]):
                 item[key] = _clean(row[key])
+        rupt = parse_ruptures(row.get("ruptures"))
+        if rupt:  # {carburant: [type, début]} : « temporaire » / « definitive », début ISO ou null
+            item["rupt"] = rupt
         out_stations.append(item)
 
     fuels = {}
@@ -106,11 +110,25 @@ def build_payload(
     return {
         "version": 1,
         "generated_at": _iso(now),
+        # Heure du dernier relevé du flux (≠ heure de l'export : le site peut être republié sans nouvelle collecte).
+        "collected_at": _iso(pd.Timestamp(collected_at)) if collected_at else None,
         "last_price_at": _iso(last["price_updated_at"].max()) if len(last) else None,
         "max_age_days": max_age_days,
         "fuels": fuels,
         "stations": out_stations,
     }
+
+
+def parse_ruptures(text) -> dict:
+    """« gazole:temporaire:2026-11-02T08:00:00Z;sp98:definitive: » -> {"gazole": ["temporaire", "2026-…Z"], "sp98": ["definitive", None]}."""
+    out: dict = {}
+    if text is None or (isinstance(text, float) and pd.isna(text)):
+        return out
+    for part in str(text).split(";"):
+        bits = part.split(":", 2)
+        if len(bits) == 3 and bits[0] in FUEL_LABELS:
+            out[bits[0]] = [bits[1] or None, bits[2] or None]
+    return out
 
 
 def write_payload(payload: dict, out: Path) -> Path:
@@ -151,6 +169,7 @@ def write_departments(payload: dict, out_dir: Path) -> dict:
             "version": 2,
             "dep": dep,
             "generated_at": payload["generated_at"],
+            "collected_at": payload.get("collected_at"),
             "last_price_at": payload["last_price_at"],
             "max_age_days": payload["max_age_days"],
             "fuels": fuels_summary(part),
@@ -162,6 +181,7 @@ def write_departments(payload: dict, out_dir: Path) -> dict:
     manifest = {
         "version": 2,
         "generated_at": payload["generated_at"],
+        "collected_at": payload.get("collected_at"),
         "last_price_at": payload["last_price_at"],
         "stations": len(stations),
         "departments": index,

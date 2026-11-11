@@ -78,12 +78,7 @@ def rank_stations(
 
 def load_tables(data_dir) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Charge (events, stations) depuis le dossier de données."""
-    from pathlib import Path
-
-    events = load.read_events(data_dir)
-    stations_path = Path(data_dir) / "stations.parquet"
-    stations = pd.read_parquet(stations_path) if stations_path.exists() else pd.DataFrame()
-    return events, stations
+    return load.read_events(data_dir), load.read_stations(data_dir)
 
 
 def fuel_coverage(events: pd.DataFrame, now: pd.Timestamp, max_age_days: float = 14.0) -> pd.Series:

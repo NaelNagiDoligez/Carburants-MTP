@@ -36,8 +36,9 @@ def _available_fuels(df: pd.DataFrame) -> list[str]:
 
 def _department_mask(df: pd.DataFrame, departments: list[str]) -> pd.Series:
     """Filtre local : code département si présent, sinon deux premiers chiffres du code postal."""
-    if "dep_code" in df.columns:
-        dep = df["dep_code"].astype(str).str.strip().str.zfill(2)
+    col = next((c for c in ("dep_code", "code_departement") if c in df.columns), None)
+    if col:
+        dep = df[col].astype(str).str.strip().str.zfill(2)
     elif "cp" in df.columns:
         dep = df["cp"].astype(str).str.strip().str.zfill(5).str[:2]
     else:
@@ -56,6 +57,28 @@ def _as_text(value) -> str | None:
         return ", ".join(str(v) for v in value if v is not None) or None
     text = str(value).strip()
     return text or None
+
+
+def _ruptures(raw: pd.DataFrame, fuels: list[str]) -> pd.Series:
+    """Ruptures déclarées dans le flux, une chaîne par station : « gazole:temporaire:2026-11-02T08:00:00Z;sp98:definitive: ».
+
+    Le flux donne, par carburant, `<carburant>_rupture_type` et `<carburant>_rupture_debut` (absents = pas de rupture).
+    """
+    parts = []
+    for fuel in config.FUELS:
+        tcol, dcol = f"{fuel}_rupture_type", f"{fuel}_rupture_debut"
+        if tcol not in raw.columns and dcol not in raw.columns:
+            continue
+        kind = raw[tcol].map(_as_text) if tcol in raw.columns else pd.Series(None, index=raw.index, dtype=object)
+        since = pd.to_datetime(raw[dcol], errors="coerce", utc=True) if dcol in raw.columns else pd.Series(pd.NaT, index=raw.index)
+        since_txt = since.dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        has = kind.notna() | since.notna()
+        kind = kind.fillna("").str.lower().str.replace(r"[:;]", " ", regex=True)
+        parts.append((fuel + ":" + kind + ":" + since_txt.fillna("")).where(has))
+    if not parts:
+        return pd.Series(None, index=raw.index, dtype=object)
+    joined = pd.concat(parts, axis=1).apply(lambda row: ";".join(v for v in row if isinstance(v, str)), axis=1)
+    return joined.where(joined != "", None)
 
 
 def _fix_coordinate(series: pd.Series, limit: float) -> pd.Series:
@@ -86,6 +109,11 @@ def normalize(
     for src, dst in config.OPTIONAL_STATION_COLUMNS.items():
         if src in raw.columns:
             stations[dst] = raw[src].map(_as_text)
+    if "dep_code" not in raw.columns and "code_departement" in raw.columns:  # nom réel dans le flux
+        stations["dep_code"] = raw["code_departement"].map(_as_text)
+    ruptures = _ruptures(raw, fuels)
+    if ruptures.notna().any():
+        stations["ruptures"] = ruptures
     stations["station_id"] = stations["station_id"].astype(str)
     stations["latitude"] = _fix_coordinate(stations["latitude"], 90)
     stations["longitude"] = _fix_coordinate(stations["longitude"], 180)

@@ -65,6 +65,64 @@ def upsert_events(events: pd.DataFrame, data_dir: Path) -> int:
     return new_total
 
 
+def _write_if_changed(df: pd.DataFrame, path: Path) -> bool:
+    """N'écrit que si le contenu diffère : un fichier identique ne doit pas créer une nouvelle version dans git."""
+    if path.exists():
+        try:
+            old = pd.read_parquet(path)
+            if list(old.columns) == list(df.columns) and len(old) == len(df) and old.astype(object).where(old.notna(), None).equals(df.astype(object).where(df.notna(), None)):
+                return False
+        except (OSError, ValueError) as exc:  # fichier illisible : on le remplace
+            print(f"[load] {path.name} illisible ({exc}) : réécrit.")
+    # Sans compression ni dictionnaire : deux versions successives restent presque identiques octet pour octet,
+    # et git n'en stocke que la différence (un Parquet compressé change en entier pour quelques lignes modifiées).
+    df.to_parquet(path, index=False, compression=None, use_dictionary=False)
+    return True
+
+
 def write_stations(stations: pd.DataFrame, data_dir: Path) -> None:
-    Path(data_dir).mkdir(parents=True, exist_ok=True)
-    stations.to_parquet(Path(data_dir) / "stations.parquet", index=False)
+    """stations.parquet : la dimension stable (adresse, position, horaires…), triée, réécrite seulement si elle change.
+    station_status.parquet : ce qui bouge à chaque relevé (carburants indisponibles, ruptures).
+
+    Une station absente du relevé du jour reste dans la dimension : ses derniers prix restent exploitables.
+    """
+    from . import config
+
+    data_dir = Path(data_dir)
+    data_dir.mkdir(parents=True, exist_ok=True)
+    volatile = [c for c in config.VOLATILE_STATION_COLUMNS if c in stations.columns]
+    stable = stations.drop(columns=volatile)
+    path = data_dir / "stations.parquet"
+    if path.exists():
+        try:
+            old = pd.read_parquet(path)
+            old = old[[c for c in old.columns if c not in config.VOLATILE_STATION_COLUMNS]]
+            gone = old[~old["station_id"].astype(str).isin(set(stable["station_id"]))]
+            if len(gone):
+                stable = pd.concat([stable, gone], ignore_index=True)
+        except (OSError, ValueError, KeyError) as exc:
+            print(f"[load] ancienne dimension illisible ({exc}) : repartie du relevé du jour.")
+    stable = stable.sort_values("station_id").reset_index(drop=True)
+    _write_if_changed(stable, path)
+    status = stations[["station_id", *volatile]].copy()
+    for c in config.VOLATILE_STATION_COLUMNS:
+        if c not in status.columns:
+            status[c] = None
+    status = status[status[config.VOLATILE_STATION_COLUMNS].notna().any(axis=1)]
+    status = status.sort_values("station_id").reset_index(drop=True)
+    _write_if_changed(status, data_dir / "station_status.parquet")
+
+
+def read_stations(data_dir: Path) -> pd.DataFrame:
+    """Dimension + statut du dernier relevé, réunis (les anciens fichiers, tout-en-un, se lisent pareil)."""
+    data_dir = Path(data_dir)
+    path = data_dir / "stations.parquet"
+    if not path.exists():
+        return pd.DataFrame()
+    stations = pd.read_parquet(path)
+    status_path = data_dir / "station_status.parquet"
+    if status_path.exists():
+        status = pd.read_parquet(status_path)
+        stations = stations.drop(columns=[c for c in status.columns if c != "station_id" and c in stations.columns])
+        stations = stations.merge(status, on="station_id", how="left")
+    return stations
