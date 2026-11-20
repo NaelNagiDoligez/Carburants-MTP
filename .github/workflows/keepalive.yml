@@ -1,10 +1,13 @@
 name: Supabase actif (amis)
 
-# Un projet Supabase gratuit se met en pause après ~7 jours sans activité : les amis ne marcheraient plus.
-# Deux appels par semaine suffisent ; l'appel fait aussi le ménage (signalements « épuisé » de plus de 30 jours).
+# Un projet Supabase gratuit est mis en pause après 7 jours sans activité (et supprimé 90 jours plus tard).
+# Le 20 nov. 2026 il a été mis en pause alors que ce workflow réussissait : un appel REST seul ne suffit donc pas.
+# On fait trois types d'activité (REST, Auth, connexion Postgres directe), trois fois par semaine
+# (GitHub retarde ou saute des déclenchements ; avec un écart maximal de 3 jours, un passage manqué reste couvert).
+# Le travail est en échec bruyant : GitHub envoie un e-mail au propriétaire si un appel ne passe pas.
 on:
   schedule:
-    - cron: "41 6 * * 1,4"
+    - cron: "41 6 * * 1,3,5"
   workflow_dispatch:
 
 permissions:
@@ -13,14 +16,40 @@ permissions:
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # Clé publique (« publishable ») : elle est déjà dans l'appli, la base est protégée par ses règles RLS.
+      SUPABASE_URL: https://ognckggltaclmthuazff.supabase.co
+      SUPABASE_KEY: sb_publishable_SJk081lpKOdY1cOqX5Ylew_3UtvgOF4
+      # Optionnel : adresse de connexion Postgres (« Session pooler ») dans les secrets du dépôt.
+      DB_URL: ${{ secrets.SUPABASE_DB_URL }}
     steps:
-      - name: Appel de keepalive()
-        env:
-          # Clé publique (« publishable ») : elle est déjà dans l'appli, la base est protégée par ses règles RLS.
-          SUPABASE_URL: https://ognckggltaclmthuazff.supabase.co
-          SUPABASE_KEY: sb_publishable_SJk081lpKOdY1cOqX5Ylew_3UtvgOF4
+      - name: REST — keepalive() (purge les signalements de plus de 30 jours)
         run: |
-          code=$(curl -sS -o out.json -w '%{http_code}' -X POST "$SUPABASE_URL/rest/v1/rpc/keepalive" \
+          code=$(curl -sS --retry 4 --retry-delay 20 --retry-all-errors --max-time 60 \
+            -o out.json -w '%{http_code}' -X POST "$SUPABASE_URL/rest/v1/rpc/keepalive" \
             -H "apikey: $SUPABASE_KEY" -H "Content-Type: application/json" -d '{}')
           echo "HTTP $code, signalements purgés : $(cat out.json)"
           test "$code" = "200"
+
+      - name: Auth — lecture des réglages
+        run: |
+          code=$(curl -sS --retry 4 --retry-delay 20 --retry-all-errors --max-time 60 \
+            -o /dev/null -w '%{http_code}' "$SUPABASE_URL/auth/v1/settings" -H "apikey: $SUPABASE_KEY")
+          echo "HTTP $code"
+          test "$code" = "200"
+
+      - name: Postgres — connexion directe (si le secret SUPABASE_DB_URL existe)
+        run: |
+          if [ -z "$DB_URL" ]; then
+            echo "::warning::Secret SUPABASE_DB_URL absent : pas de connexion Postgres directe (voir README)."
+            exit 0
+          fi
+          for i in 1 2 3 4; do
+            if psql "$DB_URL" -v ON_ERROR_STOP=1 -tAc "select now(), count(*) from public.profiles"; then
+              exit 0
+            fi
+            echo "Essai $i échoué, nouvelle tentative dans 20 s"
+            sleep 20
+          done
+          exit 1
